@@ -14,15 +14,17 @@ class ExecutionResult:
     status: ExecutionStatus
     output: str
     message: Message
+    feedback: dict = None
 
 
 class VehicleCoreService:
-    def __init__(self):
+    def __init__(self, feedback_service=None):
         self.safety_agent = SafetyAgent()
         self.intent_agent = LocalIntentAgent()
         self.car_control_agent = CarControlAgent()
         self.nav_agent = NavAgent()
         self.cloud_agent = CloudScheduleAgent()
+        self.feedback_service = feedback_service
 
     def run(
         self,
@@ -41,25 +43,31 @@ class VehicleCoreService:
         )
 
         if safety == SafetyLevel.DANGEROUS:
-            return ExecutionResult(
-                status=ExecutionStatus.BLOCKED,
-                output="危险指令，已拦截！",
-                message=msg,
+            return self._with_feedback(
+                ExecutionResult(
+                    status=ExecutionStatus.BLOCKED,
+                    output="危险指令，已拦截！",
+                    message=msg,
+                )
             )
 
         if network == NetworkStatus.OFFLINE:
             output = self._run_local(command_type, user_input)
-            return ExecutionResult(
-                status=ExecutionStatus.FALLBACK,
-                output=output,
-                message=msg,
+            return self._with_feedback(
+                ExecutionResult(
+                    status=ExecutionStatus.FALLBACK,
+                    output=output,
+                    message=msg,
+                )
             )
 
         output = self.cloud_agent.dispatch(msg)
-        return ExecutionResult(
-            status=ExecutionStatus.EXECUTED,
-            output=output,
-            message=msg,
+        return self._with_feedback(
+            ExecutionResult(
+                status=ExecutionStatus.EXECUTED,
+                output=output,
+                message=msg,
+            )
         )
 
     def _run_local(self, command_type: CommandType, user_input: str) -> str:
@@ -72,3 +80,14 @@ class VehicleCoreService:
         if command_type == CommandType.PERSONALIZE:
             return "断网模式：使用本地默认偏好，温度24℃"
         return "断网模式：当前指令无法本地执行"
+
+    def _with_feedback(self, result: ExecutionResult) -> ExecutionResult:
+        if not self.feedback_service:
+            return result
+        feedback = self.feedback_service.record(result)
+        return ExecutionResult(
+            status=result.status,
+            output=result.output,
+            message=result.message,
+            feedback=feedback,
+        )

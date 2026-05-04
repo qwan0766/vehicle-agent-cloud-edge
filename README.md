@@ -19,6 +19,7 @@ python -m unittest discover -s tests -v
 - [docs/engineering-notes.md](docs/engineering-notes.md)：工程思维记录
 - [docs/rag-design.md](docs/rag-design.md)：本地 RAG 检索设计
 - [docs/profile-personalization.md](docs/profile-personalization.md)：用户画像检索与个性化决策设计
+- [docs/data-feedback-loop.md](docs/data-feedback-loop.md)：数据闭环与用户偏好更新设计
 - [docs/interview-guide.md](docs/interview-guide.md)：面试讲解指南
 - [docs/interview-progress-record.md](docs/interview-progress-record.md)：当前成果与面试准备记录
 - [docs/web-demo.md](docs/web-demo.md)：网页展示说明

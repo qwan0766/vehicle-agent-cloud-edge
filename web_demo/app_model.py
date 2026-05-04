@@ -4,6 +4,7 @@ from data.vehicle_state import DEFAULT_VEHICLE_STATE
 from agents.cloud.cloud_route_plan_agent import CloudRoutePlanAgent
 from agents.cloud.cloud_user_profile_agent import CloudUserProfileAgent
 from agents.vehicle.local_intent_agent import LocalIntentAgent
+from feedback.feedback_service import FeedbackService
 
 
 SCENARIOS = [
@@ -24,7 +25,7 @@ def get_initial_payload():
 
 def run_command(content: str, user_id: str = "user_001", network: str = "ONLINE"):
     network_status = _parse_network(network)
-    service = VehicleCoreService()
+    service = VehicleCoreService(feedback_service=FeedbackService())
     result = service.run(content, user_id=user_id, network=network_status)
 
     return {
@@ -41,6 +42,7 @@ def run_command(content: str, user_id: str = "user_001", network: str = "ONLINE"
             "status": result.status.value,
             "output": result.output,
         },
+        "feedback": result.feedback or {},
         "rag_context": _rag_context(
             result.message.content,
             result.message.user_id,

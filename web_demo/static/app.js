@@ -19,6 +19,9 @@ const nodes = {
   agentTrace: document.querySelector("#agentTrace"),
   ragCount: document.querySelector("#ragCount"),
   ragContext: document.querySelector("#ragContext"),
+  feedbackStatus: document.querySelector("#feedbackStatus"),
+  feedbackEvent: document.querySelector("#feedbackEvent"),
+  feedbackPreference: document.querySelector("#feedbackPreference"),
   requestIdValue: document.querySelector("#requestIdValue"),
   commandTypeValue: document.querySelector("#commandTypeValue"),
   safetyValue: document.querySelector("#safetyValue"),
@@ -129,6 +132,13 @@ function renderResult(payload) {
   });
 
   renderRagContext(payload.rag_context || []);
+  renderFeedback(payload.feedback || {});
+}
+
+function renderFeedback(feedback) {
+  nodes.feedbackStatus.textContent = feedback.event_status || "未记录";
+  nodes.feedbackEvent.textContent = feedback.event_log || "-";
+  nodes.feedbackPreference.textContent = feedback.preference_update || "-";
 }
 
 function renderRagContext(items) {

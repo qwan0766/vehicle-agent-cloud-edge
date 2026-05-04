@@ -231,6 +231,36 @@ user_001 + 导航去蔚来中心
 
 > 我把用户画像也做成了可检索上下文，让用户长期偏好参与云端路线决策。这样项目不只是识别意图，还能体现个性化 AI 应用的基本链路。
 
+### 2.10 数据闭环与偏好更新
+
+已完成文件：
+
+- `feedback/usage_logger.py`
+- `feedback/preference_updater.py`
+- `feedback/feedback_service.py`
+- `docs/data-feedback-loop.md`
+- `tests/test_feedback_loop.py`
+
+核心设计：
+
+- 每次执行生成结构化 `UsageEvent`。
+- 使用 JSONL 写入 `runtime/usage_events.jsonl`。
+- 根据行为生成 `PreferenceUpdate`。
+- 控制台和网页展示本次数据闭环结果。
+- `runtime/` 已加入 `.gitignore`，避免运行数据进入版本库。
+
+示例能力：
+
+```text
+打开座椅加热
+  -> 记录 UsageEvent
+  -> 偏好更新：座椅加热偏好 +1
+```
+
+面试表达：
+
+> 我没有只做单次请求响应，而是加入了数据闭环。每次执行都会记录结构化事件，并基于规则生成用户偏好更新。第一版用 JSONL 模拟，后续可以迁移到数据库、埋点平台或用户画像服务。
+
 ## 3. 当前技术路线
 
 当前版本使用：
@@ -271,7 +301,7 @@ user_001 + 导航去蔚来中心
 最近验证结果：
 
 ```text
-Ran 22 tests
+Ran 25 tests
 OK
 ```
 
@@ -379,6 +409,10 @@ http://127.0.0.1:8000
 加入用户画像检索后，可以升级为：
 
 > 设计并实现车载端云协同 Multi-Agent 原型系统，构建 SafetyAgent、LocalIntentAgent、CloudScheduleAgent 等 8 个 Agent；抽象本地 Retriever，通过关键词评分实现意图、路线知识与用户画像的可解释召回，支持相似意图识别、个性化路线规划、危险指令拦截、断网本地兜底、统一消息协议、网页可视化展示和 22 个核心单元测试。
+
+加入数据闭环后，可以升级为：
+
+> 设计并实现车载端云协同 Multi-Agent 原型系统，构建 SafetyAgent、LocalIntentAgent、CloudScheduleAgent 等 8 个 Agent；抽象本地 Retriever，实现意图、路线知识与用户画像的可解释召回；加入 UsageEvent 与 PreferenceUpdate 数据闭环，支持个性化路线规划、危险指令拦截、断网本地兜底、网页可视化展示和 25 个核心单元测试。
 
 ## 8. 下一步建议
 

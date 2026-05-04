@@ -17,6 +17,8 @@ class TestWebDemoAppModel(unittest.TestCase):
         self.assertTrue(
             any(item["stage"] == "用户画像召回" for item in payload["rag_context"])
         )
+        self.assertEqual(payload["feedback"]["event_status"], "RECORDED")
+        self.assertIn("路线偏好高速", payload["feedback"]["preference_update"])
 
     def test_offline_car_control_payload_contains_local_fallback_trace(self):
         payload = run_command("打开座椅加热", network="OFFLINE")

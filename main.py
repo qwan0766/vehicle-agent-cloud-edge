@@ -1,6 +1,7 @@
 from core.constants import NetworkStatus
 from core.vehicle_core_service import VehicleCoreService
 from data.vehicle_state import DEFAULT_VEHICLE_STATE
+from feedback.feedback_service import FeedbackService
 
 
 def print_vehicle_state(network: NetworkStatus):
@@ -19,6 +20,9 @@ def print_result(result):
     print(f"网络状态：{result.message.network.value}")
     print(f"执行状态：{result.status.value}")
     print(f"最终结果：{result.output}")
+    if result.feedback:
+        print(f"数据闭环：{result.feedback['event_status']}")
+        print(f"偏好更新：{result.feedback['preference_update']}")
 
 
 def run_scenario(
@@ -35,7 +39,7 @@ def run_scenario(
 
 
 def main():
-    service = VehicleCoreService()
+    service = VehicleCoreService(feedback_service=FeedbackService())
 
     run_scenario("场景1：行程启动（端云协同）", service, "导航去蔚来中心", NetworkStatus.ONLINE)
     run_scenario("场景2：行驶途中（断网本地执行）", service, "打开座椅加热", NetworkStatus.OFFLINE)
