@@ -20,6 +20,9 @@ python -m unittest discover -s tests -v
 - [docs/rag-design.md](docs/rag-design.md)：本地 RAG 检索设计
 - [docs/profile-personalization.md](docs/profile-personalization.md)：用户画像检索与个性化决策设计
 - [docs/data-feedback-loop.md](docs/data-feedback-loop.md)：数据闭环与用户偏好更新设计
+- [docs/demo-script.md](docs/demo-script.md)：面试演示脚本
+- [docs/architecture-diagram.md](docs/architecture-diagram.md)：架构图与链路图
+- [docs/final-implementation-summary.md](docs/final-implementation-summary.md)：阶段实现总结
 - [docs/interview-guide.md](docs/interview-guide.md)：面试讲解指南
 - [docs/interview-progress-record.md](docs/interview-progress-record.md)：当前成果与面试准备记录
 - [docs/web-demo.md](docs/web-demo.md)：网页展示说明

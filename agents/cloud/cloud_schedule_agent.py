@@ -5,10 +5,10 @@ from core.message import Message
 
 
 class CloudScheduleAgent:
-    def __init__(self):
-        self.user_agent = CloudUserProfileAgent()
-        self.route_agent = CloudRoutePlanAgent()
-        self.ecology_agent = CloudEcologyAgent()
+    def __init__(self, user_agent=None, route_agent=None, ecology_agent=None):
+        self.user_agent = user_agent or CloudUserProfileAgent()
+        self.route_agent = route_agent or CloudRoutePlanAgent()
+        self.ecology_agent = ecology_agent or CloudEcologyAgent()
 
     def dispatch(self, msg: Message) -> str:
         user_pref = self.user_agent.get_profile(msg.user_id)

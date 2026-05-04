@@ -4,6 +4,10 @@ from agents.cloud.cloud_schedule_agent import CloudScheduleAgent
 from agents.cloud.cloud_user_profile_agent import CloudUserProfileAgent
 from core.constants import CommandType, NetworkStatus, SafetyLevel
 from core.message import Message
+from feedback.preference_store import PreferenceStore
+from feedback.preference_updater import PreferenceUpdate
+from pathlib import Path
+import uuid
 
 
 class TestCloudAgents(unittest.TestCase):
@@ -17,6 +21,22 @@ class TestCloudAgents(unittest.TestCase):
 
         self.assertTrue(results)
         self.assertIn("路线偏好高速", results[0].document.text)
+
+    def test_profile_agent_uses_dynamic_preference_state(self):
+        path = Path(".test_runtime") / f"profile_state_{uuid.uuid4().hex}.json"
+        store = PreferenceStore(path)
+        store.apply(
+            PreferenceUpdate(
+                user_id="user_002",
+                preference_key="route_preference_highway",
+                delta=2,
+                description="路线偏好高速 +2",
+                timestamp="2026-05-05T00:00:00",
+            )
+        )
+        agent = CloudUserProfileAgent(preference_store=store)
+
+        self.assertEqual(agent.get_route_preference("user_002", "导航去蔚来中心"), "高速")
 
     def test_cloud_schedule_combines_profile_ecology_and_route(self):
         msg = Message.create(

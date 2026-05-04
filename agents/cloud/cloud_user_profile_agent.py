@@ -1,11 +1,13 @@
 from data.user_profiles import DEFAULT_PROFILE, USER_PROFILES
+from feedback.preference_store import PreferenceStore
 from rag.documents import PROFILE_DOCUMENTS
 from rag.simple_retriever import SimpleRetriever
 
 
 class CloudUserProfileAgent:
-    def __init__(self):
+    def __init__(self, preference_store=None):
         self.retriever = SimpleRetriever(PROFILE_DOCUMENTS)
+        self.preference_store = preference_store or PreferenceStore()
 
     def get_profile(self, user_id: str) -> str:
         return USER_PROFILES.get(user_id, DEFAULT_PROFILE)
@@ -23,4 +25,7 @@ class CloudUserProfileAgent:
             route_preference = result.document.metadata.get("route_preference")
             if route_preference:
                 return str(route_preference)
+        state = self.preference_store.get_user_state(user_id)
+        if int(state.get("route_preference_highway", 0)) > 0:
+            return "高速"
         return ""

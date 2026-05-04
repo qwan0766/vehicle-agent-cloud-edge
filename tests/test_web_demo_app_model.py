@@ -1,9 +1,16 @@
 import unittest
 
 from web_demo.app_model import run_command
+from web_demo.app_model import get_initial_payload
 
 
 class TestWebDemoAppModel(unittest.TestCase):
+    def test_initial_payload_contains_user_options(self):
+        payload = get_initial_payload()
+
+        self.assertIn("users", payload)
+        self.assertEqual(payload["users"][0]["user_id"], "user_001")
+
     def test_online_navigation_payload_contains_cloud_trace(self):
         payload = run_command("导航去蔚来中心", network="ONLINE")
 
@@ -19,6 +26,14 @@ class TestWebDemoAppModel(unittest.TestCase):
         )
         self.assertEqual(payload["feedback"]["event_status"], "RECORDED")
         self.assertIn("路线偏好高速", payload["feedback"]["preference_update"])
+
+    def test_user_two_payload_contains_user_two_profile_context(self):
+        payload = run_command("电量低", user_id="user_002", network="ONLINE")
+
+        self.assertEqual(payload["request"]["user_id"], "user_002")
+        self.assertTrue(
+            any("user_002" in item["text"] for item in payload["rag_context"])
+        )
 
     def test_offline_car_control_payload_contains_local_fallback_trace(self):
         payload = run_command("打开座椅加热", network="OFFLINE")

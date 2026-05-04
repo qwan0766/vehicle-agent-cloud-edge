@@ -7,6 +7,7 @@ from agents.vehicle.nav_agent import NavAgent
 from agents.vehicle.safety_agent import SafetyAgent
 from core.constants import CommandType, ExecutionStatus, NetworkStatus, SafetyLevel
 from core.message import Message
+from safety.safety_policy import SafetyPolicy
 
 
 @dataclass(frozen=True)
@@ -25,6 +26,7 @@ class VehicleCoreService:
         self.nav_agent = NavAgent()
         self.cloud_agent = CloudScheduleAgent()
         self.feedback_service = feedback_service
+        self.safety_policy = SafetyPolicy()
 
     def run(
         self,
@@ -42,11 +44,17 @@ class VehicleCoreService:
             network=network,
         )
 
-        if safety == SafetyLevel.DANGEROUS:
+        safety_decision = self.safety_policy.evaluate(
+            command_type=command_type,
+            safety=safety,
+            network=network,
+            content=user_input,
+        )
+        if not safety_decision.allowed:
             return self._with_feedback(
                 ExecutionResult(
                     status=ExecutionStatus.BLOCKED,
-                    output="危险指令，已拦截！",
+                    output=safety_decision.reason,
                     message=msg,
                 )
             )

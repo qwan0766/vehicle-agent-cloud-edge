@@ -27,7 +27,8 @@ body {
 }
 
 button,
-input {
+input,
+select {
   font: inherit;
 }
 
@@ -221,7 +222,8 @@ h2 {
   margin-top: 14px;
 }
 
-.command-input input {
+.command-input input,
+.command-input select {
   width: 100%;
   min-height: 44px;
   margin-top: 6px;
@@ -229,6 +231,11 @@ h2 {
   border-radius: 6px;
   padding: 0 12px;
   color: var(--text);
+}
+
+.user-select {
+  margin-top: 0;
+  margin-bottom: 14px;
 }
 
 .primary-action {

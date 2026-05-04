@@ -261,6 +261,31 @@ user_001 + 导航去蔚来中心
 
 > 我没有只做单次请求响应，而是加入了数据闭环。每次执行都会记录结构化事件，并基于规则生成用户偏好更新。第一版用 JSONL 模拟，后续可以迁移到数据库、埋点平台或用户画像服务。
 
+### 2.11 多用户、动态偏好、安全策略与 E2E
+
+已完成文件：
+
+- `feedback/preference_store.py`
+- `safety/safety_policy.py`
+- `tests/test_preference_store.py`
+- `tests/test_safety_policy.py`
+- `tests/test_e2e_scenarios.py`
+- `docs/demo-script.md`
+- `docs/architecture-diagram.md`
+- `docs/final-implementation-summary.md`
+
+核心能力：
+
+- 网页支持 `user_001 / user_002` 切换。
+- 偏好更新会累计到 `runtime/user_preference_state.json`。
+- 未知指令由 `SafetyPolicy` 拦截，不进入执行链路。
+- 增加 E2E 测试覆盖在线导航和未知指令拦截。
+- 增加面试演示脚本和 Mermaid 架构图。
+
+面试表达：
+
+> 我进一步把系统从单用户 demo 升级为支持多用户画像切换，并加入动态偏好状态和独立安全策略层。这样项目不仅能展示一次性 Agent 调用，还能体现用户上下文隔离、数据闭环和车载安全边界。
+
 ## 3. 当前技术路线
 
 当前版本使用：

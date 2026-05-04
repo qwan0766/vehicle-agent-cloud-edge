@@ -1,6 +1,8 @@
 const state = {
   network: "ONLINE",
   scenarios: [],
+  users: [],
+  userId: "user_001",
 };
 
 const nodes = {
@@ -12,6 +14,8 @@ const nodes = {
   batteryBar: document.querySelector("#batteryBar"),
   onlineBtn: document.querySelector("#onlineBtn"),
   offlineBtn: document.querySelector("#offlineBtn"),
+  userIdValue: document.querySelector("#userIdValue"),
+  userSelect: document.querySelector("#userSelect"),
   scenarioButtons: document.querySelector("#scenarioButtons"),
   commandInput: document.querySelector("#commandInput"),
   runBtn: document.querySelector("#runBtn"),
@@ -33,7 +37,9 @@ async function init() {
   const response = await fetch("/api/state");
   const payload = await response.json();
   state.scenarios = payload.scenarios;
+  state.users = payload.users;
   renderVehicle(payload.vehicle_state);
+  renderUsers();
   renderScenarioButtons();
   bindEvents();
   await runCommand();
@@ -43,11 +49,28 @@ function bindEvents() {
   nodes.onlineBtn.addEventListener("click", () => setNetwork("ONLINE"));
   nodes.offlineBtn.addEventListener("click", () => setNetwork("OFFLINE"));
   nodes.runBtn.addEventListener("click", runCommand);
+  nodes.userSelect.addEventListener("change", () => {
+    state.userId = nodes.userSelect.value;
+    nodes.userIdValue.textContent = state.userId;
+    runCommand();
+  });
   nodes.commandInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
       runCommand();
     }
   });
+}
+
+function renderUsers() {
+  nodes.userSelect.innerHTML = "";
+  state.users.forEach((user) => {
+    const option = document.createElement("option");
+    option.value = user.user_id;
+    option.textContent = user.label;
+    nodes.userSelect.appendChild(option);
+  });
+  nodes.userSelect.value = state.userId;
+  nodes.userIdValue.textContent = state.userId;
 }
 
 function setNetwork(network) {
@@ -86,7 +109,7 @@ async function runCommand() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         content,
-        user_id: "user_001",
+        user_id: state.userId,
         network: state.network,
       }),
     });

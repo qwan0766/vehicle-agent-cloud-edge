@@ -7,6 +7,11 @@ from agents.vehicle.local_intent_agent import LocalIntentAgent
 from feedback.feedback_service import FeedbackService
 
 
+USERS = [
+    {"user_id": "user_001", "label": "user_001：舒适 + 高速偏好"},
+    {"user_id": "user_002", "label": "user_002：音乐 + 补能提醒"},
+]
+
 SCENARIOS = [
     {"label": "导航去蔚来中心", "content": "导航去蔚来中心", "network": "ONLINE"},
     {"label": "打开座椅加热", "content": "打开座椅加热", "network": "OFFLINE"},
@@ -19,6 +24,7 @@ SCENARIOS = [
 def get_initial_payload():
     return {
         "vehicle_state": _vehicle_state_payload(NetworkStatus.ONLINE),
+        "users": USERS,
         "scenarios": SCENARIOS,
     }
 
