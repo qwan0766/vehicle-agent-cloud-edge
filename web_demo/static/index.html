@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>车载 Multi-Agent 端云协同展示</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="topbar" aria-label="系统概览">
+        <div>
+          <p class="eyebrow">Offline Vehicle Agent Console</p>
+          <h1>车载 Multi-Agent 端云协同系统</h1>
+        </div>
+        <div class="status-strip">
+          <span id="networkBadge" class="badge">ONLINE</span>
+          <span id="safetyBadge" class="badge badge-safe">安全正常</span>
+        </div>
+      </section>
+
+      <section class="dashboard-grid">
+        <aside class="panel vehicle-panel" aria-label="车辆状态">
+          <div class="panel-heading">
+            <h2>车辆状态</h2>
+            <span id="gpsValue">121.48, 31.23</span>
+          </div>
+          <div class="metric-row">
+            <div class="metric">
+              <span>车速</span>
+              <strong id="speedValue">60</strong>
+              <small>km/h</small>
+            </div>
+            <div class="metric">
+              <span>电量</span>
+              <strong id="batteryValue">35</strong>
+              <small>%</small>
+            </div>
+          </div>
+          <div class="battery-track" aria-hidden="true">
+            <div id="batteryBar" class="battery-fill"></div>
+          </div>
+          <div class="network-toggle" aria-label="网络状态">
+            <button id="onlineBtn" class="toggle active" type="button">ONLINE</button>
+            <button id="offlineBtn" class="toggle" type="button">OFFLINE</button>
+          </div>
+        </aside>
+
+        <section class="panel command-panel" aria-label="指令执行">
+          <div class="panel-heading">
+            <h2>指令执行</h2>
+            <span id="userIdValue">user_001</span>
+          </div>
+          <div id="scenarioButtons" class="scenario-grid"></div>
+          <label class="command-input">
+            <span>用户指令</span>
+            <input id="commandInput" value="导航去蔚来中心" />
+          </label>
+          <button id="runBtn" class="primary-action" type="button">运行指令</button>
+        </section>
+
+        <section class="panel trace-panel" aria-label="Agent 调用链">
+          <div class="panel-heading">
+            <h2>Agent 调用链</h2>
+            <span id="traceMode">等待输入</span>
+          </div>
+          <ol id="agentTrace" class="agent-trace"></ol>
+        </section>
+
+        <section class="panel result-panel" aria-label="执行结果">
+          <div class="panel-heading">
+            <h2>执行结果</h2>
+            <span id="requestIdValue">-</span>
+          </div>
+          <div class="result-grid">
+            <div>
+              <span>解析意图</span>
+              <strong id="commandTypeValue">-</strong>
+            </div>
+            <div>
+              <span>安全等级</span>
+              <strong id="safetyValue">-</strong>
+            </div>
+            <div>
+              <span>执行状态</span>
+              <strong id="executionValue">-</strong>
+            </div>
+          </div>
+          <div id="resultOutput" class="result-output">等待执行结果</div>
+        </section>
+      </section>
+    </main>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

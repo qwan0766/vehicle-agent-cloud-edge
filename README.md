@@ -6,6 +6,7 @@
 
 ```bash
 python main.py
+python web_demo/server.py
 python -m unittest discover -s tests -v
 ```
 
@@ -17,6 +18,7 @@ python -m unittest discover -s tests -v
 - [docs/architecture.md](docs/architecture.md)：系统架构说明
 - [docs/engineering-notes.md](docs/engineering-notes.md)：工程思维记录
 - [docs/interview-guide.md](docs/interview-guide.md)：面试讲解指南
+- [docs/web-demo.md](docs/web-demo.md)：网页展示说明
 - [docs/superpowers/plans/2026-05-04-vehicle-multi-agent-mvp.md](docs/superpowers/plans/2026-05-04-vehicle-multi-agent-mvp.md)：MVP 实现计划
 
 ## 1. 基本信息
