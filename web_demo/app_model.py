@@ -2,6 +2,7 @@ from core.constants import CommandType, ExecutionStatus, NetworkStatus, SafetyLe
 from core.vehicle_core_service import VehicleCoreService
 from data.vehicle_state import DEFAULT_VEHICLE_STATE
 from agents.cloud.cloud_route_plan_agent import CloudRoutePlanAgent
+from agents.cloud.cloud_user_profile_agent import CloudUserProfileAgent
 from agents.vehicle.local_intent_agent import LocalIntentAgent
 
 
@@ -42,6 +43,7 @@ def run_command(content: str, user_id: str = "user_001", network: str = "ONLINE"
         },
         "rag_context": _rag_context(
             result.message.content,
+            result.message.user_id,
             result.message.command_type,
             result.message.network,
         ),
@@ -93,7 +95,7 @@ def _agent_trace(command_type: CommandType, safety: SafetyLevel, status: Executi
     return trace
 
 
-def _rag_context(content: str, command_type: CommandType, network: NetworkStatus):
+def _rag_context(content: str, user_id: str, command_type: CommandType, network: NetworkStatus):
     context = []
 
     intent_agent = LocalIntentAgent()
@@ -105,6 +107,10 @@ def _rag_context(content: str, command_type: CommandType, network: NetworkStatus
         CommandType.CHARGE_PLAN,
         CommandType.PERSONALIZE,
     }:
+        profile_agent = CloudUserProfileAgent()
+        for result in profile_agent.retrieve_context(user_id, content):
+            context.append(_context_payload("用户画像召回", result))
+
         route_agent = CloudRoutePlanAgent()
         for result in route_agent.retrieve_context(content):
             context.append(_context_payload("云端路线规划", result))

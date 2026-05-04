@@ -11,6 +11,13 @@ class TestCloudAgents(unittest.TestCase):
         agent = CloudUserProfileAgent()
         self.assertIn("默认偏好", agent.get_profile("missing_user"))
 
+    def test_profile_agent_retrieves_user_route_preference(self):
+        agent = CloudUserProfileAgent()
+        results = agent.retrieve_context("user_001", "导航去蔚来中心")
+
+        self.assertTrue(results)
+        self.assertIn("路线偏好高速", results[0].document.text)
+
     def test_cloud_schedule_combines_profile_ecology_and_route(self):
         msg = Message.create(
             user_id="user_001",
@@ -24,6 +31,7 @@ class TestCloudAgents(unittest.TestCase):
         self.assertIn("用户偏好", result)
         self.assertIn("外部生态数据", result)
         self.assertIn("RAG路线结果", result)
+        self.assertIn("结合用户路线偏好高速", result)
 
     def test_route_plan_uses_retrieved_charge_context(self):
         from agents.cloud.cloud_route_plan_agent import CloudRoutePlanAgent

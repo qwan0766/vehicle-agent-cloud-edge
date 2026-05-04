@@ -84,3 +84,29 @@ ROUTE_DOCUMENTS = [
         metadata={"topic": "fallback"},
     ),
 ]
+
+
+PROFILE_DOCUMENTS = [
+    RetrievalDocument(
+        doc_id="profile_user_001",
+        text="user_001：温度24℃，座椅加热自动开启，路线偏好高速",
+        keywords=["user_001", "温度24", "座椅加热", "路线偏好高速", "高速", "导航"],
+        metadata={
+            "user_id": "user_001",
+            "temperature": "24℃",
+            "seat_heat": "自动开启",
+            "route_preference": "高速",
+        },
+    ),
+    RetrievalDocument(
+        doc_id="profile_user_002",
+        text="user_002：温度22℃，音乐音量30%，充电提醒20%",
+        keywords=["user_002", "温度22", "音乐", "音量30", "充电提醒20", "电量", "充电"],
+        metadata={
+            "user_id": "user_002",
+            "temperature": "22℃",
+            "music_volume": "30%",
+            "charge_reminder": "20%",
+        },
+    ),
+]

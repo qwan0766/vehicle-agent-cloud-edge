@@ -201,6 +201,36 @@
 
 > 我把原先的硬编码 RAG 模拟升级成了本地 Retriever。当前用关键词评分实现，能展示召回文档、分数和命中关键词；后续可以把 Retriever 底层替换为 BM25、embedding、FAISS 或 Milvus，上层 Agent 不需要重写。
 
+### 2.9 用户画像检索与个性化决策
+
+已完成文件：
+
+- `docs/profile-personalization.md`
+- `rag/documents.py`
+- `agents/cloud/cloud_user_profile_agent.py`
+- `agents/cloud/cloud_schedule_agent.py`
+- `agents/cloud/cloud_route_plan_agent.py`
+- `web_demo/app_model.py`
+
+核心设计：
+
+- 将 `user_001`、`user_002` 用户画像建模为 `PROFILE_DOCUMENTS`。
+- `CloudUserProfileAgent` 支持用户画像召回。
+- `CloudScheduleAgent` 将用户路线偏好注入路线规划。
+- 网页 RAG 区域展示“用户画像召回”。
+
+示例能力：
+
+```text
+user_001 + 导航去蔚来中心
+  -> 召回：路线偏好高速
+  -> 路线规划：长途优先高速路线，结合用户路线偏好高速
+```
+
+面试表达：
+
+> 我把用户画像也做成了可检索上下文，让用户长期偏好参与云端路线决策。这样项目不只是识别意图，还能体现个性化 AI 应用的基本链路。
+
 ## 3. 当前技术路线
 
 当前版本使用：
@@ -241,7 +271,7 @@
 最近验证结果：
 
 ```text
-Ran 21 tests
+Ran 22 tests
 OK
 ```
 
@@ -345,6 +375,10 @@ http://127.0.0.1:8000
 加入本地 RAG 检索层后，可以升级为：
 
 > 设计并实现车载端云协同 Multi-Agent 原型系统，拆分车载执行层、端云通信层与云端决策层，构建 SafetyAgent、LocalIntentAgent、CarControlAgent、NavAgent、CloudScheduleAgent 等 8 个 Agent；抽象本地 Retriever，通过关键词评分实现可解释 RAG 召回，支持相似意图识别、路线知识召回和网页召回依据展示；实现危险车控指令拦截、断网本地兜底、统一消息协议、网页可视化展示和 21 个核心单元测试。
+
+加入用户画像检索后，可以升级为：
+
+> 设计并实现车载端云协同 Multi-Agent 原型系统，构建 SafetyAgent、LocalIntentAgent、CloudScheduleAgent 等 8 个 Agent；抽象本地 Retriever，通过关键词评分实现意图、路线知识与用户画像的可解释召回，支持相似意图识别、个性化路线规划、危险指令拦截、断网本地兜底、统一消息协议、网页可视化展示和 22 个核心单元测试。
 
 ## 8. 下一步建议
 

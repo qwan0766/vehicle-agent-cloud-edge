@@ -12,6 +12,7 @@ class CloudScheduleAgent:
 
     def dispatch(self, msg: Message) -> str:
         user_pref = self.user_agent.get_profile(msg.user_id)
+        route_preference = self.user_agent.get_route_preference(msg.user_id, msg.content)
         ecology = self.ecology_agent.get_data()
-        route = self.route_agent.plan(msg.content)
+        route = self.route_agent.plan(msg.content, route_preference=route_preference)
         return f"{user_pref} | {ecology} | {route}"
