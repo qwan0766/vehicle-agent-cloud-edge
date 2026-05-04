@@ -1,5 +1,24 @@
 # 车载 Multi-Agent 端云协同系统开发（offline）
 
+## 快速开始
+
+本项目使用 Python 标准库实现，无需安装额外依赖。
+
+```bash
+python main.py
+python -m unittest discover -s tests -v
+```
+
+如果本机 `python` 命令不可用，请使用 Python 3.8~3.11 解释器运行。
+
+## 项目文档
+
+- [docs/project-kickoff.md](docs/project-kickoff.md)：项目启动方案
+- [docs/architecture.md](docs/architecture.md)：系统架构说明
+- [docs/engineering-notes.md](docs/engineering-notes.md)：工程思维记录
+- [docs/interview-guide.md](docs/interview-guide.md)：面试讲解指南
+- [docs/superpowers/plans/2026-05-04-vehicle-multi-agent-mvp.md](docs/superpowers/plans/2026-05-04-vehicle-multi-agent-mvp.md)：MVP 实现计划
+
 ## 1. 基本信息
 
 ### 1.1 项目名称
