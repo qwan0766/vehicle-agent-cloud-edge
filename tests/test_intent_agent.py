@@ -17,6 +17,10 @@ class TestLocalIntentAgent(unittest.TestCase):
         agent = LocalIntentAgent()
         self.assertEqual(agent.recognize("播放一首歌"), CommandType.UNKNOWN)
 
+    def test_dangerous_motion_command_is_still_car_control_intent(self):
+        agent = LocalIntentAgent()
+        self.assertEqual(agent.recognize("加速到100km/h"), CommandType.CAR_CONTROL)
+
 
 if __name__ == "__main__":
     unittest.main()
