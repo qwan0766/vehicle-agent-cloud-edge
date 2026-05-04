@@ -174,6 +174,33 @@
 
 > 网页层没有直接耦合 Agent 内部实现，而是通过 `web_demo/app_model.py` 把核心服务输出转换成稳定 JSON。这样前端只关心展示协议，后端 Agent 可以独立演进。
 
+### 2.8 本地 RAG 检索层
+
+已完成文件：
+
+- `rag/documents.py`
+- `rag/simple_retriever.py`
+- `tests/test_simple_retriever.py`
+- `docs/rag-design.md`
+
+核心设计：
+
+- 用 `RetrievalDocument` 表达知识文档。
+- 用 `SimpleRetriever` 执行本地关键词评分检索。
+- 用 `RetrievalResult` 返回召回文档、分数和命中关键词。
+- `LocalIntentAgent` 使用检索器识别相似表达。
+- `CloudRoutePlanAgent` 使用检索器召回路线知识。
+- 网页新增“RAG 召回知识”区域。
+
+示例能力：
+
+- `帮我导航到蔚来中心` 可以识别为 `NAVIGATION`。
+- `电量低，需要补能` 可以召回 `电量低于20%建议前往换电站`。
+
+面试表达：
+
+> 我把原先的硬编码 RAG 模拟升级成了本地 Retriever。当前用关键词评分实现，能展示召回文档、分数和命中关键词；后续可以把 Retriever 底层替换为 BM25、embedding、FAISS 或 Milvus，上层 Agent 不需要重写。
+
 ## 3. 当前技术路线
 
 当前版本使用：
@@ -209,11 +236,12 @@
 - 云端 Agent 测试。
 - 核心编排测试。
 - 网页展示模型测试。
+- 本地 RAG 检索测试。
 
 最近验证结果：
 
 ```text
-Ran 17 tests
+Ran 21 tests
 OK
 ```
 
@@ -313,6 +341,10 @@ http://127.0.0.1:8000
 可以写成：
 
 > 设计并实现车载端云协同 Multi-Agent 原型系统，拆分车载执行层、端云通信层与云端决策层，构建 SafetyAgent、LocalIntentAgent、CarControlAgent、NavAgent、CloudScheduleAgent 等 8 个 Agent；通过本地知识库模拟 RAG 意图识别、用户画像召回和路线规划；实现危险车控指令拦截、断网本地兜底、统一消息协议、网页可视化展示和 17 个核心单元测试。
+
+加入本地 RAG 检索层后，可以升级为：
+
+> 设计并实现车载端云协同 Multi-Agent 原型系统，拆分车载执行层、端云通信层与云端决策层，构建 SafetyAgent、LocalIntentAgent、CarControlAgent、NavAgent、CloudScheduleAgent 等 8 个 Agent；抽象本地 Retriever，通过关键词评分实现可解释 RAG 召回，支持相似意图识别、路线知识召回和网页召回依据展示；实现危险车控指令拦截、断网本地兜底、统一消息协议、网页可视化展示和 21 个核心单元测试。
 
 ## 8. 下一步建议
 

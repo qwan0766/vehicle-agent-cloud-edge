@@ -25,6 +25,13 @@ class TestCloudAgents(unittest.TestCase):
         self.assertIn("外部生态数据", result)
         self.assertIn("RAG路线结果", result)
 
+    def test_route_plan_uses_retrieved_charge_context(self):
+        from agents.cloud.cloud_route_plan_agent import CloudRoutePlanAgent
+
+        result = CloudRoutePlanAgent().plan("电量低，需要补能")
+
+        self.assertIn("电量低于20%建议前往换电站", result)
+
 
 if __name__ == "__main__":
     unittest.main()

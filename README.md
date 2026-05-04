@@ -17,6 +17,7 @@ python -m unittest discover -s tests -v
 - [docs/project-kickoff.md](docs/project-kickoff.md)：项目启动方案
 - [docs/architecture.md](docs/architecture.md)：系统架构说明
 - [docs/engineering-notes.md](docs/engineering-notes.md)：工程思维记录
+- [docs/rag-design.md](docs/rag-design.md)：本地 RAG 检索设计
 - [docs/interview-guide.md](docs/interview-guide.md)：面试讲解指南
 - [docs/interview-progress-record.md](docs/interview-progress-record.md)：当前成果与面试准备记录
 - [docs/web-demo.md](docs/web-demo.md)：网页展示说明

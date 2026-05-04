@@ -286,6 +286,43 @@ h2 {
   grid-column: span 2;
 }
 
+.rag-panel {
+  min-height: 300px;
+}
+
+.rag-context {
+  display: grid;
+  gap: 10px;
+}
+
+.rag-doc {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface-muted);
+  padding: 12px;
+}
+
+.rag-doc header {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+.rag-doc strong {
+  display: block;
+  line-height: 1.45;
+}
+
+.rag-doc small {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
 .result-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

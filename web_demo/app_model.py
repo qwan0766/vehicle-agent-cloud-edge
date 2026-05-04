@@ -1,6 +1,8 @@
 from core.constants import CommandType, ExecutionStatus, NetworkStatus, SafetyLevel
 from core.vehicle_core_service import VehicleCoreService
 from data.vehicle_state import DEFAULT_VEHICLE_STATE
+from agents.cloud.cloud_route_plan_agent import CloudRoutePlanAgent
+from agents.vehicle.local_intent_agent import LocalIntentAgent
 
 
 SCENARIOS = [
@@ -38,6 +40,11 @@ def run_command(content: str, user_id: str = "user_001", network: str = "ONLINE"
             "status": result.status.value,
             "output": result.output,
         },
+        "rag_context": _rag_context(
+            result.message.content,
+            result.message.command_type,
+            result.message.network,
+        ),
         "agent_trace": _agent_trace(result.message.command_type, result.message.safety, result.status),
     }
 
@@ -84,3 +91,32 @@ def _agent_trace(command_type: CommandType, safety: SafetyLevel, status: Executi
         ]
     )
     return trace
+
+
+def _rag_context(content: str, command_type: CommandType, network: NetworkStatus):
+    context = []
+
+    intent_agent = LocalIntentAgent()
+    for result in intent_agent.retrieve_context(content):
+        context.append(_context_payload("本地意图识别", result))
+
+    if network == NetworkStatus.ONLINE and command_type in {
+        CommandType.NAVIGATION,
+        CommandType.CHARGE_PLAN,
+        CommandType.PERSONALIZE,
+    }:
+        route_agent = CloudRoutePlanAgent()
+        for result in route_agent.retrieve_context(content):
+            context.append(_context_payload("云端路线规划", result))
+
+    return context
+
+
+def _context_payload(stage: str, result):
+    return {
+        "stage": stage,
+        "doc_id": result.document.doc_id,
+        "text": result.document.text,
+        "score": result.score,
+        "matched_keywords": result.matched_keywords,
+    }

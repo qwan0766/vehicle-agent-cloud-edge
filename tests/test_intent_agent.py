@@ -21,6 +21,10 @@ class TestLocalIntentAgent(unittest.TestCase):
         agent = LocalIntentAgent()
         self.assertEqual(agent.recognize("加速到100km/h"), CommandType.CAR_CONTROL)
 
+    def test_recognizes_similar_navigation_expression_with_retrieval(self):
+        agent = LocalIntentAgent()
+        self.assertEqual(agent.recognize("帮我导航到蔚来中心"), CommandType.NAVIGATION)
+
 
 if __name__ == "__main__":
     unittest.main()

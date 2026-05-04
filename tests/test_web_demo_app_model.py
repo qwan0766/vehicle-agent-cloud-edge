@@ -12,6 +12,8 @@ class TestWebDemoAppModel(unittest.TestCase):
         self.assertIn("RAG路线结果", payload["result"]["output"])
         self.assertIn("CloudScheduleAgent", payload["agent_trace"])
         self.assertIn("CloudRoutePlanAgent", payload["agent_trace"])
+        self.assertIn("rag_context", payload)
+        self.assertTrue(payload["rag_context"])
 
     def test_offline_car_control_payload_contains_local_fallback_trace(self):
         payload = run_command("打开座椅加热", network="OFFLINE")
