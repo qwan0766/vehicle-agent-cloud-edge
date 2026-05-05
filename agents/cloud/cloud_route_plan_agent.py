@@ -1,6 +1,7 @@
 from data.knowledge_base import ROUTE_KNOWLEDGE
 from data.vehicle_state import DEFAULT_VEHICLE_STATE
 from llm.factory import create_llm_client
+from providers.destination_resolver import resolve_destination
 from providers.factory import create_map_provider
 from rag.documents import ROUTE_DOCUMENTS
 from rag.simple_retriever import SimpleRetriever
@@ -23,7 +24,7 @@ class CloudRoutePlanAgent:
             route_hint = f"{route_hint}，结合用户路线偏好{route_preference}"
         map_route = self.map_provider.plan_route(
             DEFAULT_VEHICLE_STATE.gps,
-            content,
+            resolve_destination(content),
             preference=route_preference,
         )
         llm_decision = self.llm_client.generate(

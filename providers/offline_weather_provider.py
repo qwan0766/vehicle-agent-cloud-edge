@@ -10,6 +10,8 @@ class WeatherSnapshot:
 
 
 class OfflineWeatherProvider:
+    provider_name = "offline_weather"
+
     def get_weather(self, gps: str) -> WeatherSnapshot:
         return WeatherSnapshot(
             city="上海",

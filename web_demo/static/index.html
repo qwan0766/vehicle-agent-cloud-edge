@@ -118,6 +118,33 @@
           </div>
         </section>
 
+        <section class="panel provider-panel" aria-label="Provider 状态">
+          <div class="panel-heading">
+            <h2>Provider 状态</h2>
+            <button id="smokeBtn" class="small-action" type="button">Smoke Test</button>
+          </div>
+          <div class="provider-grid">
+            <div><span>LLM</span><strong id="providerLlm">-</strong></div>
+            <div><span>地图</span><strong id="providerMap">-</strong></div>
+            <div><span>天气</span><strong id="providerWeather">-</strong></div>
+            <div><span>充电站</span><strong id="providerCharge">-</strong></div>
+          </div>
+          <div id="smokeResults" class="smoke-results">等待真实接口检测</div>
+        </section>
+
+        <section class="panel route-panel" aria-label="真实路线与补能">
+          <div class="panel-heading">
+            <h2>路线与补能</h2>
+            <span id="routeProvider">等待路线</span>
+          </div>
+          <div class="route-summary">
+            <div><span>距离</span><strong id="routeDistance">-</strong></div>
+            <div><span>预计时间</span><strong id="routeDuration">-</strong></div>
+            <div><span>策略</span><strong id="routeStrategy">-</strong></div>
+          </div>
+          <div id="chargeStations" class="charge-stations">等待充电站结果</div>
+        </section>
+
         <section class="panel result-panel" aria-label="执行结果">
           <div class="panel-heading">
             <h2>执行结果</h2>

@@ -19,7 +19,13 @@ from providers.open_meteo_weather_provider import OpenMeteoWeatherProvider
 
 def main():
     load_env_file()
-    results = [
+    results = run_smoke_checks()
+    print(json.dumps(results, ensure_ascii=False, indent=2))
+    return 0 if all(item["status"] in {"OK", "SKIP"} for item in results) else 1
+
+
+def run_smoke_checks():
+    return [
         _smoke_deepseek(),
         _smoke_open_meteo(),
         _smoke_amap_route(),
@@ -27,8 +33,6 @@ def main():
         _smoke_open_charge_map(),
         _smoke_baidu_map(),
     ]
-    print(json.dumps(results, ensure_ascii=False, indent=2))
-    return 0 if all(item["status"] in {"OK", "SKIP"} for item in results) else 1
 
 
 def _smoke_deepseek():

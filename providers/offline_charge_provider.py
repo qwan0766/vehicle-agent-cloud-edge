@@ -10,6 +10,8 @@ class ChargeStation:
 
 
 class OfflineChargeProvider:
+    provider_name = "offline_charge"
+
     def __init__(self):
         self._stations = [
             ChargeStation("蔚来换电站 上海中心", 1.8, "空闲", 3),

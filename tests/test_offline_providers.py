@@ -20,7 +20,10 @@ class TestOfflineProviders(unittest.TestCase):
         self.assertLessEqual(stations[0].distance_km, stations[1].distance_km)
 
     def test_ecology_agent_combines_offline_provider_data(self):
-        agent = CloudEcologyAgent()
+        agent = CloudEcologyAgent(
+            weather_provider=OfflineWeatherProvider(),
+            charge_provider=OfflineChargeProvider(),
+        )
 
         result = agent.get_data("121.48, 31.23")
         snapshot = agent.get_snapshot("121.48, 31.23")

@@ -12,6 +12,9 @@ class TestWebDemoAppModel(unittest.TestCase):
         self.assertEqual(payload["users"][0]["user_id"], "user_001")
         self.assertGreaterEqual(payload["offline_evaluation"]["total"], 20)
         self.assertIn("route.plan", payload["cloud_tools"])
+        self.assertIn("providers", payload)
+        self.assertIn("llm", payload["providers"])
+        self.assertIn("map", payload["providers"])
 
     def test_online_navigation_payload_contains_cloud_trace(self):
         payload = run_command("导航去蔚来中心", network="ONLINE")
@@ -28,6 +31,9 @@ class TestWebDemoAppModel(unittest.TestCase):
         )
         self.assertEqual(payload["feedback"]["event_status"], "RECORDED")
         self.assertIn("路线偏好高速", payload["feedback"]["preference_update"])
+        self.assertIn("route_summary", payload)
+        self.assertIn("charge_stations", payload)
+        self.assertGreaterEqual(payload["route_summary"]["distance_km"], 0)
         self.assertEqual(
             [item["tool_name"] for item in payload["runtime_trace"]],
             [
@@ -46,6 +52,14 @@ class TestWebDemoAppModel(unittest.TestCase):
         self.assertTrue(
             any("user_002" in item["text"] for item in payload["rag_context"])
         )
+
+    def test_smoke_payload_has_provider_results(self):
+        from web_demo.app_model import run_provider_smoke_test
+
+        payload = run_provider_smoke_test()
+
+        self.assertIn("results", payload)
+        self.assertTrue(any(item["name"] == "DeepSeek LLM" for item in payload["results"]))
 
     def test_offline_car_control_payload_contains_local_fallback_trace(self):
         payload = run_command("打开座椅加热", network="OFFLINE")

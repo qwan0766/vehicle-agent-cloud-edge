@@ -7,6 +7,11 @@ from agents.vehicle.local_intent_agent import LocalIntentAgent
 from agents.cloud.cloud_schedule_agent import CloudScheduleAgent
 from evaluation.offline_evaluator import OfflineEvaluator
 from feedback.feedback_service import FeedbackService
+from config.env_loader import load_env_file
+from llm.factory import create_llm_client
+from providers.destination_resolver import resolve_destination
+from providers.factory import create_charge_provider, create_map_provider, create_weather_provider
+from scripts.smoke_real_providers import run_smoke_checks
 
 
 USERS = [
@@ -24,16 +29,19 @@ SCENARIOS = [
 
 
 def get_initial_payload():
+    load_env_file()
     return {
         "vehicle_state": _vehicle_state_payload(NetworkStatus.ONLINE),
         "users": USERS,
         "scenarios": SCENARIOS,
         "cloud_tools": CloudScheduleAgent().tool_registry.list_names(),
         "offline_evaluation": OfflineEvaluator().run(),
+        "providers": _provider_status(),
     }
 
 
 def run_command(content: str, user_id: str = "user_001", network: str = "ONLINE"):
+    load_env_file()
     network_status = _parse_network(network)
     service = VehicleCoreService(feedback_service=FeedbackService())
     result = service.run(content, user_id=user_id, network=network_status)
@@ -54,6 +62,8 @@ def run_command(content: str, user_id: str = "user_001", network: str = "ONLINE"
         },
         "feedback": result.feedback or {},
         "runtime_trace": result.trace or [],
+        "route_summary": _route_summary(content, result.message.command_type, result.message.network),
+        "charge_stations": _charge_stations(result.message.command_type, result.message.network),
         "rag_context": _rag_context(
             result.message.content,
             result.message.user_id,
@@ -62,6 +72,11 @@ def run_command(content: str, user_id: str = "user_001", network: str = "ONLINE"
         ),
         "agent_trace": _agent_trace(result.message.command_type, result.message.safety, result.status),
     }
+
+
+def run_provider_smoke_test():
+    load_env_file()
+    return {"results": run_smoke_checks()}
 
 
 def _parse_network(network: str) -> NetworkStatus:
@@ -139,3 +154,50 @@ def _context_payload(stage: str, result):
         "score": result.score,
         "matched_keywords": result.matched_keywords,
     }
+
+
+def _provider_status():
+    return {
+        "llm": create_llm_client().provider_name,
+        "map": create_map_provider().provider_name,
+        "weather": create_weather_provider().provider_name,
+        "charge": create_charge_provider().provider_name,
+    }
+
+
+def _route_summary(content: str, command_type: CommandType, network: NetworkStatus):
+    if network != NetworkStatus.ONLINE or command_type not in {
+        CommandType.NAVIGATION,
+        CommandType.CHARGE_PLAN,
+        CommandType.PERSONALIZE,
+    }:
+        return {}
+    route = create_map_provider().plan_route(
+        DEFAULT_VEHICLE_STATE.gps,
+        resolve_destination(content),
+        preference="高速",
+    )
+    return {
+        "provider": route.provider,
+        "distance_km": route.distance_km,
+        "duration_minutes": route.duration_minutes,
+        "strategy": route.strategy,
+    }
+
+
+def _charge_stations(command_type: CommandType, network: NetworkStatus):
+    if network != NetworkStatus.ONLINE or command_type not in {
+        CommandType.NAVIGATION,
+        CommandType.CHARGE_PLAN,
+        CommandType.PERSONALIZE,
+    }:
+        return []
+    return [
+        {
+            "name": station.name,
+            "distance_km": station.distance_km,
+            "status": station.status,
+            "estimated_minutes": station.estimated_minutes,
+        }
+        for station in create_charge_provider().find_nearby(DEFAULT_VEHICLE_STATE.gps, limit=3)
+    ]

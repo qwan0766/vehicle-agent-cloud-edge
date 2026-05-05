@@ -31,6 +31,17 @@ const nodes = {
   evalIntent: document.querySelector("#evalIntent"),
   evalSafety: document.querySelector("#evalSafety"),
   evalRag: document.querySelector("#evalRag"),
+  smokeBtn: document.querySelector("#smokeBtn"),
+  providerLlm: document.querySelector("#providerLlm"),
+  providerMap: document.querySelector("#providerMap"),
+  providerWeather: document.querySelector("#providerWeather"),
+  providerCharge: document.querySelector("#providerCharge"),
+  smokeResults: document.querySelector("#smokeResults"),
+  routeProvider: document.querySelector("#routeProvider"),
+  routeDistance: document.querySelector("#routeDistance"),
+  routeDuration: document.querySelector("#routeDuration"),
+  routeStrategy: document.querySelector("#routeStrategy"),
+  chargeStations: document.querySelector("#chargeStations"),
   requestIdValue: document.querySelector("#requestIdValue"),
   commandTypeValue: document.querySelector("#commandTypeValue"),
   safetyValue: document.querySelector("#safetyValue"),
@@ -45,6 +56,7 @@ async function init() {
   state.users = payload.users;
   renderVehicle(payload.vehicle_state);
   renderOfflineEvaluation(payload.offline_evaluation);
+  renderProviders(payload.providers);
   renderUsers();
   renderScenarioButtons();
   bindEvents();
@@ -66,6 +78,7 @@ function bindEvents() {
   nodes.onlineBtn.addEventListener("click", () => setNetwork("ONLINE"));
   nodes.offlineBtn.addEventListener("click", () => setNetwork("OFFLINE"));
   nodes.runBtn.addEventListener("click", runCommand);
+  nodes.smokeBtn.addEventListener("click", runSmokeTest);
   nodes.userSelect.addEventListener("change", () => {
     state.userId = nodes.userSelect.value;
     nodes.userIdValue.textContent = state.userId;
@@ -75,6 +88,41 @@ function bindEvents() {
     if (event.key === "Enter") {
       runCommand();
     }
+  });
+}
+
+function renderProviders(providers) {
+  nodes.providerLlm.textContent = providers.llm;
+  nodes.providerMap.textContent = providers.map;
+  nodes.providerWeather.textContent = providers.weather;
+  nodes.providerCharge.textContent = providers.charge;
+}
+
+async function runSmokeTest() {
+  nodes.smokeBtn.disabled = true;
+  nodes.smokeBtn.textContent = "检测中";
+  nodes.smokeResults.textContent = "正在调用真实接口";
+  try {
+    const response = await fetch("/api/provider-smoke", { method: "POST" });
+    const payload = await response.json();
+    renderSmokeResults(payload.results || []);
+  } finally {
+    nodes.smokeBtn.disabled = false;
+    nodes.smokeBtn.textContent = "Smoke Test";
+  }
+}
+
+function renderSmokeResults(results) {
+  nodes.smokeResults.innerHTML = "";
+  results.forEach((item) => {
+    const row = document.createElement("article");
+    row.className = `smoke-row ${item.status.toLowerCase()}`;
+    const name = document.createElement("strong");
+    name.textContent = item.name;
+    const status = document.createElement("span");
+    status.textContent = item.status;
+    row.append(name, status);
+    nodes.smokeResults.appendChild(row);
   });
 }
 
@@ -172,8 +220,31 @@ function renderResult(payload) {
   });
 
   renderRuntimeTrace(payload.runtime_trace || []);
+  renderRouteSummary(payload.route_summary || {}, payload.charge_stations || []);
   renderRagContext(payload.rag_context || []);
   renderFeedback(payload.feedback || {});
+}
+
+function renderRouteSummary(route, stations) {
+  nodes.routeProvider.textContent = route.provider || "无路线";
+  nodes.routeDistance.textContent = route.distance_km !== undefined ? `${route.distance_km} km` : "-";
+  nodes.routeDuration.textContent = route.duration_minutes !== undefined ? `${route.duration_minutes} 分钟` : "-";
+  nodes.routeStrategy.textContent = route.strategy || "-";
+  nodes.chargeStations.innerHTML = "";
+  if (!stations.length) {
+    nodes.chargeStations.textContent = "当前链路未查询充电站";
+    return;
+  }
+  stations.forEach((station) => {
+    const row = document.createElement("article");
+    row.className = "station-row";
+    const name = document.createElement("strong");
+    name.textContent = station.name;
+    const meta = document.createElement("span");
+    meta.textContent = `${station.distance_km} km · ${station.status}`;
+    row.append(name, meta);
+    nodes.chargeStations.appendChild(row);
+  });
 }
 
 function renderRuntimeTrace(items) {
