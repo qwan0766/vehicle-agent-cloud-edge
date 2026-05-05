@@ -3,6 +3,7 @@ import unittest
 from unittest.mock import patch
 
 from providers.amap_poi_provider import AmapPOIProvider
+from providers.amap_route_provider import AmapRouteProvider
 from providers.baidu_map_provider import BaiduMapProvider
 from providers.factory import create_charge_provider, create_map_provider, create_weather_provider
 from providers.offline_charge_provider import OfflineChargeProvider
@@ -30,9 +31,20 @@ class TestProviderFactory(unittest.TestCase):
             },
             clear=True,
         ):
-            self.assertIsInstance(create_map_provider(), BaiduMapProvider)
+            self.assertIsInstance(create_map_provider(), AmapRouteProvider)
             self.assertIsInstance(create_weather_provider(), OpenMeteoWeatherProvider)
             self.assertIsInstance(create_charge_provider(), AmapPOIProvider)
+
+    def test_amap_map_provider_has_priority_over_baidu(self):
+        with patch.dict(
+            os.environ,
+            {
+                "AMAP_API_KEY": "amap-key",
+                "BAIDU_MAP_AK": "map-key",
+            },
+            clear=True,
+        ):
+            self.assertIsInstance(create_map_provider(), AmapRouteProvider)
 
 
 if __name__ == "__main__":

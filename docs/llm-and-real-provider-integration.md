@@ -14,6 +14,7 @@
 - `providers/`
   - `OfflineMapProvider`
   - `AmapPOIProvider`
+  - `AmapRouteProvider`
   - `BaiduMapProvider`
   - `OpenMeteoWeatherProvider`
   - `OpenChargeMapProvider`
@@ -66,7 +67,7 @@ ENABLE_LLM_INTENT_FALLBACK=1
 - `DEEPSEEK_API_KEY`：启用真实 DeepSeek LLM。
 - `DEEPSEEK_MODEL`：默认 `deepseek-v4-flash`。
 - `BAIDU_MAP_AK`：启用百度地图驾车路线 Provider。
-- `AMAP_API_KEY`：启用高德 POI 周边搜索 Provider，优先用于附近充电站查询。
+- `AMAP_API_KEY`：启用高德 Web 服务 Provider，优先用于驾车路线规划和附近充电站查询。
 - `USE_OPEN_METEO=1`：启用 Open-Meteo 天气 Provider。
 - `OPENCHARGEMAP_API_KEY` 或 `USE_OPENCHARGEMAP=1`：启用 OpenChargeMap 充电站 Provider。
 - `ENABLE_LLM_INTENT_FALLBACK=1`：启用 LLM 意图兜底。
@@ -83,13 +84,14 @@ python scripts/smoke_real_providers.py
 
 - DeepSeek LLM
 - Open-Meteo Weather
+- AMap Route
 - AMap POI
 - OpenChargeMap
 - Baidu Map
 
 注意：
 
-- AMap POI 当前要求 `AMAP_API_KEY`。
+- AMap Route / POI 当前要求 `AMAP_API_KEY`。
 - OpenChargeMap 当前要求 `OPENCHARGEMAP_API_KEY`。
 - Baidu Map 当前要求 `BAIDU_MAP_AK`。
 - 脚本不会打印 API Key，只输出接口成功、失败或跳过原因。

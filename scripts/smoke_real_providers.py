@@ -11,6 +11,7 @@ if str(PROJECT_ROOT) not in sys.path:
 from config.env_loader import load_env_file
 from llm.deepseek_client import DeepSeekLLMClient
 from providers.amap_poi_provider import AmapPOIProvider
+from providers.amap_route_provider import AmapRouteProvider
 from providers.baidu_map_provider import BaiduMapProvider
 from providers.open_charge_map_provider import OpenChargeMapProvider
 from providers.open_meteo_weather_provider import OpenMeteoWeatherProvider
@@ -21,6 +22,7 @@ def main():
     results = [
         _smoke_deepseek(),
         _smoke_open_meteo(),
+        _smoke_amap_route(),
         _smoke_amap_poi(),
         _smoke_open_charge_map(),
         _smoke_baidu_map(),
@@ -53,7 +55,24 @@ def _smoke_open_meteo():
         return _result("Open-Meteo Weather", "FAIL", _error_detail(exc))
 
 
+def _smoke_amap_route():
+    api_key = os.getenv("AMAP_API_KEY")
+    if not api_key:
+        return _result("AMap Route", "SKIP", "AMAP_API_KEY 未配置")
+    try:
+        route = AmapRouteProvider(api_key=api_key, timeout=20).plan_route(
+            "121.48,31.23",
+            "121.50,31.25",
+            preference="高速",
+        )
+        return _result("AMap Route", "OK", route.__dict__)
+    except Exception as exc:
+        return _result("AMap Route", "FAIL", _error_detail(exc))
+
+
 def _smoke_open_charge_map():
+    if os.getenv("AMAP_API_KEY") and not os.getenv("OPENCHARGEMAP_API_KEY"):
+        return _result("OpenChargeMap", "SKIP", "已由 AMap POI 替代，未配置 OPENCHARGEMAP_API_KEY")
     try:
         provider = OpenChargeMapProvider(
             api_key=os.getenv("OPENCHARGEMAP_API_KEY", ""),
