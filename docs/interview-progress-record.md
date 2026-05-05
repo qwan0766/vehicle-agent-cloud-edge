@@ -308,6 +308,33 @@ user_001 + 导航去蔚来中心
 
 > 这个项目虽然是 offline mock，但我没有把 mock 写死在业务流程里，而是抽象出 Tool Registry 和 Runtime。这样未来接真实 API、LangChain Tool 或 Function Calling 时，只需要替换工具实现，不需要重写端云协同主链路。
 
+### 2.13 离线工程闭环完善
+
+已完成文件：
+
+- `runtime/tool_schema.py`
+- `providers/offline_weather_provider.py`
+- `providers/offline_charge_provider.py`
+- `data/offline_scenarios.py`
+- `evaluation/offline_evaluator.py`
+- `run_offline_eval.py`
+- `docs/offline-completion.md`
+- `tests/test_tool_schema.py`
+- `tests/test_offline_providers.py`
+- `tests/test_offline_evaluator.py`
+
+核心能力：
+
+- 给 Tool 增加输入输出 schema 校验。
+- 将天气、换电站模拟数据抽象成 offline provider。
+- 建立 20 条离线评测样本。
+- 输出意图准确率、安全召回率、执行状态准确率和 RAG 命中率。
+- Web 页面展示离线评测指标。
+
+面试表达：
+
+> 我进一步把 offline 项目补成可评测工程闭环。现在不只是能跑一个 demo，而是有样本集、有指标、有工具协议、有离线 provider、有网页可观测展示。后续接真实 API 或大模型时，可以用同一套离线评测集防止行为回退。
+
 ## 3. 当前技术路线
 
 当前版本使用：
@@ -348,7 +375,7 @@ user_001 + 导航去蔚来中心
 最近验证结果：
 
 ```text
-Ran 36 tests
+Ran 43 tests
 OK
 ```
 
@@ -464,6 +491,10 @@ http://127.0.0.1:8000
 加入 Agent Runtime 与 Tool Registry 后，可以升级为：
 
 > 设计并实现车载端云协同 Multi-Agent 原型系统，构建 SafetyAgent、LocalIntentAgent、CloudScheduleAgent 等 8 个 Agent；抽象本地 Retriever、ToolRegistry 与 AgentRuntime，实现意图识别、用户画像、路线规划和云端 Tool 调用的可解释 trace；支持个性化路线规划、危险指令拦截、断网本地兜底、数据闭环、网页可视化展示和 36 个自动化测试。
+
+加入离线评测闭环后，可以升级为：
+
+> 设计并实现车载端云协同 Multi-Agent 原型系统，构建车端安全拦截、断网兜底、云端 Agent 编排、本地 RAG 检索、用户画像和数据闭环；抽象 ToolRegistry、ToolSpec、AgentRuntime 和离线 Provider，支持工具协议校验、工具级 trace、离线天气/换电站生态模拟；建设 20 条离线场景评测集，量化意图准确率、安全召回率、执行状态准确率和 RAG 命中率，并提供网页可视化展示与 43 个自动化测试。
 
 ## 8. 下一步建议
 

@@ -3,6 +3,7 @@ from agents.cloud.cloud_route_plan_agent import CloudRoutePlanAgent
 from agents.cloud.cloud_user_profile_agent import CloudUserProfileAgent
 from core.message import Message
 from runtime.agent_runtime import AgentRuntime
+from runtime.tool_schema import FieldSpec, ToolSpec
 from runtime.tool_registry import ToolRegistry
 
 
@@ -49,11 +50,18 @@ class CloudScheduleAgent:
         registry.register(
             "user_profile.lookup",
             lambda payload: self.user_agent.get_profile(payload["user_id"]),
+            spec=ToolSpec(input_fields=[FieldSpec("user_id", str)]),
         )
         registry.register(
             "user_profile.route_preference",
             lambda payload: self.user_agent.get_route_preference(
                 payload["user_id"], payload.get("content", "")
+            ),
+            spec=ToolSpec(
+                input_fields=[
+                    FieldSpec("user_id", str),
+                    FieldSpec("content", str, required=False),
+                ]
             ),
         )
         registry.register("ecology.snapshot", lambda payload: self.ecology_agent.get_data())
@@ -62,6 +70,12 @@ class CloudScheduleAgent:
             lambda payload: self.route_agent.plan(
                 payload["content"],
                 route_preference=payload.get("route_preference", ""),
+            ),
+            spec=ToolSpec(
+                input_fields=[
+                    FieldSpec("content", str),
+                    FieldSpec("route_preference", str, required=False),
+                ]
             ),
         )
         return registry

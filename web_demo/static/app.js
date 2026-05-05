@@ -27,6 +27,10 @@ const nodes = {
   feedbackStatus: document.querySelector("#feedbackStatus"),
   feedbackEvent: document.querySelector("#feedbackEvent"),
   feedbackPreference: document.querySelector("#feedbackPreference"),
+  evalTotal: document.querySelector("#evalTotal"),
+  evalIntent: document.querySelector("#evalIntent"),
+  evalSafety: document.querySelector("#evalSafety"),
+  evalRag: document.querySelector("#evalRag"),
   requestIdValue: document.querySelector("#requestIdValue"),
   commandTypeValue: document.querySelector("#commandTypeValue"),
   safetyValue: document.querySelector("#safetyValue"),
@@ -40,10 +44,22 @@ async function init() {
   state.scenarios = payload.scenarios;
   state.users = payload.users;
   renderVehicle(payload.vehicle_state);
+  renderOfflineEvaluation(payload.offline_evaluation);
   renderUsers();
   renderScenarioButtons();
   bindEvents();
   await runCommand();
+}
+
+function renderOfflineEvaluation(report) {
+  nodes.evalTotal.textContent = `${report.total} cases`;
+  nodes.evalIntent.textContent = formatPercent(report.intent_accuracy);
+  nodes.evalSafety.textContent = formatPercent(report.safety_block_recall);
+  nodes.evalRag.textContent = formatPercent(report.rag_hit_rate);
+}
+
+function formatPercent(value) {
+  return `${Math.round(Number(value) * 100)}%`;
 }
 
 function bindEvents() {

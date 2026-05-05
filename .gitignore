@@ -26,5 +26,6 @@ web_demo/*.log
 runtime/*
 !runtime/__init__.py
 !runtime/agent_runtime.py
+!runtime/tool_schema.py
 !runtime/tool_registry.py
 .test_runtime/

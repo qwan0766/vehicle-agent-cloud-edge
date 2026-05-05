@@ -7,6 +7,7 @@
 ```bash
 python main.py
 python web_demo/server.py
+python run_offline_eval.py
 python -m unittest discover -s tests -v
 ```
 
@@ -20,6 +21,8 @@ python -m unittest discover -s tests -v
 - [docs/rag-design.md](docs/rag-design.md)：本地 RAG 检索设计
 - [docs/profile-personalization.md](docs/profile-personalization.md)：用户画像检索与个性化决策设计
 - [docs/data-feedback-loop.md](docs/data-feedback-loop.md)：数据闭环与用户偏好更新设计
+- [docs/agent-runtime-tool-registry.md](docs/agent-runtime-tool-registry.md)：Agent Runtime 与 Tool Registry 设计说明
+- [docs/offline-completion.md](docs/offline-completion.md)：离线工程闭环完善说明
 - [docs/demo-script.md](docs/demo-script.md)：面试演示脚本
 - [docs/architecture-diagram.md](docs/architecture-diagram.md)：架构图与链路图
 - [docs/final-implementation-summary.md](docs/final-implementation-summary.md)：阶段实现总结
@@ -139,7 +142,8 @@ GPS：121.48, 31.23
 - LangChain 多 Agent 调度
 - 云端 RAG 路线规划
 - 用户画像（向量库模拟）
-- 外部生态模拟
+- 外部生态模拟：离线天气 Provider + 离线换电站 Provider
+- Tool Schema：工具输入输出协议校验
 
 ### 3.3 模拟端云交互
 
@@ -153,6 +157,16 @@ GPS：121.48, 31.23
 - 行驶途中
 - 中途补给
 - 行程结束
+
+### 3.5 离线评测
+
+- 内置 20 条离线场景样本。
+- 评估意图准确率、安全拦截召回率、执行状态准确率和 RAG 命中率。
+- 运行命令：
+
+```bash
+python run_offline_eval.py
+```
 
 ---
 

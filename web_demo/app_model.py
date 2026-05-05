@@ -4,6 +4,8 @@ from data.vehicle_state import DEFAULT_VEHICLE_STATE
 from agents.cloud.cloud_route_plan_agent import CloudRoutePlanAgent
 from agents.cloud.cloud_user_profile_agent import CloudUserProfileAgent
 from agents.vehicle.local_intent_agent import LocalIntentAgent
+from agents.cloud.cloud_schedule_agent import CloudScheduleAgent
+from evaluation.offline_evaluator import OfflineEvaluator
 from feedback.feedback_service import FeedbackService
 
 
@@ -26,6 +28,8 @@ def get_initial_payload():
         "vehicle_state": _vehicle_state_payload(NetworkStatus.ONLINE),
         "users": USERS,
         "scenarios": SCENARIOS,
+        "cloud_tools": CloudScheduleAgent().tool_registry.list_names(),
+        "offline_evaluation": OfflineEvaluator().run(),
     }
 
 

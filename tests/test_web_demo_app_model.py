@@ -10,6 +10,8 @@ class TestWebDemoAppModel(unittest.TestCase):
 
         self.assertIn("users", payload)
         self.assertEqual(payload["users"][0]["user_id"], "user_001")
+        self.assertGreaterEqual(payload["offline_evaluation"]["total"], 20)
+        self.assertIn("route.plan", payload["cloud_tools"])
 
     def test_online_navigation_payload_contains_cloud_trace(self):
         payload = run_command("导航去蔚来中心", network="ONLINE")

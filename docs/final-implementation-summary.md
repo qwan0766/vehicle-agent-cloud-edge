@@ -8,6 +8,8 @@
 - 动态偏好状态存储。
 - 安全策略引擎。
 - Agent Runtime 与 Tool Registry。
+- Tool Schema 与离线 Provider。
+- 20 条离线场景评测集。
 - 端到端场景测试。
 - 面试演示脚本。
 - Mermaid 架构图。
@@ -87,26 +89,51 @@
 
 > 我把 LangChain Tool / Function Calling 的核心思想抽象到了离线项目里。现在虽然工具实现还是 mock，但工具注册、统一调用、trace 观测这些工程边界已经具备，后续接真实 API 或大模型工具调用时不用重写主链路。
 
-## 7. 演示材料
+## 7. 离线工程闭环
+
+新增：
+
+- `runtime/tool_schema.py`
+- `providers/offline_weather_provider.py`
+- `providers/offline_charge_provider.py`
+- `data/offline_scenarios.py`
+- `evaluation/offline_evaluator.py`
+- `run_offline_eval.py`
+- `docs/offline-completion.md`
+
+当前离线闭环包括：
+
+- Tool 输入输出 schema 校验。
+- 离线天气与换电站 Provider。
+- 20 条内置场景评测样本。
+- 意图准确率、安全召回率、执行状态准确率、RAG 命中率。
+- Web 页面离线评测指标展示。
+
+面试表达：
+
+> 我把 offline 项目从 demo 推进到可评测工程。每次修改 Agent、知识库或安全策略，都可以通过离线评测集确认有没有破坏意图识别、安全拦截、执行状态和 RAG 召回。
+
+## 8. 演示材料
 
 新增：
 
 - `docs/demo-script.md`
 - `docs/architecture-diagram.md`
 - `docs/agent-runtime-tool-registry.md`
+- `docs/offline-completion.md`
 
 这些文档用于面试时快速讲清楚项目。
 
-## 8. 当前推荐讲法
+## 9. 当前推荐讲法
 
-> 这个项目从智能座舱场景出发，构建了一个 offline 端云协同 Multi-Agent 原型。车端负责意图识别、安全拦截和断网兜底，云端负责用户画像、生态数据和路线规划。系统抽象了本地 Retriever，实现意图、画像、路线知识的可解释召回；通过 AgentRuntime 和 ToolRegistry 模拟 LangChain Tool 调用链；通过 SafetyPolicy 保证危险和未知指令不会进入执行链路；通过 FeedbackService 记录 UsageEvent 并累计 PreferenceUpdate，形成数据闭环。网页端展示 Agent 调用链、Tool 调用明细、RAG 召回依据和数据闭环结果，便于面试演示。
+> 这个项目从智能座舱场景出发，构建了一个 offline 端云协同 Multi-Agent 原型。车端负责意图识别、安全拦截和断网兜底，云端负责用户画像、生态数据和路线规划。系统抽象了本地 Retriever，实现意图、画像、路线知识的可解释召回；通过 AgentRuntime、ToolRegistry 和 ToolSpec 模拟 LangChain Tool 调用链和参数协议；通过离线天气、换电站 Provider 模拟外部生态；通过 SafetyPolicy 保证危险和未知指令不会进入执行链路；通过 FeedbackService 记录 UsageEvent 并累计 PreferenceUpdate，形成数据闭环。网页端展示 Agent 调用链、Tool 调用明细、RAG 召回依据、离线评测指标和数据闭环结果，便于面试演示。
 
-## 9. 下一步方向
+## 10. 下一步方向
 
 后续可以继续做：
 
 - 将动态偏好状态真正参与 RAG 排序权重。
-- 给 Tool 增加 schema 校验和失败降级。
+- 给 Tool 增加失败降级和重试策略。
 - 接入 Open-Meteo 作为可选真实外部 API。
 - 新增 FastAPI 工程接口版本。
 - 加入 SQLite 存储运行数据。
