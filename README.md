@@ -6,7 +6,7 @@
 
 ```bash
 python main.py
-python web_demo/server.py
+python web_demo/server.py --port 8000
 python run_offline_eval.py
 python -m unittest discover -s tests -v
 ```

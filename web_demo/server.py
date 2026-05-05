@@ -1,4 +1,5 @@
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+import argparse
 import json
 from pathlib import Path
 import sys
@@ -57,5 +58,13 @@ def run(host: str = "127.0.0.1", port: int = 8000):
     server.serve_forever()
 
 
+def parse_server_args(argv=None):
+    parser = argparse.ArgumentParser(description="Run offline vehicle agent web demo.")
+    parser.add_argument("--host", default="127.0.0.1")
+    parser.add_argument("--port", type=int, default=8000)
+    return parser.parse_args(argv)
+
+
 if __name__ == "__main__":
-    run()
+    args = parse_server_args()
+    run(host=args.host, port=args.port)
