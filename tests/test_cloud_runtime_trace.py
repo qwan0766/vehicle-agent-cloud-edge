@@ -26,11 +26,13 @@ class TestCloudRuntimeTrace(unittest.TestCase):
                 "user_profile.route_preference",
                 "ecology.snapshot",
                 "route.plan",
+                "decision.summarize",
             ],
         )
         self.assertEqual(trace[0]["input"]["user_id"], "user_001")
         self.assertIn("用户偏好", trace[0]["output"])
-        self.assertIn("RAG路线结果", trace[-1]["output"])
+        self.assertIn("RAG路线结果", trace[-2]["output"])
+        self.assertIn("LLM决策", trace[-1]["output"])
 
 
 if __name__ == "__main__":

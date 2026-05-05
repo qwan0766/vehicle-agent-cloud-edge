@@ -35,6 +35,7 @@ class TestWebDemoAppModel(unittest.TestCase):
                 "user_profile.route_preference",
                 "ecology.snapshot",
                 "route.plan",
+                "decision.summarize",
             ],
         )
 

@@ -13,6 +13,8 @@ python -m unittest discover -s tests -v
 
 如果本机 `python` 命令不可用，请使用 Python 3.8~3.11 解释器运行。
 
+真实 API 通过环境变量启用，参考 `.env.example`。API Key 不应写入代码或提交到 git。
+
 ## 项目文档
 
 - [docs/project-kickoff.md](docs/project-kickoff.md)：项目启动方案
@@ -23,6 +25,7 @@ python -m unittest discover -s tests -v
 - [docs/data-feedback-loop.md](docs/data-feedback-loop.md)：数据闭环与用户偏好更新设计
 - [docs/agent-runtime-tool-registry.md](docs/agent-runtime-tool-registry.md)：Agent Runtime 与 Tool Registry 设计说明
 - [docs/offline-completion.md](docs/offline-completion.md)：离线工程闭环完善说明
+- [docs/llm-and-real-provider-integration.md](docs/llm-and-real-provider-integration.md)：LLM 与真实 Provider 接入说明
 - [docs/demo-script.md](docs/demo-script.md)：面试演示脚本
 - [docs/architecture-diagram.md](docs/architecture-diagram.md)：架构图与链路图
 - [docs/final-implementation-summary.md](docs/final-implementation-summary.md)：阶段实现总结
@@ -144,6 +147,7 @@ GPS：121.48, 31.23
 - 用户画像（向量库模拟）
 - 外部生态模拟：离线天气 Provider + 离线换电站 Provider
 - Tool Schema：工具输入输出协议校验
+- LLM 接入：DeepSeek / Mock 双实现，默认离线，有 key 时走真实 LLM
 
 ### 3.3 模拟端云交互
 

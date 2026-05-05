@@ -335,6 +335,34 @@ user_001 + 导航去蔚来中心
 
 > 我进一步把 offline 项目补成可评测工程闭环。现在不只是能跑一个 demo，而是有样本集、有指标、有工具协议、有离线 provider、有网页可观测展示。后续接真实 API 或大模型时，可以用同一套离线评测集防止行为回退。
 
+### 2.14 LLM 与真实 Provider 接入
+
+已完成文件：
+
+- `llm/mock_llm_client.py`
+- `llm/deepseek_client.py`
+- `llm/factory.py`
+- `providers/offline_map_provider.py`
+- `providers/baidu_map_provider.py`
+- `providers/open_meteo_weather_provider.py`
+- `providers/open_charge_map_provider.py`
+- `providers/factory.py`
+- `docs/llm-and-real-provider-integration.md`
+- `.env.example`
+
+核心能力：
+
+- DeepSeek OpenAI-compatible Chat Completions 接入。
+- Mock LLM 离线兜底。
+- 云端调度 Agent 通过 `decision.summarize` Tool 使用 LLM。
+- 路线规划 Agent 使用 RAG + MapProvider + LLM 生成路线建议。
+- 本地意图 Agent 支持可选 LLM 兜底。
+- 百度地图、Open-Meteo、OpenChargeMap 均有 provider 接口。
+
+面试表达：
+
+> 我没有让 8 个 Agent 全部依赖 LLM，而是把 LLM 放在云端调度、路线规划和意图兜底这些需要语义推理的位置。安全、车控、车辆状态和工具数据仍然保持确定性，这体现了车载 AI 应用里的能力边界设计。
+
 ## 3. 当前技术路线
 
 当前版本使用：
@@ -375,7 +403,7 @@ user_001 + 导航去蔚来中心
 最近验证结果：
 
 ```text
-Ran 43 tests
+Ran 51 tests
 OK
 ```
 
@@ -495,6 +523,10 @@ http://127.0.0.1:8000
 加入离线评测闭环后，可以升级为：
 
 > 设计并实现车载端云协同 Multi-Agent 原型系统，构建车端安全拦截、断网兜底、云端 Agent 编排、本地 RAG 检索、用户画像和数据闭环；抽象 ToolRegistry、ToolSpec、AgentRuntime 和离线 Provider，支持工具协议校验、工具级 trace、离线天气/换电站生态模拟；建设 20 条离线场景评测集，量化意图准确率、安全召回率、执行状态准确率和 RAG 命中率，并提供网页可视化展示与 43 个自动化测试。
+
+加入 LLM 与真实 Provider 接口后，可以升级为：
+
+> 设计并实现 offline-first 车载端云协同 Multi-Agent 原型系统，构建 8 个 Agent、RAG Retriever、ToolRegistry、AgentRuntime、SafetyPolicy 和 FeedbackService；接入 DeepSeek OpenAI-compatible LLM Adapter，并在云端调度、路线规划和意图兜底中使用可替换 LLM 推理层；抽象百度地图、Open-Meteo、OpenChargeMap Provider，支持无 key 离线运行、有 key 真实 API 扩展；建设 20 条离线评测集和 51 个自动化测试，覆盖意图识别、安全拦截、RAG 召回、Tool Schema、Provider 接口和 Web 展示。
 
 ## 8. 下一步建议
 

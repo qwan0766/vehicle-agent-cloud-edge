@@ -18,6 +18,9 @@ env/
 .idea/
 .DS_Store
 Thumbs.db
+.env
+.env.*
+!.env.example
 
 # Local web demo logs
 web_demo/*.log

@@ -1,12 +1,11 @@
 from data.vehicle_state import DEFAULT_VEHICLE_STATE
-from providers.offline_charge_provider import OfflineChargeProvider
-from providers.offline_weather_provider import OfflineWeatherProvider
+from providers.factory import create_charge_provider, create_weather_provider
 
 
 class CloudEcologyAgent:
     def __init__(self, weather_provider=None, charge_provider=None):
-        self.weather_provider = weather_provider or OfflineWeatherProvider()
-        self.charge_provider = charge_provider or OfflineChargeProvider()
+        self.weather_provider = weather_provider or create_weather_provider()
+        self.charge_provider = charge_provider or create_charge_provider()
 
     def get_data(self, gps: str = DEFAULT_VEHICLE_STATE.gps) -> str:
         snapshot = self.get_snapshot(gps)

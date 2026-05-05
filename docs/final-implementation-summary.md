@@ -9,6 +9,7 @@
 - 安全策略引擎。
 - Agent Runtime 与 Tool Registry。
 - Tool Schema 与离线 Provider。
+- DeepSeek LLM Adapter 与真实 Provider 接口。
 - 20 条离线场景评测集。
 - 端到端场景测试。
 - 面试演示脚本。
@@ -113,7 +114,30 @@
 
 > 我把 offline 项目从 demo 推进到可评测工程。每次修改 Agent、知识库或安全策略，都可以通过离线评测集确认有没有破坏意图识别、安全拦截、执行状态和 RAG 召回。
 
-## 8. 演示材料
+## 8. LLM 与真实 API 接口
+
+新增：
+
+- `llm/mock_llm_client.py`
+- `llm/deepseek_client.py`
+- `llm/factory.py`
+- `providers/baidu_map_provider.py`
+- `providers/open_meteo_weather_provider.py`
+- `providers/open_charge_map_provider.py`
+- `providers/factory.py`
+- `docs/llm-and-real-provider-integration.md`
+
+当前 LLM 接入点：
+
+- `CloudScheduleAgent`：通过 `decision.summarize` Tool 生成最终云端决策说明。
+- `CloudRoutePlanAgent`：基于 RAG、地图路线和用户偏好生成路线建议。
+- `LocalIntentAgent`：支持可选 LLM 意图兜底，但危险关键词仍然先由本地规则处理。
+
+面试表达：
+
+> 这个项目不是把每个 Agent 都接 LLM，而是只在需要语义推理的位置接。安全策略、车控执行、车辆状态仍然保持确定性。这样符合车载场景里 LLM 能力边界和安全边界分离的原则。
+
+## 9. 演示材料
 
 新增：
 
@@ -121,14 +145,15 @@
 - `docs/architecture-diagram.md`
 - `docs/agent-runtime-tool-registry.md`
 - `docs/offline-completion.md`
+- `docs/llm-and-real-provider-integration.md`
 
 这些文档用于面试时快速讲清楚项目。
 
-## 9. 当前推荐讲法
+## 10. 当前推荐讲法
 
-> 这个项目从智能座舱场景出发，构建了一个 offline 端云协同 Multi-Agent 原型。车端负责意图识别、安全拦截和断网兜底，云端负责用户画像、生态数据和路线规划。系统抽象了本地 Retriever，实现意图、画像、路线知识的可解释召回；通过 AgentRuntime、ToolRegistry 和 ToolSpec 模拟 LangChain Tool 调用链和参数协议；通过离线天气、换电站 Provider 模拟外部生态；通过 SafetyPolicy 保证危险和未知指令不会进入执行链路；通过 FeedbackService 记录 UsageEvent 并累计 PreferenceUpdate，形成数据闭环。网页端展示 Agent 调用链、Tool 调用明细、RAG 召回依据、离线评测指标和数据闭环结果，便于面试演示。
+> 这个项目从智能座舱场景出发，构建了一个 offline-first 的端云协同 Multi-Agent 原型。车端负责意图识别、安全拦截和断网兜底，云端负责用户画像、生态数据和路线规划。系统抽象了本地 Retriever，实现意图、画像、路线知识的可解释召回；通过 AgentRuntime、ToolRegistry 和 ToolSpec 模拟 LangChain Tool 调用链和参数协议；通过 DeepSeekLLMClient / MockLLMClient 接入可替换 LLM 推理层；通过离线与真实 Provider 双实现支持地图、天气、充电站扩展；通过 SafetyPolicy 保证危险和未知指令不会进入执行链路；通过 FeedbackService 记录 UsageEvent 并累计 PreferenceUpdate，形成数据闭环。网页端展示 Agent 调用链、Tool 调用明细、RAG 召回依据、离线评测指标和数据闭环结果，便于面试演示。
 
-## 10. 下一步方向
+## 11. 下一步方向
 
 后续可以继续做：
 
