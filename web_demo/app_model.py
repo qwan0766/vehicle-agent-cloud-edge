@@ -49,6 +49,7 @@ def run_command(content: str, user_id: str = "user_001", network: str = "ONLINE"
             "output": result.output,
         },
         "feedback": result.feedback or {},
+        "runtime_trace": result.trace or [],
         "rag_context": _rag_context(
             result.message.content,
             result.message.user_id,

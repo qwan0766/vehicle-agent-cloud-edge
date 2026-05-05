@@ -16,6 +16,7 @@ class ExecutionResult:
     output: str
     message: Message
     feedback: dict = None
+    trace: list = None
 
 
 class VehicleCoreService:
@@ -75,6 +76,7 @@ class VehicleCoreService:
                 status=ExecutionStatus.EXECUTED,
                 output=output,
                 message=msg,
+                trace=self.cloud_agent.get_last_trace(),
             )
         )
 
@@ -98,4 +100,5 @@ class VehicleCoreService:
             output=result.output,
             message=result.message,
             feedback=feedback,
+            trace=result.trace,
         )

@@ -289,6 +289,34 @@ h2 {
   background: var(--teal);
 }
 
+.runtime-trace {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.tool-call {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fbfcfb;
+  padding: 10px;
+}
+
+.tool-call header {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--teal);
+}
+
+.tool-call small {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
 .result-panel {
   grid-column: span 2;
 }

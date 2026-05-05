@@ -23,5 +23,8 @@ Thumbs.db
 web_demo/*.log
 
 # Runtime data
-runtime/
+runtime/*
+!runtime/__init__.py
+!runtime/agent_runtime.py
+!runtime/tool_registry.py
 .test_runtime/

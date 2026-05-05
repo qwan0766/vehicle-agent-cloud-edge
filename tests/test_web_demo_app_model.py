@@ -26,6 +26,15 @@ class TestWebDemoAppModel(unittest.TestCase):
         )
         self.assertEqual(payload["feedback"]["event_status"], "RECORDED")
         self.assertIn("路线偏好高速", payload["feedback"]["preference_update"])
+        self.assertEqual(
+            [item["tool_name"] for item in payload["runtime_trace"]],
+            [
+                "user_profile.lookup",
+                "user_profile.route_preference",
+                "ecology.snapshot",
+                "route.plan",
+            ],
+        )
 
     def test_user_two_payload_contains_user_two_profile_context(self):
         payload = run_command("电量低", user_id="user_002", network="ONLINE")

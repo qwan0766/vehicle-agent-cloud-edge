@@ -286,6 +286,28 @@ user_001 + 导航去蔚来中心
 
 > 我进一步把系统从单用户 demo 升级为支持多用户画像切换，并加入动态偏好状态和独立安全策略层。这样项目不仅能展示一次性 Agent 调用，还能体现用户上下文隔离、数据闭环和车载安全边界。
 
+### 2.12 Agent Runtime 与 Tool Registry
+
+已完成文件：
+
+- `runtime/tool_registry.py`
+- `runtime/agent_runtime.py`
+- `tests/test_agent_runtime.py`
+- `tests/test_cloud_runtime_trace.py`
+- `docs/agent-runtime-tool-registry.md`
+
+核心能力：
+
+- `ToolRegistry` 统一注册和调用工具能力。
+- `AgentRuntime` 统一执行工具调用，记录工具名、输入、输出和耗时。
+- `CloudScheduleAgent` 通过 `user_profile.lookup`、`user_profile.route_preference`、`ecology.snapshot`、`route.plan` 四个 Tool 完成云端编排。
+- Web API 新增 `runtime_trace` 字段。
+- Web 页面展示工具级调用明细。
+
+面试表达：
+
+> 这个项目虽然是 offline mock，但我没有把 mock 写死在业务流程里，而是抽象出 Tool Registry 和 Runtime。这样未来接真实 API、LangChain Tool 或 Function Calling 时，只需要替换工具实现，不需要重写端云协同主链路。
+
 ## 3. 当前技术路线
 
 当前版本使用：
@@ -326,7 +348,7 @@ user_001 + 导航去蔚来中心
 最近验证结果：
 
 ```text
-Ran 25 tests
+Ran 36 tests
 OK
 ```
 
@@ -438,6 +460,10 @@ http://127.0.0.1:8000
 加入数据闭环后，可以升级为：
 
 > 设计并实现车载端云协同 Multi-Agent 原型系统，构建 SafetyAgent、LocalIntentAgent、CloudScheduleAgent 等 8 个 Agent；抽象本地 Retriever，实现意图、路线知识与用户画像的可解释召回；加入 UsageEvent 与 PreferenceUpdate 数据闭环，支持个性化路线规划、危险指令拦截、断网本地兜底、网页可视化展示和 25 个核心单元测试。
+
+加入 Agent Runtime 与 Tool Registry 后，可以升级为：
+
+> 设计并实现车载端云协同 Multi-Agent 原型系统，构建 SafetyAgent、LocalIntentAgent、CloudScheduleAgent 等 8 个 Agent；抽象本地 Retriever、ToolRegistry 与 AgentRuntime，实现意图识别、用户画像、路线规划和云端 Tool 调用的可解释 trace；支持个性化路线规划、危险指令拦截、断网本地兜底、数据闭环、网页可视化展示和 36 个自动化测试。
 
 ## 8. 下一步建议
 

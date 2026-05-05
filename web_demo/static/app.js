@@ -21,6 +21,7 @@ const nodes = {
   runBtn: document.querySelector("#runBtn"),
   traceMode: document.querySelector("#traceMode"),
   agentTrace: document.querySelector("#agentTrace"),
+  runtimeTrace: document.querySelector("#runtimeTrace"),
   ragCount: document.querySelector("#ragCount"),
   ragContext: document.querySelector("#ragContext"),
   feedbackStatus: document.querySelector("#feedbackStatus"),
@@ -154,8 +155,35 @@ function renderResult(payload) {
     nodes.agentTrace.appendChild(item);
   });
 
+  renderRuntimeTrace(payload.runtime_trace || []);
   renderRagContext(payload.rag_context || []);
   renderFeedback(payload.feedback || {});
+}
+
+function renderRuntimeTrace(items) {
+  nodes.runtimeTrace.innerHTML = "";
+  if (!items.length) {
+    nodes.runtimeTrace.textContent = "本地链路未调用云端工具";
+    return;
+  }
+
+  items.forEach((item) => {
+    const row = document.createElement("article");
+    row.className = "tool-call";
+
+    const header = document.createElement("header");
+    const name = document.createElement("strong");
+    name.textContent = item.tool_name;
+    const duration = document.createElement("span");
+    duration.textContent = `${item.duration_ms} ms`;
+    header.append(name, duration);
+
+    const output = document.createElement("small");
+    output.textContent = typeof item.output === "string" ? item.output : JSON.stringify(item.output);
+
+    row.append(header, output);
+    nodes.runtimeTrace.appendChild(row);
+  });
 }
 
 function renderFeedback(feedback) {
