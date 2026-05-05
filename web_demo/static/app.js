@@ -5,6 +5,8 @@ const state = {
   users: [],
   userId: "user_001",
   activeDemoId: "",
+  requestSeq: 0,
+  activeRequestId: 0,
 };
 
 const nodes = {
@@ -283,6 +285,11 @@ async function runCommand() {
   if (!content) {
     return;
   }
+  const requestId = state.requestSeq + 1;
+  state.requestSeq = requestId;
+  state.activeRequestId = requestId;
+  const userId = state.userId;
+  const network = state.network;
 
   nodes.runBtn.disabled = true;
   nodes.runBtn.textContent = "运行中";
@@ -294,18 +301,26 @@ async function runCommand() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         content,
-        user_id: state.userId,
-        network: state.network,
+        user_id: userId,
+        network,
       }),
     });
     const payload = await parseJsonResponse(response);
+    if (requestId !== state.activeRequestId) {
+      return;
+    }
     renderVehicle(payload.vehicle_state);
     renderResult(payload);
   } catch (error) {
+    if (requestId !== state.activeRequestId) {
+      return;
+    }
     renderCommandError(error);
   } finally {
-    nodes.runBtn.disabled = false;
-    nodes.runBtn.textContent = "运行指令";
+    if (requestId === state.activeRequestId) {
+      nodes.runBtn.disabled = false;
+      nodes.runBtn.textContent = "运行指令";
+    }
   }
 }
 
@@ -386,11 +401,21 @@ function renderResult(payload) {
   nodes.safetyValue.textContent = request.safety;
   nodes.executionValue.textContent = result.status;
   renderMarkdown(nodes.resultOutput, result.output);
-  nodes.traceMode.textContent = request.network === "ONLINE" ? "端云协同" : "本地兜底";
+  nodes.traceMode.textContent =
+    result.status === "BLOCKED"
+      ? "安全拦截"
+      : request.network === "ONLINE"
+      ? "端云协同"
+      : "本地兜底";
 
-  nodes.safetyBadge.textContent = request.safety === "DANGEROUS" ? "危险拦截" : "安全正常";
-  nodes.safetyBadge.classList.toggle("badge-danger", request.safety === "DANGEROUS");
-  nodes.safetyBadge.classList.toggle("badge-safe", request.safety !== "DANGEROUS");
+  if (result.status === "BLOCKED") {
+    nodes.safetyBadge.textContent =
+      request.safety === "DANGEROUS" ? "危险拦截" : "策略拦截";
+  } else {
+    nodes.safetyBadge.textContent = "安全正常";
+  }
+  nodes.safetyBadge.classList.toggle("badge-danger", result.status === "BLOCKED");
+  nodes.safetyBadge.classList.toggle("badge-safe", result.status !== "BLOCKED");
 
   nodes.agentTrace.innerHTML = "";
   agentTrace.forEach((agent) => {
@@ -400,7 +425,7 @@ function renderResult(payload) {
     nodes.agentTrace.appendChild(item);
   });
 
-  renderRuntimeTrace(payload.runtime_trace || []);
+  renderRuntimeTrace(payload.runtime_trace || [], result.status);
   renderRouteSummary(payload.route_summary || {}, payload.charge_stations || []);
   renderRagContext(payload.rag_context || []);
   renderFeedback(payload.feedback || {});
@@ -430,10 +455,11 @@ function renderRouteSummary(route, stations) {
   });
 }
 
-function renderRuntimeTrace(items) {
+function renderRuntimeTrace(items, status = "") {
   nodes.runtimeTrace.innerHTML = "";
   if (!items.length) {
-    nodes.runtimeTrace.textContent = "本地链路未调用云端工具";
+    nodes.runtimeTrace.textContent =
+      status === "BLOCKED" ? "拦截结果未调用云端工具" : "本地链路未调用云端工具";
     return;
   }
 

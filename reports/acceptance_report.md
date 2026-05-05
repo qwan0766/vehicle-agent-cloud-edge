@@ -1,29 +1,29 @@
 # 车载 Multi-Agent 验收报告
 
-- 生成时间：2026-05-05T21:18:41+08:00
+- 生成时间：2026-05-05T21:38:18+08:00
 - 总体状态：PASS
 
 ## 验收步骤
 
 | 步骤 | 状态 | 耗时 |
 | --- | --- | ---: |
-| unit tests | PASS | 21.91s |
-| offline evaluation | PASS | 0.01s |
-| provider smoke | PASS | 2.54s |
-| online matrix | PASS | 27.01s |
+| unit tests | PASS | 21.08s |
+| offline evaluation | PASS | 0.02s |
+| provider smoke | PASS | 2.09s |
+| online matrix | PASS | 31.08s |
 
 ## 详细输出
 
 ### unit tests
 
 - 状态：PASS
-- 耗时：21.91s
+- 耗时：21.08s
 
 ```text
 $ C:\Users\scyqw3\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe -m unittest discover -s tests
-.............................................................................................
+...............................................................................................
 ----------------------------------------------------------------------
-Ran 93 tests in 21.576s
+Ran 95 tests in 20.685s
 
 OK
 ```
@@ -31,7 +31,7 @@ OK
 ### offline evaluation
 
 - 状态：PASS
-- 耗时：0.01s
+- 耗时：0.02s
 
 ```text
 {
@@ -48,7 +48,7 @@ OK
 ### provider smoke
 
 - 状态：PASS
-- 耗时：2.54s
+- 耗时：2.09s
 
 ```text
 [
@@ -63,8 +63,8 @@ OK
     "detail": {
       "city": "当前位置",
       "summary": "实时天气",
-      "temperature_c": 17,
-      "wind_level": "14.0km/h"
+      "temperature_c": 18,
+      "wind_level": "13.7km/h"
     }
   },
   {
@@ -75,7 +75,7 @@ OK
       "origin": "121.48,31.23",
       "destination": "121.50,31.25",
       "distance_km": 4.0,
-      "duration_minutes": 17,
+      "duration_minutes": 15,
       "strategy": "高速优先"
     }
   },
@@ -119,7 +119,7 @@ OK
 ### online matrix
 
 - 状态：PASS
-- 耗时：27.01s
+- 耗时：31.08s
 
 ```text
 [
