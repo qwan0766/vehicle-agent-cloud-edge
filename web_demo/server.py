@@ -11,11 +11,17 @@ STATIC_ROOT = Path(__file__).resolve().parent / "static"
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from web_demo.app_model import get_initial_payload, run_command, run_provider_smoke_test
+from web_demo.app_model import (
+    get_acceptance_payload,
+    get_initial_payload,
+    run_command,
+    run_provider_smoke_test,
+)
 from providers.destination_resolver import extract_destination_query
 
 
 class WebDemoHandler(SimpleHTTPRequestHandler):
+    GET_ROUTES = {"/api/state", "/api/acceptance"}
     POST_ROUTES = {"/api/run", "/api/provider-smoke"}
 
     def __init__(self, *args, **kwargs):
@@ -24,6 +30,9 @@ class WebDemoHandler(SimpleHTTPRequestHandler):
     def do_GET(self):
         if self.path == "/api/state":
             self._send_json(get_initial_payload())
+            return
+        if self.path == "/api/acceptance":
+            self._send_json(get_acceptance_payload())
             return
         if self.path == "/":
             self.path = "/index.html"

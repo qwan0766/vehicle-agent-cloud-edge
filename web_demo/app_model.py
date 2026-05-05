@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from agents.cloud.cloud_route_plan_agent import CloudRoutePlanAgent
 from agents.cloud.cloud_schedule_agent import CloudScheduleAgent
 from agents.cloud.cloud_user_profile_agent import CloudUserProfileAgent
@@ -17,6 +19,10 @@ from providers.factory import (
     create_weather_provider,
 )
 from scripts.smoke_real_providers import run_smoke_checks
+
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_ACCEPTANCE_REPORT = PROJECT_ROOT / "reports" / "acceptance_report.md"
 
 
 USERS = [
@@ -42,6 +48,7 @@ def get_initial_payload():
         "cloud_tools": CloudScheduleAgent().tool_registry.list_names(),
         "offline_evaluation": OfflineEvaluator().run(),
         "providers": _provider_status(),
+        "acceptance": get_acceptance_payload(),
     }
 
 
@@ -84,11 +91,60 @@ def run_provider_smoke_test():
     return {"results": run_smoke_checks()}
 
 
+def get_acceptance_payload(report_path=None):
+    path = Path(report_path) if report_path else DEFAULT_ACCEPTANCE_REPORT
+    if not path.exists():
+        return {
+            "available": False,
+            "overall_status": "UNKNOWN",
+            "generated_at": "",
+            "steps": [],
+            "report_path": str(path),
+        }
+
+    text = path.read_text(encoding="utf-8")
+    return {
+        "available": True,
+        "overall_status": _extract_report_value(text, "- 总体状态：") or "UNKNOWN",
+        "generated_at": _extract_report_value(text, "- 生成时间："),
+        "steps": _parse_acceptance_steps(text),
+        "report_path": str(path),
+    }
+
+
 def _parse_network(network: str) -> NetworkStatus:
     normalized = (network or "ONLINE").upper()
     if normalized == NetworkStatus.OFFLINE.value:
         return NetworkStatus.OFFLINE
     return NetworkStatus.ONLINE
+
+
+def _extract_report_value(text: str, prefix: str) -> str:
+    for line in text.splitlines():
+        if line.startswith(prefix):
+            return line[len(prefix) :].strip()
+    return ""
+
+
+def _parse_acceptance_steps(text: str):
+    steps = []
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped.startswith("|"):
+            continue
+        cells = [cell.strip() for cell in stripped.strip("|").split("|")]
+        if len(cells) != 3:
+            continue
+        if cells[0] in {"步骤", "---"} or set(cells[0]) == {"-"}:
+            continue
+        steps.append(
+            {
+                "name": cells[0],
+                "status": cells[1],
+                "duration": cells[2],
+            }
+        )
+    return steps
 
 
 def _vehicle_state_payload(network: NetworkStatus):

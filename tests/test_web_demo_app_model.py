@@ -1,7 +1,10 @@
 import unittest
+import uuid
+from pathlib import Path
 
 from web_demo.app_model import run_command
 from web_demo.app_model import get_initial_payload
+from web_demo.app_model import get_acceptance_payload
 
 
 class TestWebDemoAppModel(unittest.TestCase):
@@ -15,6 +18,50 @@ class TestWebDemoAppModel(unittest.TestCase):
         self.assertIn("providers", payload)
         self.assertIn("llm", payload["providers"])
         self.assertIn("map", payload["providers"])
+        self.assertIn("acceptance", payload)
+
+    def test_acceptance_payload_parses_report_summary(self):
+        runtime_dir = Path(".test_runtime")
+        runtime_dir.mkdir(exist_ok=True)
+        report_path = runtime_dir / f"acceptance_report_{uuid.uuid4().hex}.md"
+        report_path.write_text(
+            "\n".join(
+                [
+                    "# 车载 Multi-Agent 验收报告",
+                    "",
+                    "- 生成时间：2026-05-05T17:48:15+08:00",
+                    "- 总体状态：PASS",
+                    "",
+                    "## 验收步骤",
+                    "",
+                    "| 步骤 | 状态 | 耗时 |",
+                    "| --- | --- | ---: |",
+                    "| unit tests | PASS | 20.86s |",
+                    "| online matrix | PASS | 25.54s |",
+                ]
+            ),
+            encoding="utf-8",
+        )
+
+        payload = get_acceptance_payload(report_path)
+
+        self.assertTrue(payload["available"])
+        self.assertEqual(payload["overall_status"], "PASS")
+        self.assertEqual(payload["generated_at"], "2026-05-05T17:48:15+08:00")
+        self.assertEqual(
+            payload["steps"],
+            [
+                {"name": "unit tests", "status": "PASS", "duration": "20.86s"},
+                {"name": "online matrix", "status": "PASS", "duration": "25.54s"},
+            ],
+        )
+
+    def test_acceptance_payload_handles_missing_report(self):
+        payload = get_acceptance_payload(Path("missing_acceptance_report.md"))
+
+        self.assertFalse(payload["available"])
+        self.assertEqual(payload["overall_status"], "UNKNOWN")
+        self.assertEqual(payload["steps"], [])
 
     def test_online_navigation_payload_contains_cloud_trace(self):
         payload = run_command("导航去蔚来中心", network="ONLINE")

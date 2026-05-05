@@ -119,6 +119,24 @@
           </div>
         </section>
 
+        <section class="panel acceptance-panel" aria-label="验收报告">
+          <div class="panel-heading">
+            <h2>验收报告</h2>
+            <button id="acceptanceRefreshBtn" class="small-action" type="button">刷新</button>
+          </div>
+          <div class="acceptance-summary">
+            <div>
+              <span>总体状态</span>
+              <strong id="acceptanceStatus">UNKNOWN</strong>
+            </div>
+            <div>
+              <span>生成时间</span>
+              <strong id="acceptanceTime">-</strong>
+            </div>
+          </div>
+          <div id="acceptanceSteps" class="acceptance-steps">等待验收报告</div>
+        </section>
+
         <section class="panel provider-panel" aria-label="Provider 状态">
           <div class="panel-heading">
             <h2>Provider 状态</h2>

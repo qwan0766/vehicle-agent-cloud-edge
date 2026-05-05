@@ -1,29 +1,29 @@
 # 车载 Multi-Agent 验收报告
 
-- 生成时间：2026-05-05T17:48:15+08:00
+- 生成时间：2026-05-05T18:03:31+08:00
 - 总体状态：PASS
 
 ## 验收步骤
 
 | 步骤 | 状态 | 耗时 |
 | --- | --- | ---: |
-| unit tests | PASS | 20.86s |
+| unit tests | PASS | 23.17s |
 | offline evaluation | PASS | 0.01s |
-| provider smoke | PASS | 2.18s |
-| online matrix | PASS | 25.54s |
+| provider smoke | PASS | 2.24s |
+| online matrix | PASS | 28.35s |
 
 ## 详细输出
 
 ### unit tests
 
 - 状态：PASS
-- 耗时：20.86s
+- 耗时：23.17s
 
 ```text
 $ C:\Users\scyqw3\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe -m unittest discover -s tests
-........................................................................................
+...........................................................................................
 ----------------------------------------------------------------------
-Ran 88 tests in 20.513s
+Ran 91 tests in 22.818s
 
 OK
 ```
@@ -48,7 +48,7 @@ OK
 ### provider smoke
 
 - 状态：PASS
-- 耗时：2.18s
+- 耗时：2.24s
 
 ```text
 [
@@ -64,7 +64,7 @@ OK
       "city": "当前位置",
       "summary": "实时天气",
       "temperature_c": 20,
-      "wind_level": "13.5km/h"
+      "wind_level": "13.7km/h"
     }
   },
   {
@@ -119,7 +119,7 @@ OK
 ### online matrix
 
 - 状态：PASS
-- 耗时：25.54s
+- 耗时：28.35s
 
 ```text
 [

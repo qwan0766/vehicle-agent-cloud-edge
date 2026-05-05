@@ -47,6 +47,16 @@ python scripts/run_acceptance.py --skip-online-matrix
 python scripts/run_acceptance.py --report-path reports/custom_report.md
 ```
 
+网页端也会读取最近一次验收结果：
+
+- 后端接口：`GET /api/acceptance`
+- 首页模块：`验收报告`
+- 展示内容：总体状态、生成时间、unit tests / offline evaluation / provider smoke / online matrix 四个步骤
+
+面试表达：
+
+> 我把验收报告接入了 Web 展示，但不会在打开页面时重新跑真实 API。页面展示的是最近一次可复现验收的结果，这样既直观，也避免了演示页面初始化时被外部接口稳定性影响。
+
 ## 4. 这轮测试覆盖了什么
 
 ### 4.1 意图识别覆盖

@@ -32,6 +32,10 @@ const nodes = {
   evalIntent: document.querySelector("#evalIntent"),
   evalSafety: document.querySelector("#evalSafety"),
   evalRag: document.querySelector("#evalRag"),
+  acceptanceRefreshBtn: document.querySelector("#acceptanceRefreshBtn"),
+  acceptanceStatus: document.querySelector("#acceptanceStatus"),
+  acceptanceTime: document.querySelector("#acceptanceTime"),
+  acceptanceSteps: document.querySelector("#acceptanceSteps"),
   smokeBtn: document.querySelector("#smokeBtn"),
   providerLlm: document.querySelector("#providerLlm"),
   providerMap: document.querySelector("#providerMap"),
@@ -58,6 +62,7 @@ async function init() {
     state.users = payload.users;
     renderVehicle(payload.vehicle_state);
     renderOfflineEvaluation(payload.offline_evaluation);
+    renderAcceptance(payload.acceptance);
     renderProviders(payload.providers);
     renderUsers();
     renderScenarioButtons();
@@ -83,6 +88,7 @@ function bindEvents() {
   nodes.offlineBtn.addEventListener("click", () => setNetwork("OFFLINE"));
   nodes.runBtn.addEventListener("click", runCommand);
   nodes.smokeBtn.addEventListener("click", runSmokeTest);
+  nodes.acceptanceRefreshBtn.addEventListener("click", refreshAcceptance);
   nodes.userSelect.addEventListener("change", () => {
     state.userId = nodes.userSelect.value;
     nodes.userIdValue.textContent = state.userId;
@@ -91,6 +97,54 @@ function bindEvents() {
     if (event.key === "Enter") {
       runCommand();
     }
+  });
+}
+
+async function refreshAcceptance() {
+  nodes.acceptanceRefreshBtn.disabled = true;
+  nodes.acceptanceRefreshBtn.textContent = "读取中";
+  try {
+    const response = await fetch("/api/acceptance");
+    const payload = await parseJsonResponse(response);
+    renderAcceptance(payload);
+  } catch (error) {
+    nodes.acceptanceStatus.textContent = "ERROR";
+    nodes.acceptanceStatus.className = "status-danger";
+    nodes.acceptanceSteps.textContent = `验收报告读取失败：${error.message}`;
+  } finally {
+    nodes.acceptanceRefreshBtn.disabled = false;
+    nodes.acceptanceRefreshBtn.textContent = "刷新";
+  }
+}
+
+function renderAcceptance(report) {
+  const payload = report || {};
+  nodes.acceptanceStatus.textContent = payload.overall_status || "UNKNOWN";
+  nodes.acceptanceStatus.className =
+    payload.overall_status === "PASS" ? "status-pass" : "status-danger";
+  nodes.acceptanceTime.textContent = payload.generated_at || "-";
+  nodes.acceptanceSteps.innerHTML = "";
+
+  if (!payload.available) {
+    nodes.acceptanceSteps.textContent = "尚未生成验收报告";
+    return;
+  }
+
+  const steps = payload.steps || [];
+  if (!steps.length) {
+    nodes.acceptanceSteps.textContent = "报告中没有验收步骤摘要";
+    return;
+  }
+
+  steps.forEach((step) => {
+    const row = document.createElement("article");
+    row.className = `acceptance-row ${step.status.toLowerCase()}`;
+    const name = document.createElement("strong");
+    name.textContent = step.name;
+    const meta = document.createElement("span");
+    meta.textContent = `${step.status} · ${step.duration}`;
+    row.append(name, meta);
+    nodes.acceptanceSteps.appendChild(row);
   });
 }
 

@@ -394,7 +394,8 @@ h2 {
 
 .feedback-grid,
 .provider-grid,
-.route-summary {
+.route-summary,
+.acceptance-summary {
   display: grid;
   grid-template-columns: 1fr;
   gap: 10px;
@@ -425,6 +426,7 @@ h2 {
   color: var(--teal);
 }
 
+.acceptance-summary div,
 .feedback-grid div,
 .provider-grid div,
 .route-summary div {
@@ -434,6 +436,7 @@ h2 {
   padding: 12px;
 }
 
+.acceptance-summary span,
 .feedback-grid span,
 .provider-grid span,
 .route-summary span {
@@ -442,6 +445,7 @@ h2 {
   font-size: 13px;
 }
 
+.acceptance-summary strong,
 .feedback-grid strong,
 .provider-grid strong,
 .route-summary strong {
@@ -452,7 +456,8 @@ h2 {
 }
 
 .provider-grid,
-.route-summary {
+.route-summary,
+.acceptance-summary {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
@@ -468,6 +473,7 @@ h2 {
 }
 
 .smoke-results,
+.acceptance-steps,
 .charge-stations {
   display: grid;
   gap: 8px;
@@ -475,6 +481,7 @@ h2 {
 }
 
 .smoke-row,
+.acceptance-row,
 .station-row {
   display: flex;
   justify-content: space-between;
@@ -495,6 +502,20 @@ h2 {
 }
 
 .smoke-row.skip span {
+  color: var(--amber);
+}
+
+.acceptance-row.pass span,
+.status-pass {
+  color: var(--green);
+}
+
+.acceptance-row.fail span,
+.status-danger {
+  color: var(--red);
+}
+
+.acceptance-row.skip span {
   color: var(--amber);
 }
 
