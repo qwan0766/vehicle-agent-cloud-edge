@@ -1,8 +1,10 @@
 const state = {
   network: "ONLINE",
   scenarios: [],
+  demoSteps: [],
   users: [],
   userId: "user_001",
+  activeDemoId: "",
 };
 
 const nodes = {
@@ -20,6 +22,11 @@ const nodes = {
   commandInput: document.querySelector("#commandInput"),
   runBtn: document.querySelector("#runBtn"),
   commandError: document.querySelector("#commandError"),
+  demoStepCount: document.querySelector("#demoStepCount"),
+  demoSteps: document.querySelector("#demoSteps"),
+  demoFocus: document.querySelector("#demoFocus"),
+  demoTalkTrack: document.querySelector("#demoTalkTrack"),
+  demoExpectedPanels: document.querySelector("#demoExpectedPanels"),
   traceMode: document.querySelector("#traceMode"),
   agentTrace: document.querySelector("#agentTrace"),
   runtimeTrace: document.querySelector("#runtimeTrace"),
@@ -59,6 +66,7 @@ async function init() {
     const response = await fetch("/api/state");
     const payload = await parseJsonResponse(response);
     state.scenarios = payload.scenarios;
+    state.demoSteps = payload.demo_steps || [];
     state.users = payload.users;
     renderVehicle(payload.vehicle_state);
     renderOfflineEvaluation(payload.offline_evaluation);
@@ -66,10 +74,61 @@ async function init() {
     renderProviders(payload.providers);
     renderUsers();
     renderScenarioButtons();
+    renderDemoSteps();
     bindEvents();
   } catch (error) {
     nodes.resultOutput.textContent = `页面初始化失败：${error.message}`;
   }
+}
+
+function renderDemoSteps() {
+  nodes.demoSteps.innerHTML = "";
+  nodes.demoStepCount.textContent = `${state.demoSteps.length} steps`;
+  if (!state.demoSteps.length) {
+    nodes.demoSteps.textContent = "暂无演示步骤";
+    return;
+  }
+
+  state.demoSteps.forEach((step) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "demo-step";
+    button.dataset.demoId = step.id;
+
+    const title = document.createElement("strong");
+    title.textContent = step.title;
+    const meta = document.createElement("span");
+    meta.textContent = `${step.network} · ${step.content}`;
+    button.append(title, meta);
+    button.addEventListener("click", () => activateDemoStep(step, true));
+    nodes.demoSteps.appendChild(button);
+  });
+
+  activateDemoStep(state.demoSteps[0], false);
+}
+
+function activateDemoStep(step, shouldRun) {
+  state.activeDemoId = step.id;
+  nodes.commandInput.value = step.content;
+  setNetwork(step.network);
+  renderDemoNotes(step);
+  document.querySelectorAll(".demo-step").forEach((button) => {
+    button.classList.toggle("active", button.dataset.demoId === step.id);
+  });
+  if (shouldRun) {
+    runCommand();
+  }
+}
+
+function renderDemoNotes(step) {
+  nodes.demoFocus.textContent = step.focus;
+  nodes.demoTalkTrack.textContent = step.talk_track;
+  nodes.demoExpectedPanels.innerHTML = "";
+  (step.expected_panels || []).forEach((panel) => {
+    const tag = document.createElement("span");
+    tag.textContent = panel;
+    nodes.demoExpectedPanels.appendChild(tag);
+  });
 }
 
 function renderOfflineEvaluation(report) {

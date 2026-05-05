@@ -183,7 +183,8 @@ h2 {
 
 .toggle,
 .primary-action,
-.scenario-grid button {
+.scenario-grid button,
+.demo-step {
   border: 1px solid var(--line);
   border-radius: 6px;
   background: var(--surface-muted);
@@ -212,6 +213,7 @@ h2 {
 }
 
 .scenario-grid button:hover,
+.demo-step:hover,
 .toggle:hover,
 .primary-action:hover {
   border-color: var(--teal);
@@ -220,6 +222,75 @@ h2 {
 .command-input {
   display: block;
   margin-top: 14px;
+}
+
+.demo-panel {
+  min-height: 360px;
+}
+
+.demo-steps {
+  display: grid;
+  gap: 8px;
+}
+
+.demo-step {
+  display: grid;
+  gap: 4px;
+  min-height: 58px;
+  padding: 10px 12px;
+  text-align: left;
+}
+
+.demo-step.active {
+  border-color: var(--teal);
+  background: #eef8f6;
+}
+
+.demo-step strong {
+  line-height: 1.35;
+}
+
+.demo-step span {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.demo-notes {
+  margin-top: 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fbfcfb;
+  padding: 12px;
+}
+
+.demo-notes strong {
+  display: block;
+  color: var(--teal);
+  line-height: 1.45;
+}
+
+.demo-notes p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.demo-expected {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.demo-expected span {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-muted);
+  color: var(--muted);
+  padding: 3px 8px;
+  font-size: 12px;
 }
 
 .command-input input,

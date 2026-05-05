@@ -1,29 +1,29 @@
 # 车载 Multi-Agent 验收报告
 
-- 生成时间：2026-05-05T18:03:31+08:00
+- 生成时间：2026-05-05T21:18:41+08:00
 - 总体状态：PASS
 
 ## 验收步骤
 
 | 步骤 | 状态 | 耗时 |
 | --- | --- | ---: |
-| unit tests | PASS | 23.17s |
+| unit tests | PASS | 21.91s |
 | offline evaluation | PASS | 0.01s |
-| provider smoke | PASS | 2.24s |
-| online matrix | PASS | 28.35s |
+| provider smoke | PASS | 2.54s |
+| online matrix | PASS | 27.01s |
 
 ## 详细输出
 
 ### unit tests
 
 - 状态：PASS
-- 耗时：23.17s
+- 耗时：21.91s
 
 ```text
 $ C:\Users\scyqw3\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe -m unittest discover -s tests
-...........................................................................................
+.............................................................................................
 ----------------------------------------------------------------------
-Ran 91 tests in 22.818s
+Ran 93 tests in 21.576s
 
 OK
 ```
@@ -48,7 +48,7 @@ OK
 ### provider smoke
 
 - 状态：PASS
-- 耗时：2.24s
+- 耗时：2.54s
 
 ```text
 [
@@ -63,8 +63,8 @@ OK
     "detail": {
       "city": "当前位置",
       "summary": "实时天气",
-      "temperature_c": 20,
-      "wind_level": "13.7km/h"
+      "temperature_c": 17,
+      "wind_level": "14.0km/h"
     }
   },
   {
@@ -75,7 +75,7 @@ OK
       "origin": "121.48,31.23",
       "destination": "121.50,31.25",
       "distance_km": 4.0,
-      "duration_minutes": 13,
+      "duration_minutes": 17,
       "strategy": "高速优先"
     }
   },
@@ -119,7 +119,7 @@ OK
 ### online matrix
 
 - 状态：PASS
-- 耗时：28.35s
+- 耗时：27.01s
 
 ```text
 [

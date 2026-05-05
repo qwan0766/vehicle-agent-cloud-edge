@@ -38,6 +38,69 @@ SCENARIOS = [
     {"label": "加速到100km/h", "content": "加速到100km/h", "network": "ONLINE"},
 ]
 
+DEMO_STEPS = [
+    {
+        "id": "online_navigation",
+        "title": "在线导航端云协同",
+        "content": "导航去蔚来中心",
+        "network": "ONLINE",
+        "focus": "端云协同、RAG 召回、真实地图路线、DeepSeek 决策说明",
+        "talk_track": (
+            "这一步展示完整在线链路：车端先做本地意图识别和安全校验，"
+            "通过后进入云端调度，组合用户画像、外部生态、路线规划和 LLM 最终说明。"
+        ),
+        "expected_panels": ["Agent 调用链", "RAG 召回知识", "路线与补能", "执行结果"],
+    },
+    {
+        "id": "car_control_no_route",
+        "title": "车控指令不误调地图",
+        "content": "温度调到24度",
+        "network": "ONLINE",
+        "focus": "按意图分流，车控只走画像、生态和 LLM 决策，不调用 route.plan",
+        "talk_track": (
+            "这一步用来说明 Multi-Agent 编排不是所有 Agent 都调用。"
+            "车控指令不会进入路线规划 Agent，避免把温度设置误解析成目的地。"
+        ),
+        "expected_panels": ["Agent 调用链", "Runtime Trace", "执行结果"],
+    },
+    {
+        "id": "charge_planning",
+        "title": "低电量补能规划",
+        "content": "电量低",
+        "network": "ONLINE",
+        "focus": "补能 RAG、附近充电站 POI、路线规划、用户偏好高速",
+        "talk_track": (
+            "这一步展示补能场景：系统根据低电量知识召回补能建议，"
+            "再结合高德 POI 找附近充电站，并用路线 Provider 规划可执行路线。"
+        ),
+        "expected_panels": ["RAG 召回知识", "路线与补能", "Provider 状态"],
+    },
+    {
+        "id": "safety_block",
+        "title": "危险指令安全拦截",
+        "content": "关闭AEB",
+        "network": "ONLINE",
+        "focus": "SafetyAgent 与 SafetyPolicy 前置拦截，危险车控不进入云端执行链",
+        "talk_track": (
+            "这一步强调车载 AI 的安全边界。即使系统能识别这是车控指令，"
+            "涉及 AEB 等安全能力时也必须被策略层拦截。"
+        ),
+        "expected_panels": ["Agent 调用链", "执行结果"],
+    },
+    {
+        "id": "online_error_explain",
+        "title": "真实接口失败解释",
+        "content": "导航去巴黎",
+        "network": "ONLINE",
+        "focus": "在线模式不静默离线兜底，失败时给出可理解原因和建议",
+        "talk_track": (
+            "这一步展示真实 API 失败处理：高德无法规划跨境目的地时，"
+            "系统不会编造结果，而是把技术错误转换成用户能理解的解释。"
+        ),
+        "expected_panels": ["错误说明", "Agent 调用链", "RAG 召回知识"],
+    },
+]
+
 
 def get_initial_payload():
     load_env_file()
@@ -45,6 +108,7 @@ def get_initial_payload():
         "vehicle_state": _vehicle_state_payload(NetworkStatus.ONLINE),
         "users": USERS,
         "scenarios": SCENARIOS,
+        "demo_steps": get_demo_steps(),
         "cloud_tools": CloudScheduleAgent().tool_registry.list_names(),
         "offline_evaluation": OfflineEvaluator().run(),
         "providers": _provider_status(),
@@ -89,6 +153,10 @@ def run_command(content: str, user_id: str = "user_001", network: str = "ONLINE"
 def run_provider_smoke_test():
     load_env_file()
     return {"results": run_smoke_checks()}
+
+
+def get_demo_steps():
+    return [dict(step) for step in DEMO_STEPS]
 
 
 def get_acceptance_payload(report_path=None):

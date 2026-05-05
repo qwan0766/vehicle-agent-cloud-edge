@@ -5,6 +5,7 @@ from pathlib import Path
 from web_demo.app_model import run_command
 from web_demo.app_model import get_initial_payload
 from web_demo.app_model import get_acceptance_payload
+from web_demo.app_model import get_demo_steps
 
 
 class TestWebDemoAppModel(unittest.TestCase):
@@ -19,6 +20,20 @@ class TestWebDemoAppModel(unittest.TestCase):
         self.assertIn("llm", payload["providers"])
         self.assertIn("map", payload["providers"])
         self.assertIn("acceptance", payload)
+        self.assertIn("demo_steps", payload)
+
+    def test_demo_steps_cover_interview_storyline(self):
+        steps = get_demo_steps()
+
+        self.assertGreaterEqual(len(steps), 5)
+        self.assertEqual(steps[0]["id"], "online_navigation")
+        self.assertEqual(steps[0]["content"], "导航去蔚来中心")
+        self.assertEqual(steps[0]["network"], "ONLINE")
+        self.assertIn("端云协同", steps[0]["focus"])
+        self.assertTrue(steps[0]["talk_track"])
+        self.assertIn("expected_panels", steps[0])
+        self.assertTrue(any(step["content"] == "导航去巴黎" for step in steps))
+        self.assertTrue(any(step["content"] == "关闭AEB" for step in steps))
 
     def test_acceptance_payload_parses_report_summary(self):
         runtime_dir = Path(".test_runtime")
