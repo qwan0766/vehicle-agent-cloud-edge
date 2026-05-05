@@ -61,6 +61,7 @@
             <input id="commandInput" value="导航去蔚来中心" />
           </label>
           <button id="runBtn" class="primary-action" type="button">运行指令</button>
+          <div id="commandError" class="inline-error" hidden></div>
         </section>
 
         <section class="panel trace-panel" aria-label="Agent 调用链">
@@ -108,7 +109,7 @@
               <strong id="evalIntent">-</strong>
             </div>
             <div>
-              <span>安全召回率</span>
+              <span>安全拦截召回</span>
               <strong id="evalSafety">-</strong>
             </div>
             <div>

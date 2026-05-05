@@ -1,16 +1,21 @@
+from agents.cloud.cloud_route_plan_agent import CloudRoutePlanAgent
+from agents.cloud.cloud_schedule_agent import CloudScheduleAgent
+from agents.cloud.cloud_user_profile_agent import CloudUserProfileAgent
+from agents.vehicle.local_intent_agent import LocalIntentAgent
+from config.env_loader import load_env_file
 from core.constants import CommandType, ExecutionStatus, NetworkStatus, SafetyLevel
 from core.vehicle_core_service import VehicleCoreService
 from data.vehicle_state import DEFAULT_VEHICLE_STATE
-from agents.cloud.cloud_route_plan_agent import CloudRoutePlanAgent
-from agents.cloud.cloud_user_profile_agent import CloudUserProfileAgent
-from agents.vehicle.local_intent_agent import LocalIntentAgent
-from agents.cloud.cloud_schedule_agent import CloudScheduleAgent
 from evaluation.offline_evaluator import OfflineEvaluator
 from feedback.feedback_service import FeedbackService
-from config.env_loader import load_env_file
 from llm.factory import create_llm_client
-from providers.destination_resolver import resolve_destination
-from providers.factory import create_charge_provider, create_map_provider, create_weather_provider
+from providers.destination_resolver import resolve_destination_detail
+from providers.factory import (
+    create_charge_provider,
+    create_geocode_provider,
+    create_map_provider,
+    create_weather_provider,
+)
 from scripts.smoke_real_providers import run_smoke_checks
 
 
@@ -117,9 +122,10 @@ def _agent_trace(command_type: CommandType, safety: SafetyLevel, status: Executi
             "CloudScheduleAgent",
             "CloudUserProfileAgent",
             "CloudEcologyAgent",
-            "CloudRoutePlanAgent",
         ]
     )
+    if command_type in {CommandType.NAVIGATION, CommandType.CHARGE_PLAN}:
+        trace.append("CloudRoutePlanAgent")
     return trace
 
 
@@ -133,12 +139,17 @@ def _rag_context(content: str, user_id: str, command_type: CommandType, network:
     if network == NetworkStatus.ONLINE and command_type in {
         CommandType.NAVIGATION,
         CommandType.CHARGE_PLAN,
+        CommandType.CAR_CONTROL,
         CommandType.PERSONALIZE,
     }:
         profile_agent = CloudUserProfileAgent()
         for result in profile_agent.retrieve_context(user_id, content):
             context.append(_context_payload("用户画像召回", result))
 
+    if network == NetworkStatus.ONLINE and command_type in {
+        CommandType.NAVIGATION,
+        CommandType.CHARGE_PLAN,
+    }:
         route_agent = CloudRoutePlanAgent()
         for result in route_agent.retrieve_context(content):
             context.append(_context_payload("云端路线规划", result))
@@ -169,16 +180,20 @@ def _route_summary(content: str, command_type: CommandType, network: NetworkStat
     if network != NetworkStatus.ONLINE or command_type not in {
         CommandType.NAVIGATION,
         CommandType.CHARGE_PLAN,
-        CommandType.PERSONALIZE,
     }:
         return {}
+
+    destination = resolve_destination_detail(content, geocoder=create_geocode_provider())
     route = create_map_provider().plan_route(
         DEFAULT_VEHICLE_STATE.gps,
-        resolve_destination(content),
+        destination.gps,
         preference="高速",
     )
     return {
         "provider": route.provider,
+        "destination_name": destination.name,
+        "destination_gps": destination.gps,
+        "destination_source": destination.source,
         "distance_km": route.distance_km,
         "duration_minutes": route.duration_minutes,
         "strategy": route.strategy,
@@ -189,9 +204,10 @@ def _charge_stations(command_type: CommandType, network: NetworkStatus):
     if network != NetworkStatus.ONLINE or command_type not in {
         CommandType.NAVIGATION,
         CommandType.CHARGE_PLAN,
-        CommandType.PERSONALIZE,
     }:
         return []
+
+    stations = create_charge_provider().find_nearby(DEFAULT_VEHICLE_STATE.gps, limit=3)
     return [
         {
             "name": station.name,
@@ -199,5 +215,5 @@ def _charge_stations(command_type: CommandType, network: NetworkStatus):
             "status": station.status,
             "estimated_minutes": station.estimated_minutes,
         }
-        for station in create_charge_provider().find_nearby(DEFAULT_VEHICLE_STATE.gps, limit=3)
+        for station in stations
     ]

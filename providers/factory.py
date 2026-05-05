@@ -1,6 +1,7 @@
 import os
 
 from providers.amap_poi_provider import AmapPOIProvider
+from providers.amap_geocode_provider import AmapGeocodeProvider
 from providers.amap_route_provider import AmapRouteProvider
 from providers.baidu_map_provider import BaiduMapProvider
 from providers.offline_charge_provider import OfflineChargeProvider
@@ -18,6 +19,16 @@ def create_map_provider():
     if api_key:
         return BaiduMapProvider(api_key=api_key)
     return OfflineMapProvider()
+
+
+def create_geocode_provider():
+    amap_key = os.getenv("AMAP_API_KEY")
+    if amap_key:
+        return AmapGeocodeProvider(
+            api_key=amap_key,
+            city=os.getenv("AMAP_GEOCODE_CITY", ""),
+        )
+    return None
 
 
 def create_weather_provider():

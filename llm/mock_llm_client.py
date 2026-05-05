@@ -3,7 +3,12 @@ class MockLLMClient:
 
     def generate(self, system_prompt: str, user_prompt: str, context: dict = None) -> str:
         context = context or {}
-        route_hint = context.get("route_hint") or context.get("route") or "根据当前上下文规划路线"
+        route_hint = (
+            context.get("route_hint")
+            or context.get("route")
+            or context.get("task_context")
+            or "根据当前上下文生成执行说明"
+        )
         map_route = context.get("map_route", "")
         preference = context.get("route_preference", "")
         parts = [f"LLM决策：{route_hint}"]

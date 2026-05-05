@@ -1,6 +1,7 @@
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 import argparse
 import json
+import traceback
 from pathlib import Path
 import sys
 
@@ -11,6 +12,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from web_demo.app_model import get_initial_payload, run_command, run_provider_smoke_test
+from providers.destination_resolver import extract_destination_query
 
 
 class WebDemoHandler(SimpleHTTPRequestHandler):
@@ -46,11 +48,23 @@ class WebDemoHandler(SimpleHTTPRequestHandler):
         content = payload.get("content", "")
         user_id = payload.get("user_id", "user_001")
         network = payload.get("network", "ONLINE")
-        self._send_json(run_command(content, user_id=user_id, network=network))
+        try:
+            self._send_json(run_command(content, user_id=user_id, network=network))
+        except Exception as exc:
+            self._send_json(
+                {
+                    "error": build_error_response(
+                        exc,
+                        content=content,
+                        network=network,
+                    )
+                },
+                status=502,
+            )
 
-    def _send_json(self, payload):
+    def _send_json(self, payload, status=200):
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
-        self.send_response(200)
+        self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
@@ -68,6 +82,87 @@ def parse_server_args(argv=None):
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8000)
     return parser.parse_args(argv)
+
+
+def build_error_response(exc: Exception, content: str = "", network: str = "ONLINE"):
+    technical_message = str(exc)
+    destination = extract_destination_query(content) or content or "当前指令"
+    response = {
+        "type": exc.__class__.__name__,
+        "message": technical_message,
+        "technical_message": technical_message,
+        "traceback": traceback.format_exc(limit=3),
+        "user_title": "在线能力暂时不可用",
+        "user_message": "这次请求已经进入在线链路，但外部服务没有返回可执行结果。",
+        "suggestions": [
+            "稍后重试一次，确认外部 API 当前可用。",
+            "换一个更具体的目的地名称，尽量带上城市或地标。",
+        ],
+    }
+
+    if "AMap geocode error" in technical_message:
+        response.update(
+            {
+                "provider": "amap_geocode",
+                "user_title": "没有找到这个目的地",
+                "user_message": (
+                    f"高德地理编码没有解析出“{destination}”的有效坐标。"
+                    "常见原因是地点过于宽泛、名称不完整，或该地点超出了当前高德驾车路线演示的覆盖范围。"
+                ),
+                "suggestions": [
+                    "把目的地写得更具体，例如“导航去上海外滩”或“导航去杭州萧山国际机场”。",
+                    "如果是海外目的地，当前接入的高德驾车路线 API 可能无法规划跨境路线。",
+                    "如果你知道坐标，也可以直接输入经纬度，例如“导航去 121.497253,31.238235”。",
+                ],
+            }
+        )
+        return response
+
+    if "AMap route error" in technical_message:
+        response.update(
+            {
+                "provider": "amap_route",
+                "user_title": "地图没有规划出可行路线",
+                "user_message": (
+                    f"目的地“{destination}”可能已解析成功，但高德驾车路线服务没有返回可行路线。"
+                    "这通常发生在跨城市/跨境不支持、坐标不可达，或路线服务临时异常时。"
+                ),
+                "suggestions": [
+                    "尝试换成更明确的国内地址或地标。",
+                    "确认目的地适合驾车路线规划，而不是国家、城市名或过大的区域。",
+                    "稍后重试，排除地图服务临时不可用。",
+                ],
+            }
+        )
+        return response
+
+    if "DeepSeek" in technical_message or "chat/completions" in technical_message:
+        response.update(
+            {
+                "provider": "deepseek",
+                "user_title": "大模型生成失败",
+                "user_message": "路线和外部数据已经进入调度链路，但 DeepSeek 没有成功生成最终说明。",
+                "suggestions": [
+                    "稍后重试，或检查 DeepSeek API Key 与账户额度。",
+                    "保留 Agent Trace 里的地图和 POI 结果，用于判断前置工具是否成功。",
+                ],
+            }
+        )
+        return response
+
+    if "timed out" in technical_message.lower() or "timeout" in technical_message.lower():
+        response.update(
+            {
+                "user_title": "外部服务响应超时",
+                "user_message": "在线 Provider 在限定时间内没有返回结果，系统没有使用离线兜底。",
+                "suggestions": [
+                    "稍后重试一次。",
+                    "如果连续超时，可以先点击 Smoke Test 查看是哪一个 Provider 不稳定。",
+                ],
+            }
+        )
+
+    return response
 
 
 if __name__ == "__main__":

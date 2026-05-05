@@ -19,6 +19,7 @@ const nodes = {
   scenarioButtons: document.querySelector("#scenarioButtons"),
   commandInput: document.querySelector("#commandInput"),
   runBtn: document.querySelector("#runBtn"),
+  commandError: document.querySelector("#commandError"),
   traceMode: document.querySelector("#traceMode"),
   agentTrace: document.querySelector("#agentTrace"),
   runtimeTrace: document.querySelector("#runtimeTrace"),
@@ -50,17 +51,20 @@ const nodes = {
 };
 
 async function init() {
-  const response = await fetch("/api/state");
-  const payload = await response.json();
-  state.scenarios = payload.scenarios;
-  state.users = payload.users;
-  renderVehicle(payload.vehicle_state);
-  renderOfflineEvaluation(payload.offline_evaluation);
-  renderProviders(payload.providers);
-  renderUsers();
-  renderScenarioButtons();
-  bindEvents();
-  await runCommand();
+  try {
+    const response = await fetch("/api/state");
+    const payload = await parseJsonResponse(response);
+    state.scenarios = payload.scenarios;
+    state.users = payload.users;
+    renderVehicle(payload.vehicle_state);
+    renderOfflineEvaluation(payload.offline_evaluation);
+    renderProviders(payload.providers);
+    renderUsers();
+    renderScenarioButtons();
+    bindEvents();
+  } catch (error) {
+    nodes.resultOutput.textContent = `页面初始化失败：${error.message}`;
+  }
 }
 
 function renderOfflineEvaluation(report) {
@@ -82,7 +86,6 @@ function bindEvents() {
   nodes.userSelect.addEventListener("change", () => {
     state.userId = nodes.userSelect.value;
     nodes.userIdValue.textContent = state.userId;
-    runCommand();
   });
   nodes.commandInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
@@ -104,8 +107,10 @@ async function runSmokeTest() {
   nodes.smokeResults.textContent = "正在调用真实接口";
   try {
     const response = await fetch("/api/provider-smoke", { method: "POST" });
-    const payload = await response.json();
+    const payload = await parseJsonResponse(response);
     renderSmokeResults(payload.results || []);
+  } catch (error) {
+    nodes.smokeResults.textContent = `接口检测失败：${error.message}`;
   } finally {
     nodes.smokeBtn.disabled = false;
     nodes.smokeBtn.textContent = "Smoke Test";
@@ -168,6 +173,8 @@ async function runCommand() {
 
   nodes.runBtn.disabled = true;
   nodes.runBtn.textContent = "运行中";
+  nodes.resultOutput.textContent = "正在调度 Agent";
+  clearCommandError();
   try {
     const response = await fetch("/api/run", {
       method: "POST",
@@ -178,13 +185,74 @@ async function runCommand() {
         network: state.network,
       }),
     });
-    const payload = await response.json();
+    const payload = await parseJsonResponse(response);
     renderVehicle(payload.vehicle_state);
     renderResult(payload);
+  } catch (error) {
+    renderCommandError(error);
   } finally {
     nodes.runBtn.disabled = false;
     nodes.runBtn.textContent = "运行指令";
   }
+}
+
+function clearCommandError() {
+  nodes.commandError.hidden = true;
+  nodes.commandError.textContent = "";
+}
+
+function renderCommandError(error) {
+  const info = error.info || {};
+  const title = info.user_title || "在线调用失败";
+  const message = info.user_message || error.message;
+  const html = errorInfoToHtml(title, message, info);
+  nodes.commandError.hidden = false;
+  nodes.commandError.innerHTML = html;
+  nodes.resultOutput.innerHTML = html;
+  nodes.traceMode.textContent = title;
+  nodes.safetyBadge.textContent = "调用失败";
+  nodes.safetyBadge.classList.remove("badge-safe");
+  nodes.safetyBadge.classList.add("badge-danger");
+  nodes.agentTrace.innerHTML = "";
+  ["LocalIntentAgent", "SafetyAgent", "ProviderError"].forEach((agent) => {
+    const item = document.createElement("li");
+    item.textContent = agent;
+    item.className = agent === "ProviderError" ? "blocked" : "";
+    nodes.agentTrace.appendChild(item);
+  });
+  nodes.runtimeTrace.innerHTML = html;
+  nodes.ragCount.textContent = "0 条";
+  nodes.ragContext.textContent = "本次在线调用失败，没有可展示的新召回结果";
+  renderRouteSummary({}, []);
+}
+
+function errorInfoToHtml(title, message, info) {
+  const suggestions = Array.isArray(info.suggestions) ? info.suggestions : [];
+  const technical = info.technical_message || info.message || "";
+  const suggestionHtml = suggestions.length
+    ? `<ul>${suggestions.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`
+    : "";
+  const technicalHtml = technical
+    ? `<small>技术细节：${escapeHtml(technical)}</small>`
+    : "";
+  return (
+    `<strong>${escapeHtml(title)}</strong>` +
+    `<p>${escapeHtml(message)}</p>` +
+    suggestionHtml +
+    technicalHtml
+  );
+}
+
+async function parseJsonResponse(response) {
+  const payload = await response.json();
+  if (!response.ok) {
+    const errorInfo = payload.error || {};
+    const message = errorInfo.user_message || errorInfo.message || `HTTP ${response.status}`;
+    const error = new Error(message);
+    error.info = errorInfo;
+    throw error;
+  }
+  return payload;
 }
 
 function renderVehicle(vehicle) {
@@ -204,7 +272,7 @@ function renderResult(payload) {
   nodes.commandTypeValue.textContent = request.command_type;
   nodes.safetyValue.textContent = request.safety;
   nodes.executionValue.textContent = result.status;
-  nodes.resultOutput.textContent = result.output;
+  renderMarkdown(nodes.resultOutput, result.output);
   nodes.traceMode.textContent = request.network === "ONLINE" ? "端云协同" : "本地兜底";
 
   nodes.safetyBadge.textContent = request.safety === "DANGEROUS" ? "危险拦截" : "安全正常";
@@ -226,7 +294,9 @@ function renderResult(payload) {
 }
 
 function renderRouteSummary(route, stations) {
-  nodes.routeProvider.textContent = route.provider || "无路线";
+  nodes.routeProvider.textContent = route.destination_name
+    ? `${route.provider} -> ${route.destination_name}`
+    : route.provider || "无路线";
   nodes.routeDistance.textContent = route.distance_km !== undefined ? `${route.distance_km} km` : "-";
   nodes.routeDuration.textContent = route.duration_minutes !== undefined ? `${route.duration_minutes} 分钟` : "-";
   nodes.routeStrategy.textContent = route.strategy || "-";
@@ -241,7 +311,7 @@ function renderRouteSummary(route, stations) {
     const name = document.createElement("strong");
     name.textContent = station.name;
     const meta = document.createElement("span");
-    meta.textContent = `${station.distance_km} km · ${station.status}`;
+    meta.textContent = `${station.distance_km} km | ${station.status}`;
     row.append(name, meta);
     nodes.chargeStations.appendChild(row);
   });
@@ -277,6 +347,112 @@ function renderFeedback(feedback) {
   nodes.feedbackStatus.textContent = feedback.event_status || "未记录";
   nodes.feedbackEvent.textContent = feedback.event_log || "-";
   nodes.feedbackPreference.textContent = feedback.preference_update || "-";
+}
+
+function renderMarkdown(target, markdown) {
+  target.innerHTML = markdownToHtml(markdown || "");
+}
+
+function markdownToHtml(markdown) {
+  const lines = String(markdown).replace(/\r\n/g, "\n").split("\n");
+  const html = [];
+  let listType = "";
+  let inCodeBlock = false;
+  let codeLines = [];
+
+  function closeList() {
+    if (listType) {
+      html.push(`</${listType}>`);
+      listType = "";
+    }
+  }
+
+  function openList(type) {
+    if (listType !== type) {
+      closeList();
+      listType = type;
+      html.push(`<${type}>`);
+    }
+  }
+
+  lines.forEach((line) => {
+    const trimmed = line.trim();
+
+    if (trimmed.startsWith("```")) {
+      if (inCodeBlock) {
+        html.push(`<pre><code>${escapeHtml(codeLines.join("\n"))}</code></pre>`);
+        codeLines = [];
+      } else {
+        closeList();
+      }
+      inCodeBlock = !inCodeBlock;
+      return;
+    }
+
+    if (inCodeBlock) {
+      codeLines.push(line);
+      return;
+    }
+
+    if (!trimmed) {
+      closeList();
+      return;
+    }
+
+    if (trimmed.startsWith("### ")) {
+      closeList();
+      html.push(`<h4>${formatInline(trimmed.slice(4))}</h4>`);
+      return;
+    }
+
+    if (trimmed.startsWith("## ")) {
+      closeList();
+      html.push(`<h3>${formatInline(trimmed.slice(3))}</h3>`);
+      return;
+    }
+
+    if (trimmed.startsWith("# ")) {
+      closeList();
+      html.push(`<h3>${formatInline(trimmed.slice(2))}</h3>`);
+      return;
+    }
+
+    if (/^[-*]\s+/.test(trimmed)) {
+      openList("ul");
+      html.push(`<li>${formatInline(trimmed.replace(/^[-*]\s+/, ""))}</li>`);
+      return;
+    }
+
+    if (/^\d+\.\s+/.test(trimmed)) {
+      openList("ol");
+      html.push(`<li>${formatInline(trimmed.replace(/^\d+\.\s+/, ""))}</li>`);
+      return;
+    }
+
+    closeList();
+    html.push(`<p>${formatInline(trimmed)}</p>`);
+  });
+
+  closeList();
+  if (inCodeBlock) {
+    html.push(`<pre><code>${escapeHtml(codeLines.join("\n"))}</code></pre>`);
+  }
+  return html.join("");
+}
+
+function formatInline(text) {
+  return escapeHtml(text)
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
 function renderRagContext(items) {

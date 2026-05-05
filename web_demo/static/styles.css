@@ -244,6 +244,36 @@ h2 {
   font-weight: 700;
 }
 
+.inline-error {
+  margin-top: 10px;
+  border: 1px solid #e0aaaa;
+  border-radius: 6px;
+  background: #fff5f5;
+  color: var(--red);
+  padding: 10px 12px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.inline-error strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.inline-error p,
+.inline-error ul {
+  margin: 0 0 8px;
+}
+
+.inline-error ul {
+  padding-left: 20px;
+}
+
+.inline-error small {
+  display: block;
+  color: #8b4b4b;
+}
+
 .trace-panel {
   min-height: 300px;
 }
@@ -495,6 +525,62 @@ h2 {
   padding: 14px;
   background: #fbfcfb;
   line-height: 1.6;
+}
+
+.result-output p,
+.result-output ul,
+.result-output ol,
+.result-output h3,
+.result-output h4,
+.result-output pre {
+  margin: 0 0 10px;
+}
+
+.result-output p:last-child,
+.result-output ul:last-child,
+.result-output ol:last-child,
+.result-output h3:last-child,
+.result-output h4:last-child,
+.result-output pre:last-child {
+  margin-bottom: 0;
+}
+
+.result-output h3,
+.result-output h4 {
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.result-output ul,
+.result-output ol {
+  padding-left: 22px;
+}
+
+.result-output li {
+  margin: 4px 0;
+}
+
+.result-output code {
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--surface-muted);
+  padding: 1px 5px;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 0.92em;
+}
+
+.result-output pre {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface-muted);
+  padding: 10px;
+}
+
+.result-output pre code {
+  border: 0;
+  background: transparent;
+  padding: 0;
 }
 
 @media (max-width: 820px) {

@@ -41,6 +41,8 @@ class TestWebDemoAppModel(unittest.TestCase):
                 "user_profile.route_preference",
                 "ecology.snapshot",
                 "route.plan",
+                "provider.geocode",
+                "provider.map.route",
                 "decision.summarize",
             ],
         )
@@ -68,6 +70,27 @@ class TestWebDemoAppModel(unittest.TestCase):
         self.assertEqual(payload["result"]["status"], "FALLBACK")
         self.assertIn("CarControlAgent", payload["agent_trace"])
         self.assertNotIn("CloudScheduleAgent", payload["agent_trace"])
+
+    def test_online_car_control_payload_does_not_call_route_agent(self):
+        payload = run_command("温度调到24度", network="ONLINE")
+
+        self.assertEqual(payload["request"]["command_type"], "CAR_CONTROL")
+        self.assertEqual(payload["result"]["status"], "EXECUTED")
+        self.assertNotIn("CloudRoutePlanAgent", payload["agent_trace"])
+        self.assertEqual(payload["route_summary"], {})
+        self.assertFalse(payload["charge_stations"])
+        self.assertNotIn(
+            "route.plan",
+            [item["tool_name"] for item in payload["runtime_trace"]],
+        )
+
+    def test_online_personalize_payload_does_not_create_route_summary(self):
+        payload = run_command("我的偏好", network="ONLINE")
+
+        self.assertEqual(payload["request"]["command_type"], "PERSONALIZE")
+        self.assertEqual(payload["route_summary"], {})
+        self.assertFalse(payload["charge_stations"])
+        self.assertNotIn("CloudRoutePlanAgent", payload["agent_trace"])
 
     def test_dangerous_command_payload_is_blocked(self):
         payload = run_command("加速到100km/h", network="ONLINE")

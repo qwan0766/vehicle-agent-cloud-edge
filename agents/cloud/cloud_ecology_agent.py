@@ -18,6 +18,7 @@ class CloudEcologyAgent:
     def get_snapshot(self, gps: str = DEFAULT_VEHICLE_STATE.gps) -> dict:
         weather = self.weather_provider.get_weather(gps)
         stations = self.charge_provider.find_nearby(gps)
+
         return {
             "weather": {
                 "city": weather.city,

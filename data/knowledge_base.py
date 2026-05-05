@@ -18,7 +18,17 @@ ROUTE_KNOWLEDGE = [
     "断网时自动切换离线导航",
 ]
 
-DANGEROUS_KEYWORDS = ["动力", "制动", "转向", "加速", "刹车"]
+DANGEROUS_KEYWORDS = [
+    "动力",
+    "制动",
+    "转向",
+    "加速",
+    "刹车",
+    "AEB",
+    "自动紧急制动",
+    "方向盘",
+    "接管",
+]
 
 ECOLOGY_DATA = {
     "weather": "天气晴",

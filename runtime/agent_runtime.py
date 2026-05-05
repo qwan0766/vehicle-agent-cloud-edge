@@ -12,15 +12,23 @@ class AgentRuntime:
         started = perf_counter()
         output = registry.call(tool_name, payload)
         duration_ms = round((perf_counter() - started) * 1000, 3)
+        self.append_trace(
+            tool_name=tool_name,
+            input=payload,
+            output=output,
+            duration_ms=duration_ms,
+        )
+        return output
+
+    def append_trace(self, tool_name: str, input: dict, output, duration_ms: float):
         self._trace.append(
             {
                 "tool_name": tool_name,
-                "input": dict(payload),
+                "input": dict(input),
                 "output": output,
                 "duration_ms": duration_ms,
             }
         )
-        return output
 
     def snapshot(self):
         return [dict(item) for item in self._trace]

@@ -24,6 +24,7 @@ Thumbs.db
 
 # Local web demo logs
 web_demo/*.log
+.tmp-web-*.log
 
 # Runtime data
 runtime/*

@@ -9,6 +9,7 @@ python main.py
 python web_demo/server.py --port 8000
 python run_offline_eval.py
 python scripts/smoke_real_providers.py
+python scripts/run_acceptance.py
 python -m unittest discover -s tests -v
 ```
 
@@ -32,6 +33,7 @@ python -m unittest discover -s tests -v
 - [docs/final-implementation-summary.md](docs/final-implementation-summary.md)：阶段实现总结
 - [docs/interview-guide.md](docs/interview-guide.md)：面试讲解指南
 - [docs/interview-progress-record.md](docs/interview-progress-record.md)：当前成果与面试准备记录
+- [docs/acceptance-and-interview-review.md](docs/acceptance-and-interview-review.md)：验收脚本与面试复盘
 - [docs/web-demo.md](docs/web-demo.md)：网页展示说明
 - [docs/superpowers/plans/2026-05-04-vehicle-multi-agent-mvp.md](docs/superpowers/plans/2026-05-04-vehicle-multi-agent-mvp.md)：MVP 实现计划
 

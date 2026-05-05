@@ -3,9 +3,15 @@ import unittest
 from unittest.mock import patch
 
 from providers.amap_poi_provider import AmapPOIProvider
+from providers.amap_geocode_provider import AmapGeocodeProvider
 from providers.amap_route_provider import AmapRouteProvider
 from providers.baidu_map_provider import BaiduMapProvider
-from providers.factory import create_charge_provider, create_map_provider, create_weather_provider
+from providers.factory import (
+    create_charge_provider,
+    create_geocode_provider,
+    create_map_provider,
+    create_weather_provider,
+)
 from providers.offline_charge_provider import OfflineChargeProvider
 from providers.offline_map_provider import OfflineMapProvider
 from providers.offline_weather_provider import OfflineWeatherProvider
@@ -17,6 +23,7 @@ class TestProviderFactory(unittest.TestCase):
     def test_defaults_to_offline_providers(self):
         with patch.dict(os.environ, {}, clear=True):
             self.assertIsInstance(create_map_provider(), OfflineMapProvider)
+            self.assertIsNone(create_geocode_provider())
             self.assertIsInstance(create_weather_provider(), OfflineWeatherProvider)
             self.assertIsInstance(create_charge_provider(), OfflineChargeProvider)
 
@@ -32,6 +39,7 @@ class TestProviderFactory(unittest.TestCase):
             clear=True,
         ):
             self.assertIsInstance(create_map_provider(), AmapRouteProvider)
+            self.assertIsInstance(create_geocode_provider(), AmapGeocodeProvider)
             self.assertIsInstance(create_weather_provider(), OpenMeteoWeatherProvider)
             self.assertIsInstance(create_charge_provider(), AmapPOIProvider)
 

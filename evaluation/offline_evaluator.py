@@ -1,13 +1,35 @@
 from agents.vehicle.local_intent_agent import LocalIntentAgent
+from agents.cloud.cloud_route_plan_agent import CloudRoutePlanAgent
+from agents.cloud.cloud_ecology_agent import CloudEcologyAgent
+from agents.cloud.cloud_schedule_agent import CloudScheduleAgent
 from core.constants import ExecutionStatus, SafetyLevel
 from core.vehicle_core_service import VehicleCoreService
 from data.offline_scenarios import OFFLINE_SCENARIOS
+from llm.mock_llm_client import MockLLMClient
+from providers.offline_charge_provider import OfflineChargeProvider
+from providers.offline_map_provider import OfflineMapProvider
+from providers.offline_weather_provider import OfflineWeatherProvider
 
 
 class OfflineEvaluator:
     def __init__(self, scenarios=None, service=None):
         self.scenarios = scenarios or OFFLINE_SCENARIOS
-        self.service = service or VehicleCoreService()
+        mock_llm = MockLLMClient()
+        offline_route_agent = CloudRoutePlanAgent(
+            llm_client=mock_llm,
+            map_provider=OfflineMapProvider(),
+        )
+        offline_ecology_agent = CloudEcologyAgent(
+            weather_provider=OfflineWeatherProvider(),
+            charge_provider=OfflineChargeProvider(),
+        )
+        self.service = service or VehicleCoreService(
+            cloud_agent=CloudScheduleAgent(
+                ecology_agent=offline_ecology_agent,
+                route_agent=offline_route_agent,
+                llm_client=mock_llm,
+            )
+        )
         self.intent_agent = LocalIntentAgent()
 
     def run(self) -> dict:

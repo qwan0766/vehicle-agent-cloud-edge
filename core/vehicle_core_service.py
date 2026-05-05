@@ -20,12 +20,12 @@ class ExecutionResult:
 
 
 class VehicleCoreService:
-    def __init__(self, feedback_service=None):
+    def __init__(self, feedback_service=None, cloud_agent=None):
         self.safety_agent = SafetyAgent()
         self.intent_agent = LocalIntentAgent()
         self.car_control_agent = CarControlAgent()
         self.nav_agent = NavAgent()
-        self.cloud_agent = CloudScheduleAgent()
+        self.cloud_agent = cloud_agent or CloudScheduleAgent()
         self.feedback_service = feedback_service
         self.safety_policy = SafetyPolicy()
 
