@@ -33,6 +33,7 @@ python -m unittest discover -s tests -v
 - [docs/final-implementation-summary.md](docs/final-implementation-summary.md)：阶段实现总结
 - [docs/interview-guide.md](docs/interview-guide.md)：面试讲解指南
 - [docs/interview-progress-record.md](docs/interview-progress-record.md)：当前成果与面试准备记录
+- [docs/interview-current-summary.md](docs/interview-current-summary.md)：面试项目总结与回答模板
 - [docs/acceptance-and-interview-review.md](docs/acceptance-and-interview-review.md)：验收脚本与面试复盘
 - [docs/web-demo.md](docs/web-demo.md)：网页展示说明
 - [docs/superpowers/plans/2026-05-04-vehicle-multi-agent-mvp.md](docs/superpowers/plans/2026-05-04-vehicle-multi-agent-mvp.md)：MVP 实现计划
