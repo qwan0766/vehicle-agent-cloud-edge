@@ -49,5 +49,13 @@ def _parse_gps(gps: str):
 
 
 def _get_json(url: str, timeout: int):
-    with request.urlopen(url, timeout=timeout) as response:
+    req = request.Request(
+        url,
+        headers={
+            "Accept": "application/json",
+            "User-Agent": "weilai-agent-offline-demo/1.0",
+        },
+        method="GET",
+    )
+    with request.urlopen(req, timeout=timeout) as response:
         return json.loads(response.read().decode("utf-8"))

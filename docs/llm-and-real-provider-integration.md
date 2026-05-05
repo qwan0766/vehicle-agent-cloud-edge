@@ -68,6 +68,27 @@ ENABLE_LLM_INTENT_FALLBACK=1
 - `OPENCHARGEMAP_API_KEY` 或 `USE_OPENCHARGEMAP=1`：启用 OpenChargeMap 充电站 Provider。
 - `ENABLE_LLM_INTENT_FALLBACK=1`：启用 LLM 意图兜底。
 
+## 真实接口 Smoke Test
+
+本地 `.env` 已被 `.gitignore` 忽略。可以把真实 key 写入 `.env`，然后运行：
+
+```bash
+python scripts/smoke_real_providers.py
+```
+
+脚本会测试：
+
+- DeepSeek LLM
+- Open-Meteo Weather
+- OpenChargeMap
+- Baidu Map
+
+注意：
+
+- OpenChargeMap 当前要求 `OPENCHARGEMAP_API_KEY`。
+- Baidu Map 当前要求 `BAIDU_MAP_AK`。
+- 脚本不会打印 API Key，只输出接口成功、失败或跳过原因。
+
 ## 面试讲法
 
 可以这样讲：

@@ -8,6 +8,7 @@
 python main.py
 python web_demo/server.py --port 8000
 python run_offline_eval.py
+python scripts/smoke_real_providers.py
 python -m unittest discover -s tests -v
 ```
 
