@@ -1,3 +1,4 @@
+from providers.amap_poi_provider import AmapPOIProvider
 from providers.baidu_map_provider import BaiduMapProvider
 from providers.factory import create_charge_provider, create_map_provider, create_weather_provider
 from providers.offline_charge_provider import ChargeStation, OfflineChargeProvider
@@ -7,6 +8,7 @@ from providers.open_charge_map_provider import OpenChargeMapProvider
 from providers.open_meteo_weather_provider import OpenMeteoWeatherProvider
 
 __all__ = [
+    "AmapPOIProvider",
     "BaiduMapProvider",
     "ChargeStation",
     "create_charge_provider",

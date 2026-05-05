@@ -10,6 +10,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from config.env_loader import load_env_file
 from llm.deepseek_client import DeepSeekLLMClient
+from providers.amap_poi_provider import AmapPOIProvider
 from providers.baidu_map_provider import BaiduMapProvider
 from providers.open_charge_map_provider import OpenChargeMapProvider
 from providers.open_meteo_weather_provider import OpenMeteoWeatherProvider
@@ -20,6 +21,7 @@ def main():
     results = [
         _smoke_deepseek(),
         _smoke_open_meteo(),
+        _smoke_amap_poi(),
         _smoke_open_charge_map(),
         _smoke_baidu_map(),
     ]
@@ -61,6 +63,20 @@ def _smoke_open_charge_map():
         return _result("OpenChargeMap", "OK", [station.__dict__ for station in stations])
     except Exception as exc:
         return _result("OpenChargeMap", "FAIL", _error_detail(exc))
+
+
+def _smoke_amap_poi():
+    api_key = os.getenv("AMAP_API_KEY")
+    if not api_key:
+        return _result("AMap POI", "SKIP", "AMAP_API_KEY 未配置")
+    try:
+        stations = AmapPOIProvider(api_key=api_key, timeout=20).find_nearby(
+            "121.48, 31.23",
+            limit=3,
+        )
+        return _result("AMap POI", "OK", [station.__dict__ for station in stations])
+    except Exception as exc:
+        return _result("AMap POI", "FAIL", _error_detail(exc))
 
 
 def _smoke_baidu_map():

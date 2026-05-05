@@ -2,6 +2,7 @@ import os
 import unittest
 from unittest.mock import patch
 
+from providers.amap_poi_provider import AmapPOIProvider
 from providers.baidu_map_provider import BaiduMapProvider
 from providers.factory import create_charge_provider, create_map_provider, create_weather_provider
 from providers.offline_charge_provider import OfflineChargeProvider
@@ -23,6 +24,7 @@ class TestProviderFactory(unittest.TestCase):
             os.environ,
             {
                 "BAIDU_MAP_AK": "map-key",
+                "AMAP_API_KEY": "amap-key",
                 "USE_OPEN_METEO": "1",
                 "OPENCHARGEMAP_API_KEY": "charge-key",
             },
@@ -30,7 +32,7 @@ class TestProviderFactory(unittest.TestCase):
         ):
             self.assertIsInstance(create_map_provider(), BaiduMapProvider)
             self.assertIsInstance(create_weather_provider(), OpenMeteoWeatherProvider)
-            self.assertIsInstance(create_charge_provider(), OpenChargeMapProvider)
+            self.assertIsInstance(create_charge_provider(), AmapPOIProvider)
 
 
 if __name__ == "__main__":
