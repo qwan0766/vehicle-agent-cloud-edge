@@ -21,6 +21,15 @@ class TestAmapGeocodeProvider(unittest.TestCase):
 
         self.assertIn("city=%E6%9D%AD%E5%B7%9E", url)
 
+    def test_builds_geocode_url_with_explicit_beijing_before_nio_center_hint(self):
+        provider = AmapGeocodeProvider(api_key="amap-key")
+
+        url = provider.build_geocode_url("北京蔚来中心")
+
+        self.assertIn("address=%E5%8C%97%E4%BA%AC%E8%94%9A%E6%9D%A5%E4%B8%AD%E5%BF%83", url)
+        self.assertIn("city=%E5%8C%97%E4%BA%AC", url)
+        self.assertNotIn("city=%E4%B8%8A%E6%B5%B7", url)
+
     def test_builds_geocode_url_without_city_when_no_city_hint_exists(self):
         provider = AmapGeocodeProvider(api_key="amap-key")
 

@@ -42,29 +42,34 @@ def resolve_destination(content: str, geocoder=None) -> str:
 
 def resolve_destination_detail(content: str, geocoder=None) -> DestinationResolution:
     normalized = (content or "").strip()
-    for keyword, resolution in KNOWN_DESTINATIONS.items():
-        if keyword in normalized:
-            return resolution
-
     if _looks_like_gps(normalized):
         return DestinationResolution(normalized, normalized, "explicit_gps")
 
     query = extract_destination_query(normalized)
+    if query:
+        query = normalize_destination_query(query)
+        if _looks_like_gps(query):
+            return DestinationResolution(query, query, "explicit_gps")
+
+        if query in KNOWN_DESTINATIONS:
+            return KNOWN_DESTINATIONS[query]
+
+        if geocoder is None:
+            raise ValueError(f"未知目的地且未配置在线地理编码：{query}")
+
+        geocode_result = geocoder.geocode(query)
+        return DestinationResolution(
+            name=geocode_result.name or query,
+            gps=geocode_result.gps,
+            source=geocoder.provider_name,
+        )
+
+    for keyword, resolution in KNOWN_DESTINATIONS.items():
+        if keyword in normalized:
+            return resolution
+
     if not query:
         raise ValueError(f"无法从指令中解析目的地：{content}")
-
-    if _looks_like_gps(query):
-        return DestinationResolution(query, query, "explicit_gps")
-
-    if geocoder is None:
-        raise ValueError(f"未知目的地且未配置在线地理编码：{query}")
-
-    geocode_result = geocoder.geocode(query)
-    return DestinationResolution(
-        name=geocode_result.name or query,
-        gps=geocode_result.gps,
-        source=geocoder.provider_name,
-    )
 
 
 def extract_destination_query(content: str) -> str:
@@ -73,6 +78,12 @@ def extract_destination_query(content: str) -> str:
         if text.startswith(prefix):
             return text[len(prefix) :].strip()
     return ""
+
+
+def normalize_destination_query(query: str) -> str:
+    text = re.sub(r"\s+", "", (query or "").strip())
+    text = re.sub(r"^(.{2,8}?)(?:的)(蔚来中心|换电站|充电站)$", r"\1\2", text)
+    return text
 
 
 def _looks_like_gps(content: str) -> bool:

@@ -5,6 +5,17 @@ from urllib import parse, request
 
 _CITY_HINTS = (
     (
+        "\u5317\u4eac",
+        (
+            "\u5317\u4eac",
+            "\u5929\u5b89\u95e8",
+            "\u4e2d\u5173\u6751",
+            "\u671d\u9633",
+            "\u671b\u4eac",
+            "\u5317\u4eac\u851a\u6765\u4e2d\u5fc3",
+        ),
+    ),
+    (
         "\u4e0a\u6d77",
         (
             "\u4e0a\u6d77",
@@ -87,6 +98,10 @@ def _infer_city(address: str) -> str:
     normalized = (address or "").strip()
     if not normalized:
         return ""
+
+    for city, _keywords in _CITY_HINTS:
+        if city in normalized:
+            return city
 
     for city, keywords in _CITY_HINTS:
         if any(keyword in normalized for keyword in keywords):
