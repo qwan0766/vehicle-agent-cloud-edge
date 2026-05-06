@@ -1,0 +1,66 @@
+{
+  "generated_at": "2026-05-06T22:28:31.103784+08:00",
+  "base_url": "http://127.0.0.1:8030",
+  "overall_status": "PASS",
+  "checks": [
+    {
+      "name": "asset /",
+      "status": "PASS",
+      "detail": "HTTP 200, 8843 bytes"
+    },
+    {
+      "name": "asset /app.js",
+      "status": "PASS",
+      "detail": "HTTP 200, 23983 bytes"
+    },
+    {
+      "name": "asset /styles.css",
+      "status": "PASS",
+      "detail": "HTTP 200, 12652 bytes"
+    },
+    {
+      "name": "api state",
+      "status": "PASS",
+      "detail": "orchestrator=langgraph_default, acceptance=PASS"
+    },
+    {
+      "name": "online navigation",
+      "status": "PASS",
+      "detail": "NAVIGATION / EXECUTED / graph=langgraph / trip_plan=True"
+    },
+    {
+      "name": "online car control",
+      "status": "PASS",
+      "detail": "CAR_CONTROL / EXECUTED / graph=langgraph / trip_plan=False"
+    },
+    {
+      "name": "dangerous block",
+      "status": "PASS",
+      "detail": "CAR_CONTROL / BLOCKED / graph=- / trip_plan=False"
+    },
+    {
+      "name": "offline fallback",
+      "status": "PASS",
+      "detail": "CAR_CONTROL / FALLBACK / graph=- / trip_plan=False"
+    },
+    {
+      "name": "online friendly error",
+      "status": "PASS",
+      "detail": "HTTP 502, title=没有找到这个目的地"
+    },
+    {
+      "name": "screenshot desktop",
+      "status": "PASS",
+      "detail": "E:\\claudeCode\\weilaiAgent\\reports\\browser_qa\\desktop.png (84138 bytes)"
+    },
+    {
+      "name": "screenshot mobile",
+      "status": "PASS",
+      "detail": "E:\\claudeCode\\weilaiAgent\\reports\\browser_qa\\mobile.png (29120 bytes)"
+    }
+  ],
+  "screenshots": [
+    "E:\\claudeCode\\weilaiAgent\\reports\\browser_qa\\desktop.png",
+    "E:\\claudeCode\\weilaiAgent\\reports\\browser_qa\\mobile.png"
+  ]
+}

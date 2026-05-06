@@ -1,23 +1,23 @@
 # 车载 Multi-Agent 验收报告
 
-- 生成时间：2026-05-06T22:04:53+08:00
+- 生成时间：2026-05-06T22:33:56+08:00
 - 总体状态：PASS
 
 ## 验收步骤
 
 | 步骤 | 状态 | 耗时 |
 | --- | --- | ---: |
-| unit tests | PASS | 35.86s |
-| offline evaluation | PASS | 3.55s |
-| provider smoke | PASS | 2.52s |
-| online matrix | PASS | 39.27s |
+| unit tests | PASS | 42.12s |
+| offline evaluation | PASS | 5.21s |
+| provider smoke | PASS | 3.06s |
+| online matrix | PASS | 40.43s |
 
 ## 详细输出
 
 ### unit tests
 
 - 状态：PASS
-- 耗时：35.86s
+- 耗时：42.12s
 
 ```text
 $ C:\Users\scyqw3\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe -m unittest discover -s tests
@@ -25,7 +25,7 @@ $ C:\Users\scyqw3\.cache\codex-runtimes\codex-primary-runtime\dependencies\pytho
   from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
 ..........................................................................................................
 ----------------------------------------------------------------------
-Ran 121 tests in 34.467s
+Ran 121 tests in 40.370s
 
 OK
 ```
@@ -33,7 +33,7 @@ OK
 ### offline evaluation
 
 - 状态：PASS
-- 耗时：3.55s
+- 耗时：5.21s
 
 ```text
 {
@@ -50,7 +50,7 @@ OK
 ### provider smoke
 
 - 状态：PASS
-- 耗时：2.52s
+- 耗时：3.06s
 
 ```text
 [
@@ -66,7 +66,7 @@ OK
       "city": "当前位置",
       "summary": "实时天气",
       "temperature_c": 16,
-      "wind_level": "13.0km/h"
+      "wind_level": "13.1km/h"
     }
   },
   {
@@ -121,7 +121,7 @@ OK
 ### online matrix
 
 - 状态：PASS
-- 耗时：39.27s
+- 耗时：40.43s
 
 ```text
 [

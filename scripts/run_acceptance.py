@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -163,7 +164,17 @@ def run_acceptance(
 
 def run_unit_tests(timeout: int = 300) -> AcceptanceStepResult:
     command = [sys.executable, "-m", "unittest", "discover", "-s", "tests"]
-    return _run_subprocess_step("unit tests", command, timeout=timeout)
+    env = os.environ.copy()
+    for key in (
+        "AMAP_API_KEY",
+        "BAIDU_MAP_AK",
+        "OPENCHARGEMAP_API_KEY",
+        "DEEPSEEK_API_KEY",
+    ):
+        env.pop(key, None)
+    env["USE_OPEN_METEO"] = "0"
+    env["USE_OPENCHARGEMAP"] = "0"
+    return _run_subprocess_step("unit tests", command, timeout=timeout, env=env)
 
 
 def run_offline_evaluation() -> AcceptanceStepResult:
@@ -313,6 +324,7 @@ def _run_subprocess_step(
     name: str,
     command: Sequence[str],
     timeout: int,
+    env: dict | None = None,
 ) -> AcceptanceStepResult:
     started = perf_counter()
     try:
@@ -322,6 +334,7 @@ def _run_subprocess_step(
             text=True,
             capture_output=True,
             timeout=timeout,
+            env=env,
         )
         output = "\n".join(
             item for item in [completed.stdout.strip(), completed.stderr.strip()] if item
