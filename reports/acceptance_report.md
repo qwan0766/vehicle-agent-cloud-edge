@@ -1,31 +1,31 @@
 # 车载 Multi-Agent 验收报告
 
-- 生成时间：2026-05-07T00:44:13+08:00
+- 生成时间：2026-05-07T00:55:41+08:00
 - 总体状态：PASS
 
 ## 验收步骤
 
 | 步骤 | 状态 | 耗时 |
 | --- | --- | ---: |
-| unit tests | PASS | 28.85s |
-| offline evaluation | PASS | 1.30s |
-| provider smoke | PASS | 2.18s |
-| online matrix | PASS | 38.90s |
+| unit tests | PASS | 29.75s |
+| offline evaluation | PASS | 1.64s |
+| provider smoke | PASS | 2.53s |
+| online matrix | PASS | 45.01s |
 
 ## 详细输出
 
 ### unit tests
 
 - 状态：PASS
-- 耗时：28.85s
+- 耗时：29.75s
 
 ```text
 $ C:\Users\scyqw3\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe -m unittest discover -s tests
 .................C:\Users\scyqw3\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\site-packages\langgraph\cache\base\__init__.py:8: LangChainPendingDeprecationWarning: The default value of `allowed_objects` will change in a future version. Pass an explicit value (e.g., allowed_objects='messages' or allowed_objects='core') to suppress this warning.
   from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
-...............................................................................................................
+..................................................................................................................
 ----------------------------------------------------------------------
-Ran 128 tests in 28.346s
+Ran 131 tests in 29.237s
 
 OK
 ```
@@ -33,7 +33,7 @@ OK
 ### offline evaluation
 
 - 状态：PASS
-- 耗时：1.30s
+- 耗时：1.64s
 
 ```text
 {
@@ -50,7 +50,7 @@ OK
 ### provider smoke
 
 - 状态：PASS
-- 耗时：2.18s
+- 耗时：2.53s
 
 ```text
 [
@@ -66,7 +66,7 @@ OK
       "city": "当前位置",
       "summary": "实时天气",
       "temperature_c": 16,
-      "wind_level": "12.7km/h"
+      "wind_level": "12.2km/h"
     }
   },
   {
@@ -121,7 +121,7 @@ OK
 ### online matrix
 
 - 状态：PASS
-- 耗时：38.90s
+- 耗时：45.01s
 
 ```text
 [

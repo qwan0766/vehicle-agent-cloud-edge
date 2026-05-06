@@ -1,29 +1,90 @@
-# 车载 Multi-Agent 端云协同系统开发（offline）
+# 车载 Multi-Agent 端云协同系统
 
-## 快速开始
+## 面试作品定位
 
-本项目使用 Python 标准库实现，无需安装额外依赖。
+这是一个面向 AI 应用工程师岗位的车载智能座舱项目。项目从最初 offline demo 演进为“八大业务 Agent + LangGraph 云端编排 + 本地小模型模拟 + 真实地图/天气 Provider + 安全拦截 + 数据闭环 + 网页演示 + 自动化验收”的完整作品。
 
-```bash
-python main.py
-python web_demo/server.py --port 8000
-python run_offline_eval.py
-python scripts/smoke_real_providers.py
-python scripts/run_acceptance.py
-python -m unittest discover -s tests -v
+它重点展示的不是“调用某个 API”，而是 AI 应用工程里的端云边界、Agent 职责拆分、RAG 召回、Provider 抽象、安全优先级、上下文预算和可观测测试闭环。
+
+## 项目亮点
+
+- 八大 Agent 分工：车端意图、安全、座舱/车控、数据上报；云端路线、画像、知识库、外部生态。
+- 默认启用 LangGraph：安装 `langgraph` 时走真实 `StateGraph`，否则回退 lightweight graph。
+- 多 LLM 分层：云端 `deepseek` 负责复杂总结，本地 `edge_deepseek_sim` 模拟车端小模型。
+- 本地上下文管理：按 `agent_id + user_id + session_id` 隔离，支持摘要压缩、prompt 预算和短输出限制。
+- 真实 Provider：高德地图路线/POI、Open-Meteo 天气、DeepSeek LLM；失败时不编造结果。
+- 车规级安全边界：危险车控指令前置拦截，LLM 只能解释，不能放行或执行。
+- 可演示网页：前端展示 Agent 调用链、RAG 召回、Provider 状态、LangGraph path、上下文窗口。
+
+## 一键启动
+
+Windows PowerShell：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/start_demo.ps1
 ```
 
-如果本机 `python` 命令不可用，请使用 Python 3.8~3.11 解释器运行。
+默认访问地址：
 
-真实 API 通过环境变量启用，参考 `.env.example`。API Key 不应写入代码或提交到 git。
+```text
+http://127.0.0.1:8031
+```
 
-LangGraph 是默认启用的云端编排能力。系统启动时会优先尝试真实 `StateGraph`；如果本机未安装 `langgraph`，会自动回退到项目内置 lightweight graph，保证 offline 可运行。要让默认编排真正走 LangGraph，请安装：
+脚本会输出当前 Provider 状态，例如云端 LLM、本地 LLM、地图、天气和充电站 Provider。它只显示 `DEEPSEEK_API_KEY`、`AMAP_API_KEY` 是否配置，不会输出真实 key。
+
+## 一键验收
+
+先保持 Web Demo 运行，然后执行：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/check_all.ps1 -BaseUrl http://127.0.0.1:8031
+```
+
+验收内容：
+
+- `pytest tests`
+- `scripts/run_acceptance.py`
+- `scripts/web_qa.py --screenshots`
+
+报告输出：
+
+- `reports/acceptance_report.md`
+- `reports/web_qa_report.md`
+- `reports/browser_qa/desktop.png`
+- `reports/browser_qa/mobile.png`
+
+## 固定演示路线
+
+建议面试时按这 5 个场景讲：
+
+1. 在线导航端云协同：展示 LocalIntentAgent、安全校验、LangGraph、地图路线、DeepSeek 决策说明。
+2. 车控指令不误调地图：输入“温度调到24度”，证明 Agent 按意图分流，不调用路线规划。
+3. 低电量补能规划：展示 RAG、充电站 POI、路线规划和用户路线偏好。
+4. 危险指令安全拦截：输入“关闭AEB”或“加速到100km/h”，证明 LLM 不覆盖安全策略。
+5. 真实接口失败解释：输入跨境或无法解析目的地，系统给出友好错误，不用离线假数据兜底。
+
+## 环境配置
+
+本项目默认可 offline 运行。真实 API 通过 `.env` 启用，参考 `.env.example`。API Key 不应写入代码或提交到 git。
+
+常用配置：
+
+```text
+DEEPSEEK_MODEL=deepseek-v4-flash
+LOCAL_LLM_PROVIDER=edge_deepseek_sim
+LOCAL_LLM_MAX_CONTEXT_TOKENS=7500
+LOCAL_LLM_GENERATION_BUFFER_TOKENS=500
+LOCAL_LLM_MAX_OUTPUT_TOKENS=64
+ENABLE_LANGGRAPH=1
+```
+
+如需安装真实 LangGraph 后端：
 
 ```bash
 python -m pip install -r requirements-optional.txt
 ```
 
-如需强制关闭 LangGraph、只使用内置 lightweight graph，可在 `.env` 中设置：
+如需强制关闭 LangGraph、只使用内置 lightweight graph：
 
 ```text
 ENABLE_LANGGRAPH=0
