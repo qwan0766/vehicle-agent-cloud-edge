@@ -37,6 +37,7 @@ ENABLE_LANGGRAPH=0
 - [docs/project-kickoff.md](docs/project-kickoff.md)：项目启动方案
 - [docs/architecture.md](docs/architecture.md)：系统架构说明
 - [docs/local-context-management.md](docs/local-context-management.md)：本地 Agent 上下文管理设计
+- [docs/edge-deepseek-local-llm-simulation.md](docs/edge-deepseek-local-llm-simulation.md)：DeepSeek 模拟车端小模型与 prompt 预算说明
 - [docs/engineering-notes.md](docs/engineering-notes.md)：工程思维记录
 - [docs/rag-design.md](docs/rag-design.md)：本地 RAG 检索设计
 - [docs/profile-personalization.md](docs/profile-personalization.md)：用户画像检索与个性化决策设计
@@ -51,6 +52,7 @@ ENABLE_LANGGRAPH=0
 - [docs/interview-progress-record.md](docs/interview-progress-record.md)：当前成果与面试准备记录
 - [docs/interview-current-summary.md](docs/interview-current-summary.md)：面试项目总结与回答模板
 - [docs/final-interview-delivery.md](docs/final-interview-delivery.md)：最终面试交付说明
+- [docs/interview-qa-multi-llm-agent.md](docs/interview-qa-multi-llm-agent.md)：多 LLM / 多 Agent 面试问答库
 - [docs/acceptance-and-interview-review.md](docs/acceptance-and-interview-review.md)：验收脚本与面试复盘
 - [docs/web-demo.md](docs/web-demo.md)：网页展示说明
 - [docs/superpowers/plans/2026-05-04-vehicle-multi-agent-mvp.md](docs/superpowers/plans/2026-05-04-vehicle-multi-agent-mvp.md)：MVP 实现计划

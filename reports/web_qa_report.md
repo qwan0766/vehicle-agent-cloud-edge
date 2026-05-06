@@ -1,7 +1,7 @@
 # Web QA Report
 
-- Generated at: 2026-05-06T22:28:31.103784+08:00
-- Base URL: http://127.0.0.1:8030
+- Generated at: 2026-05-07T00:45:00.738130+08:00
+- Base URL: http://127.0.0.1:8031
 - Overall status: PASS
 
 ## Checks
@@ -9,7 +9,7 @@
 | Check | Status | Detail |
 | --- | --- | --- |
 | asset / | PASS | HTTP 200, 8843 bytes |
-| asset /app.js | PASS | HTTP 200, 23983 bytes |
+| asset /app.js | PASS | HTTP 200, 24271 bytes |
 | asset /styles.css | PASS | HTTP 200, 12652 bytes |
 | api state | PASS | orchestrator=langgraph_default, acceptance=PASS |
 | online navigation | PASS | NAVIGATION / EXECUTED / graph=langgraph / trip_plan=True |

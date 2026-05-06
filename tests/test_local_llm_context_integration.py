@@ -12,6 +12,9 @@ from web_demo.app_model import run_command
 class CapturingLocalLLM:
     provider_name = "test_local"
     model = "tiny-intent"
+    context_limit_tokens = 256
+    generation_buffer_tokens = 32
+    max_output_tokens = 24
 
     def __init__(self):
         self.calls = []
@@ -50,6 +53,10 @@ class TestLocalLLMContextIntegration(unittest.TestCase):
         self.assertIn("prompt_preview", context["local_llm"])
         self.assertIn("打开座椅加热", context["local_llm"]["prompt_preview"])
         self.assertGreater(context["window"]["estimated_prompt_tokens"], 0)
+        self.assertEqual(context["window"]["context_limit_tokens"], 256)
+        self.assertEqual(context["window"]["generation_buffer_tokens"], 32)
+        self.assertEqual(context["window"]["max_output_tokens"], 24)
+        self.assertEqual(context["local_llm"]["runtime_role"], "edge_local_agent")
 
     def test_llm_intent_fallback_receives_local_context_package(self):
         llm = CapturingLocalLLM()

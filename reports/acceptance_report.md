@@ -1,31 +1,31 @@
 # 车载 Multi-Agent 验收报告
 
-- 生成时间：2026-05-06T22:33:56+08:00
+- 生成时间：2026-05-07T00:44:13+08:00
 - 总体状态：PASS
 
 ## 验收步骤
 
 | 步骤 | 状态 | 耗时 |
 | --- | --- | ---: |
-| unit tests | PASS | 42.12s |
-| offline evaluation | PASS | 5.21s |
-| provider smoke | PASS | 3.06s |
-| online matrix | PASS | 40.43s |
+| unit tests | PASS | 28.85s |
+| offline evaluation | PASS | 1.30s |
+| provider smoke | PASS | 2.18s |
+| online matrix | PASS | 38.90s |
 
 ## 详细输出
 
 ### unit tests
 
 - 状态：PASS
-- 耗时：42.12s
+- 耗时：28.85s
 
 ```text
 $ C:\Users\scyqw3\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe -m unittest discover -s tests
-...............C:\Users\scyqw3\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\site-packages\langgraph\cache\base\__init__.py:8: LangChainPendingDeprecationWarning: The default value of `allowed_objects` will change in a future version. Pass an explicit value (e.g., allowed_objects='messages' or allowed_objects='core') to suppress this warning.
+.................C:\Users\scyqw3\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\site-packages\langgraph\cache\base\__init__.py:8: LangChainPendingDeprecationWarning: The default value of `allowed_objects` will change in a future version. Pass an explicit value (e.g., allowed_objects='messages' or allowed_objects='core') to suppress this warning.
   from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
-..........................................................................................................
+...............................................................................................................
 ----------------------------------------------------------------------
-Ran 121 tests in 40.370s
+Ran 128 tests in 28.346s
 
 OK
 ```
@@ -33,7 +33,7 @@ OK
 ### offline evaluation
 
 - 状态：PASS
-- 耗时：5.21s
+- 耗时：1.30s
 
 ```text
 {
@@ -50,7 +50,7 @@ OK
 ### provider smoke
 
 - 状态：PASS
-- 耗时：3.06s
+- 耗时：2.18s
 
 ```text
 [
@@ -66,7 +66,7 @@ OK
       "city": "当前位置",
       "summary": "实时天气",
       "temperature_c": 16,
-      "wind_level": "13.1km/h"
+      "wind_level": "12.7km/h"
     }
   },
   {
@@ -77,7 +77,7 @@ OK
       "origin": "121.48,31.23",
       "destination": "121.50,31.25",
       "distance_km": 4.0,
-      "duration_minutes": 10,
+      "duration_minutes": 9,
       "strategy": "高速优先"
     }
   },
@@ -121,7 +121,7 @@ OK
 ### online matrix
 
 - 状态：PASS
-- 耗时：40.43s
+- 耗时：38.90s
 
 ```text
 [

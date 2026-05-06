@@ -73,10 +73,24 @@ class VehicleCoreService:
             content=user_input,
         )
         if not safety_decision.allowed:
+            explain_blocked = getattr(
+                self.safety_agent,
+                "explain_blocked_command",
+                None,
+            )
+            output = (
+                explain_blocked(
+                    content=user_input,
+                    command_type=command_type,
+                    policy_reason=safety_decision.reason,
+                )
+                if callable(explain_blocked)
+                else safety_decision.reason
+            )
             return self._complete_result(
                 ExecutionResult(
                     status=ExecutionStatus.BLOCKED,
-                    output=safety_decision.reason,
+                    output=output,
                     message=msg,
                 )
             )

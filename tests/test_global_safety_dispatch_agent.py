@@ -1,6 +1,25 @@
 import unittest
 
 from agents.vehicle.global_safety_dispatch_agent import GlobalSafetyDispatchAgent
+from core.constants import CommandType
+
+
+class FakeSafetyExplainer:
+    provider_name = "edge_deepseek_sim"
+    model = "deepseek-edge-lite"
+
+    def __init__(self):
+        self.calls = []
+
+    def generate(self, system_prompt: str, user_prompt: str, context: dict = None) -> str:
+        self.calls.append(
+            {
+                "system_prompt": system_prompt,
+                "user_prompt": user_prompt,
+                "context": context or {},
+            }
+        )
+        return "安全拦截说明：AEB 属于主动安全能力，不能通过语音关闭。"
 
 
 class TestGlobalSafetyDispatchAgent(unittest.TestCase):
@@ -23,6 +42,42 @@ class TestGlobalSafetyDispatchAgent(unittest.TestCase):
 
         self.assertFalse(allowed)
         self.assertIn("危险控制词", reason)
+
+    def test_optional_edge_llm_explains_blocked_local_command(self):
+        llm = FakeSafetyExplainer()
+        agent = GlobalSafetyDispatchAgent(
+            local_llm_provider=llm,
+            enable_llm_explanations=True,
+        )
+
+        explanation = agent.explain_blocked_command(
+            content="关闭AEB",
+            command_type=CommandType.CAR_CONTROL,
+            policy_reason="危险指令，已拦截！",
+        )
+
+        self.assertIn("安全拦截说明", explanation)
+        self.assertEqual(len(llm.calls), 1)
+        self.assertEqual(llm.calls[0]["context"]["agent_id"], "global_safety_dispatch")
+        self.assertEqual(llm.calls[0]["context"]["command_type"], "CAR_CONTROL")
+
+    def test_llm_explanation_failure_keeps_policy_reason(self):
+        class BrokenExplainer:
+            def generate(self, system_prompt: str, user_prompt: str, context: dict = None):
+                raise RuntimeError("provider down")
+
+        agent = GlobalSafetyDispatchAgent(
+            local_llm_provider=BrokenExplainer(),
+            enable_llm_explanations=True,
+        )
+
+        explanation = agent.explain_blocked_command(
+            content="关闭AEB",
+            command_type=CommandType.CAR_CONTROL,
+            policy_reason="危险指令，已拦截！",
+        )
+
+        self.assertEqual(explanation, "危险指令，已拦截！")
 
 
 if __name__ == "__main__":

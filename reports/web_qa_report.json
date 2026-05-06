@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-05-06T22:28:31.103784+08:00",
-  "base_url": "http://127.0.0.1:8030",
+  "generated_at": "2026-05-07T00:45:00.738130+08:00",
+  "base_url": "http://127.0.0.1:8031",
   "overall_status": "PASS",
   "checks": [
     {
@@ -11,7 +11,7 @@
     {
       "name": "asset /app.js",
       "status": "PASS",
-      "detail": "HTTP 200, 23983 bytes"
+      "detail": "HTTP 200, 24271 bytes"
     },
     {
       "name": "asset /styles.css",

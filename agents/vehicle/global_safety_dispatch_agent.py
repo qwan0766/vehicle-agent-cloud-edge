@@ -1,5 +1,8 @@
+import os
+
 from agents.vehicle.safety_agent import SafetyAgent
 from core.constants import SafetyLevel
+from llm.local_provider import create_local_llm_provider
 from safety.safety_policy import SafetyPolicy
 
 
@@ -27,9 +30,21 @@ ACTIONABLE_DANGEROUS_PATTERNS = [
 class GlobalSafetyDispatchAgent:
     role_name = "全局安全调度 Agent"
 
-    def __init__(self, keyword_agent=None, policy=None):
+    def __init__(
+        self,
+        keyword_agent=None,
+        policy=None,
+        local_llm_provider=None,
+        enable_llm_explanations=None,
+    ):
         self.keyword_agent = keyword_agent or SafetyAgent()
         self.policy = policy or SafetyPolicy()
+        self.local_llm_provider = local_llm_provider
+        self.enable_llm_explanations = (
+            os.getenv("ENABLE_LOCAL_LLM_SAFETY_EXPLAIN") == "1"
+            if enable_llm_explanations is None
+            else bool(enable_llm_explanations)
+        )
 
     def check(self, content: str) -> SafetyLevel:
         return self.keyword_agent.check(content)
@@ -46,6 +61,29 @@ class GlobalSafetyDispatchAgent:
         if self._contains_actionable_dangerous_command(result_text):
             return False, "云端结果包含危险控制词，已由车端安全调度 Agent 拦截"
         return True, ""
+
+    def explain_blocked_command(self, content: str, command_type, policy_reason: str) -> str:
+        if not self.enable_llm_explanations:
+            return policy_reason
+        provider = self.local_llm_provider or create_local_llm_provider()
+        try:
+            explanation = provider.generate(
+                system_prompt=(
+                    "You are the in-vehicle GlobalSafetyDispatchAgent. "
+                    "Explain why the command is blocked in concise Chinese. "
+                    "Do not create any executable vehicle-control instruction."
+                ),
+                user_prompt=f"blocked command: {content}",
+                context={
+                    "agent_id": "global_safety_dispatch",
+                    "command_type": getattr(command_type, "value", str(command_type)),
+                    "policy_reason": policy_reason,
+                    "provider_role": "edge_local_safety_explainer",
+                },
+            )
+        except Exception:
+            return policy_reason
+        return explanation.strip() or policy_reason
 
     def _contains_actionable_dangerous_command(self, content: str) -> bool:
         normalized = (content or "").replace(" ", "")

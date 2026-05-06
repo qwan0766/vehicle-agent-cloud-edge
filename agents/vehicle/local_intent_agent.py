@@ -157,18 +157,44 @@ class LocalIntentAgent:
             user_prompt=user_prompt,
             context=prompt_context,
         )
+        provider_name = getattr(
+            self.local_llm_provider,
+            "provider_name",
+            self.local_llm_provider.__class__.__name__,
+        )
+        context_limit_tokens = int(
+            getattr(
+                self.local_llm_provider,
+                "context_limit_tokens",
+                window_value(payload, "context_limit_tokens", 7500),
+            )
+        )
+        generation_buffer_tokens = int(
+            getattr(
+                self.local_llm_provider,
+                "generation_buffer_tokens",
+                window_value(payload, "generation_buffer_tokens", 500),
+            )
+        )
+        max_output_tokens = int(
+            getattr(self.local_llm_provider, "max_output_tokens", 128)
+        )
+        prompt_budget_tokens = max(0, context_limit_tokens - generation_buffer_tokens)
+        estimated_prompt_tokens = _estimate_tokens(prompt_preview)
         window = dict(payload.get("window") or {})
-        window.setdefault("context_limit_tokens", 7500)
-        window.setdefault("generation_buffer_tokens", 500)
-        window["estimated_prompt_tokens"] = _estimate_tokens(prompt_preview)
+        window["context_limit_tokens"] = context_limit_tokens
+        window["generation_buffer_tokens"] = generation_buffer_tokens
+        window["max_output_tokens"] = max_output_tokens
+        window["prompt_budget_tokens"] = prompt_budget_tokens
+        window["estimated_prompt_tokens"] = estimated_prompt_tokens
+        window["over_budget"] = estimated_prompt_tokens > prompt_budget_tokens
         payload["window"] = window
         payload["local_llm"] = {
-            "provider": getattr(
-                self.local_llm_provider,
-                "provider_name",
-                self.local_llm_provider.__class__.__name__,
-            ),
+            "provider": provider_name,
             "model": getattr(self.local_llm_provider, "model", "local-model"),
+            "runtime_role": "edge_local_agent",
+            "context_policy": "single_agent_window_with_summary",
+            "is_edge_simulation": provider_name == "edge_deepseek_sim",
             "agent_scope": f"{payload.get('agent_id', self.agent_id)}/"
             f"{payload.get('session_id', self.session_id)}",
             "system_prompt": system_prompt,
@@ -201,6 +227,13 @@ class LocalIntentAgent:
         if command_type == CommandType.PERSONALIZE:
             return _contains_any(user_input, ["偏好", "用户画像", "个性化", "画像"])
         return True
+
+
+def window_value(payload, key: str, default):
+    try:
+        return (payload.get("window") or {}).get(key, default)
+    except AttributeError:
+        return default
 
 
 def _contains_any(content: str, keywords) -> bool:

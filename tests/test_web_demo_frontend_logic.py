@@ -24,6 +24,8 @@ class TestWebDemoFrontendLogic(unittest.TestCase):
         self.assertIn("localContextModel", script)
         self.assertIn("localContextPrompt", script)
         self.assertIn("estimated_prompt_tokens", script)
+        self.assertIn("prompt_budget_tokens", script)
+        self.assertIn("max_output_tokens", script)
         self.assertIn("renderLocalContext", script)
         self.assertIn("payload.local_context", script)
 
