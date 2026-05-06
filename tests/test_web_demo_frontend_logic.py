@@ -16,6 +16,25 @@ class TestWebDemoFrontendLogic(unittest.TestCase):
         self.assertIn('result.status === "BLOCKED"', script)
         self.assertIn('"安全拦截"', script)
 
+    def test_result_rendering_updates_local_context_panel(self):
+        script = Path("web_demo/static/app.js").read_text(encoding="utf-8")
+
+        self.assertIn("localContextSummary", script)
+        self.assertIn("localContextProvider", script)
+        self.assertIn("localContextModel", script)
+        self.assertIn("localContextPrompt", script)
+        self.assertIn("estimated_prompt_tokens", script)
+        self.assertIn("renderLocalContext", script)
+        self.assertIn("payload.local_context", script)
+
+    def test_result_rendering_updates_graph_path(self):
+        script = Path("web_demo/static/app.js").read_text(encoding="utf-8")
+
+        self.assertIn("graphMode", script)
+        self.assertIn("graphPath", script)
+        self.assertIn("renderGraphPath", script)
+        self.assertIn("payload.graph", script)
+
 
 if __name__ == "__main__":
     unittest.main()

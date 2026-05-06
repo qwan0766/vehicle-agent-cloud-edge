@@ -30,6 +30,8 @@ const nodes = {
   demoTalkTrack: document.querySelector("#demoTalkTrack"),
   demoExpectedPanels: document.querySelector("#demoExpectedPanels"),
   traceMode: document.querySelector("#traceMode"),
+  graphMode: document.querySelector("#graphMode"),
+  graphPath: document.querySelector("#graphPath"),
   agentTrace: document.querySelector("#agentTrace"),
   runtimeTrace: document.querySelector("#runtimeTrace"),
   ragCount: document.querySelector("#ragCount"),
@@ -37,6 +39,12 @@ const nodes = {
   feedbackStatus: document.querySelector("#feedbackStatus"),
   feedbackEvent: document.querySelector("#feedbackEvent"),
   feedbackPreference: document.querySelector("#feedbackPreference"),
+  localContextWindow: document.querySelector("#localContextWindow"),
+  localContextProvider: document.querySelector("#localContextProvider"),
+  localContextModel: document.querySelector("#localContextModel"),
+  localContextSummary: document.querySelector("#localContextSummary"),
+  localContextRecent: document.querySelector("#localContextRecent"),
+  localContextPrompt: document.querySelector("#localContextPrompt"),
   evalTotal: document.querySelector("#evalTotal"),
   evalIntent: document.querySelector("#evalIntent"),
   evalSafety: document.querySelector("#evalSafety"),
@@ -47,6 +55,8 @@ const nodes = {
   acceptanceSteps: document.querySelector("#acceptanceSteps"),
   smokeBtn: document.querySelector("#smokeBtn"),
   providerLlm: document.querySelector("#providerLlm"),
+  providerLocalLlm: document.querySelector("#providerLocalLlm"),
+  providerOrchestrator: document.querySelector("#providerOrchestrator"),
   providerMap: document.querySelector("#providerMap"),
   providerWeather: document.querySelector("#providerWeather"),
   providerCharge: document.querySelector("#providerCharge"),
@@ -211,6 +221,8 @@ function renderAcceptance(report) {
 
 function renderProviders(providers) {
   nodes.providerLlm.textContent = providers.llm;
+  nodes.providerLocalLlm.textContent = providers.local_llm || "-";
+  nodes.providerOrchestrator.textContent = providers.orchestrator || "-";
   nodes.providerMap.textContent = providers.map;
   nodes.providerWeather.textContent = providers.weather;
   nodes.providerCharge.textContent = providers.charge;
@@ -342,7 +354,7 @@ function renderCommandError(error) {
   nodes.safetyBadge.classList.remove("badge-safe");
   nodes.safetyBadge.classList.add("badge-danger");
   nodes.agentTrace.innerHTML = "";
-  ["LocalIntentAgent", "SafetyAgent", "ProviderError"].forEach((agent) => {
+  ["LocalIntentAgent", "GlobalSafetyDispatchAgent", "ProviderError"].forEach((agent) => {
     const item = document.createElement("li");
     item.textContent = agent;
     item.className = agent === "ProviderError" ? "blocked" : "";
@@ -351,6 +363,8 @@ function renderCommandError(error) {
   nodes.runtimeTrace.innerHTML = html;
   nodes.ragCount.textContent = "0 条";
   nodes.ragContext.textContent = "本次在线调用失败，没有可展示的新召回结果";
+  renderGraphPath({});
+  renderLocalContext({});
   renderRouteSummary({}, []);
 }
 
@@ -426,9 +440,11 @@ function renderResult(payload) {
   });
 
   renderRuntimeTrace(payload.runtime_trace || [], result.status);
+  renderGraphPath(payload.graph || {});
   renderRouteSummary(payload.route_summary || {}, payload.charge_stations || []);
   renderRagContext(payload.rag_context || []);
   renderFeedback(payload.feedback || {});
+  renderLocalContext(payload.local_context || {});
 }
 
 function renderRouteSummary(route, stations) {
@@ -482,10 +498,56 @@ function renderRuntimeTrace(items, status = "") {
   });
 }
 
+function renderGraphPath(graph) {
+  const payload = graph || {};
+  const path = Array.isArray(payload.path) ? payload.path : [];
+  const mode = payload.mode || "not_run";
+  const fallbackText = payload.fallback ? " · fallback" : "";
+  nodes.graphMode.textContent = `${mode}${fallbackText}`;
+  nodes.graphPath.textContent = path.length ? path.join(" -> ") : "未执行云端图";
+}
+
 function renderFeedback(feedback) {
   nodes.feedbackStatus.textContent = feedback.event_status || "未记录";
   nodes.feedbackEvent.textContent = feedback.event_log || "-";
   nodes.feedbackPreference.textContent = feedback.preference_update || "-";
+}
+
+function renderLocalContext(context) {
+  const payload = context || {};
+  const recentTurns = Array.isArray(payload.recent_turns) ? payload.recent_turns : [];
+  const totalTurns = Number(payload.total_turns || 0);
+  const compressedTurns = Number(payload.compressed_turns || 0);
+  const localLlm = payload.local_llm || {};
+  const windowInfo = payload.window || {};
+  const estimatedTokens = windowInfo.estimated_prompt_tokens || 0;
+
+  nodes.localContextWindow.textContent = totalTurns
+    ? `${payload.agent_id || "local_intent"} · ${totalTurns} turns / ${compressedTurns} compressed · ~${estimatedTokens} tokens`
+    : "等待本地记忆";
+  nodes.localContextProvider.textContent = localLlm.provider || "-";
+  nodes.localContextModel.textContent = localLlm.model || "-";
+  nodes.localContextSummary.textContent = payload.summary || "暂无压缩摘要";
+  nodes.localContextPrompt.textContent = localLlm.prompt_preview || "暂无 prompt 预览";
+  nodes.localContextRecent.innerHTML = "";
+
+  if (!recentTurns.length) {
+    nodes.localContextRecent.textContent = "暂无最近交互";
+    return;
+  }
+
+  recentTurns.slice(-4).forEach((turn) => {
+    const row = document.createElement("article");
+    row.className = "context-turn";
+
+    const input = document.createElement("strong");
+    input.textContent = turn.user_input || "-";
+    const meta = document.createElement("span");
+    meta.textContent = `${turn.command_type || "-"} · ${turn.network || "-"} · ${turn.execution_status || "-"}`;
+
+    row.append(input, meta);
+    nodes.localContextRecent.appendChild(row);
+  });
 }
 
 function renderMarkdown(target, markdown) {
@@ -628,10 +690,21 @@ function renderRagContext(items) {
 }
 
 function agentClass(agent) {
-  if (agent.includes("Cloud")) {
+  if (
+    agent.includes("Cloud") ||
+    agent.includes("GlobalDispatch") ||
+    agent.includes("TripPlanning") ||
+    agent.includes("UserProfile") ||
+    agent.includes("VectorKnowledge") ||
+    agent.includes("ExternalEcology")
+  ) {
     return "cloud";
   }
-  if (agent.includes("Fallback") || agent === "CarControlAgent" || agent === "NavAgent") {
+  if (
+    agent.includes("Fallback") ||
+    agent.includes("CabinVehicleControl") ||
+    agent.includes("DataUpload")
+  ) {
     return "local";
   }
   if (agent.includes("Block")) {

@@ -23,9 +23,10 @@ class TestCloudRuntimeTrace(unittest.TestCase):
             [item["tool_name"] for item in trace],
             [
                 "user_profile.lookup",
+                "knowledge.retrieve",
                 "user_profile.route_preference",
                 "ecology.snapshot",
-                "route.plan",
+                "trip.plan",
                 "provider.geocode",
                 "provider.map.route",
                 "decision.summarize",
@@ -33,9 +34,10 @@ class TestCloudRuntimeTrace(unittest.TestCase):
         )
         self.assertEqual(trace[0]["input"]["user_id"], "user_001")
         self.assertIn("用户偏好", trace[0]["output"])
-        self.assertIn("RAG路线结果", trace[3]["output"])
-        self.assertEqual(trace[4]["output"]["destination_name"], "蔚来中心")
-        self.assertEqual(trace[5]["output"]["provider"], "offline_map")
+        self.assertIn("向量知识库召回", trace[1]["output"])
+        self.assertIn("RAG路线结果", trace[4]["output"])
+        self.assertEqual(trace[5]["output"]["destination_name"], "蔚来中心")
+        self.assertEqual(trace[6]["output"]["provider"], "offline_map")
         self.assertIn("LLM决策", trace[-1]["output"])
 
     def test_cloud_schedule_skips_route_tools_for_car_control(self):
@@ -55,11 +57,12 @@ class TestCloudRuntimeTrace(unittest.TestCase):
             trace_names,
             [
                 "user_profile.lookup",
+                "knowledge.retrieve",
                 "ecology.snapshot",
                 "decision.summarize",
             ],
         )
-        self.assertIn("车控执行上下文", result)
+        self.assertIn("座舱/车控上下文", result)
         self.assertNotIn("RAG路线结果", result)
 
     def test_cloud_schedule_skips_route_tools_for_personalize(self):
@@ -75,7 +78,7 @@ class TestCloudRuntimeTrace(unittest.TestCase):
         result = agent.dispatch(msg)
 
         trace_names = [item["tool_name"] for item in agent.get_last_trace()]
-        self.assertNotIn("route.plan", trace_names)
+        self.assertNotIn("trip.plan", trace_names)
         self.assertNotIn("provider.map.route", trace_names)
         self.assertIn("个性化上下文", result)
 

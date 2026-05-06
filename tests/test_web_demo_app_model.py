@@ -15,9 +15,12 @@ class TestWebDemoAppModel(unittest.TestCase):
         self.assertIn("users", payload)
         self.assertEqual(payload["users"][0]["user_id"], "user_001")
         self.assertGreaterEqual(payload["offline_evaluation"]["total"], 20)
-        self.assertIn("route.plan", payload["cloud_tools"])
+        self.assertIn("trip.plan", payload["cloud_tools"])
+        self.assertIn("knowledge.retrieve", payload["cloud_tools"])
         self.assertIn("providers", payload)
         self.assertIn("llm", payload["providers"])
+        self.assertIn("local_llm", payload["providers"])
+        self.assertIn("orchestrator", payload["providers"])
         self.assertIn("map", payload["providers"])
         self.assertIn("acceptance", payload)
         self.assertIn("demo_steps", payload)
@@ -84,8 +87,9 @@ class TestWebDemoAppModel(unittest.TestCase):
         self.assertEqual(payload["request"]["command_type"], "NAVIGATION")
         self.assertEqual(payload["result"]["status"], "EXECUTED")
         self.assertIn("RAG路线结果", payload["result"]["output"])
-        self.assertIn("CloudScheduleAgent", payload["agent_trace"])
-        self.assertIn("CloudRoutePlanAgent", payload["agent_trace"])
+        self.assertIn("GlobalDispatchAgent", payload["agent_trace"])
+        self.assertIn("VectorKnowledgeAgent", payload["agent_trace"])
+        self.assertIn("GlobalTripPlanningAgent", payload["agent_trace"])
         self.assertIn("rag_context", payload)
         self.assertTrue(payload["rag_context"])
         self.assertTrue(
@@ -95,14 +99,24 @@ class TestWebDemoAppModel(unittest.TestCase):
         self.assertIn("路线偏好高速", payload["feedback"]["preference_update"])
         self.assertIn("route_summary", payload)
         self.assertIn("charge_stations", payload)
+        self.assertIn("graph", payload)
+        self.assertTrue(payload["graph"]["enabled"])
+        self.assertIn(payload["graph"]["mode"], {"langgraph", "lightweight"})
+        if payload["graph"]["mode"] == "langgraph":
+            self.assertEqual(payload["graph"]["backend"], "StateGraph")
+            self.assertFalse(payload["graph"]["fallback"])
+        else:
+            self.assertTrue(payload["graph"]["fallback"])
+        self.assertIn("trip_plan", payload["graph"]["path"])
         self.assertGreaterEqual(payload["route_summary"]["distance_km"], 0)
         self.assertEqual(
             [item["tool_name"] for item in payload["runtime_trace"]],
             [
                 "user_profile.lookup",
+                "knowledge.retrieve",
                 "user_profile.route_preference",
                 "ecology.snapshot",
-                "route.plan",
+                "trip.plan",
                 "provider.geocode",
                 "provider.map.route",
                 "decision.summarize",
@@ -126,21 +140,27 @@ class TestWebDemoAppModel(unittest.TestCase):
         self.assertTrue(any(item["name"] == "DeepSeek LLM" for item in payload["results"]))
 
     def test_offline_car_control_payload_contains_local_fallback_trace(self):
-        payload = run_command("打开座椅加热", network="OFFLINE")
+        payload = run_command("打开座椅加热", user_id=f"user_{uuid.uuid4().hex}", network="OFFLINE")
 
         self.assertEqual(payload["request"]["command_type"], "CAR_CONTROL")
         self.assertEqual(payload["result"]["status"], "FALLBACK")
-        self.assertIn("CarControlAgent", payload["agent_trace"])
-        self.assertNotIn("CloudScheduleAgent", payload["agent_trace"])
+        self.assertIn("CabinVehicleControlAgent", payload["agent_trace"])
+        self.assertNotIn("GlobalDispatchAgent", payload["agent_trace"])
+        self.assertIn("local_context", payload)
+        self.assertEqual(payload["local_context"]["total_turns"], 1)
+        self.assertEqual(payload["local_context"]["recent_turns"][0]["network"], "OFFLINE")
+        self.assertIn("local_llm", payload["local_context"])
+        self.assertIn("prompt_preview", payload["local_context"]["local_llm"])
 
     def test_online_car_control_payload_does_not_call_route_agent(self):
         payload = run_command("温度调到24度", network="ONLINE")
 
         self.assertEqual(payload["request"]["command_type"], "CAR_CONTROL")
         self.assertEqual(payload["result"]["status"], "EXECUTED")
-        self.assertNotIn("CloudRoutePlanAgent", payload["agent_trace"])
+        self.assertNotIn("GlobalTripPlanningAgent", payload["agent_trace"])
         self.assertEqual(payload["route_summary"], {})
         self.assertFalse(payload["charge_stations"])
+        self.assertNotIn("trip_plan", payload["graph"]["path"])
         self.assertNotIn(
             "route.plan",
             [item["tool_name"] for item in payload["runtime_trace"]],
@@ -152,7 +172,7 @@ class TestWebDemoAppModel(unittest.TestCase):
         self.assertEqual(payload["request"]["command_type"], "PERSONALIZE")
         self.assertEqual(payload["route_summary"], {})
         self.assertFalse(payload["charge_stations"])
-        self.assertNotIn("CloudRoutePlanAgent", payload["agent_trace"])
+        self.assertNotIn("GlobalTripPlanningAgent", payload["agent_trace"])
 
     def test_dangerous_command_payload_is_blocked(self):
         payload = run_command("加速到100km/h", network="ONLINE")
@@ -160,7 +180,7 @@ class TestWebDemoAppModel(unittest.TestCase):
         self.assertEqual(payload["request"]["command_type"], "CAR_CONTROL")
         self.assertEqual(payload["request"]["safety"], "DANGEROUS")
         self.assertEqual(payload["result"]["status"], "BLOCKED")
-        self.assertIn("SafetyAgent", payload["agent_trace"])
+        self.assertIn("GlobalSafetyDispatchAgent", payload["agent_trace"])
 
 
 if __name__ == "__main__":

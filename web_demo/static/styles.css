@@ -353,8 +353,34 @@ h2 {
   list-style: none;
   display: grid;
   gap: 10px;
-  margin: 0;
+  margin: 12px 0 0;
   padding: 0;
+}
+
+.graph-strip {
+  display: grid;
+  grid-template-columns: minmax(110px, 0.34fr) 1fr;
+  gap: 8px;
+}
+
+.graph-strip div {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface-muted);
+  padding: 10px;
+}
+
+.graph-strip span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.graph-strip strong {
+  display: block;
+  margin-top: 5px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
 }
 
 .agent-trace li {
@@ -464,6 +490,7 @@ h2 {
 }
 
 .feedback-grid,
+.local-context-grid,
 .provider-grid,
 .route-summary,
 .acceptance-summary {
@@ -499,6 +526,7 @@ h2 {
 
 .acceptance-summary div,
 .feedback-grid div,
+.local-context-grid div,
 .provider-grid div,
 .route-summary div {
   border: 1px solid var(--line);
@@ -509,6 +537,7 @@ h2 {
 
 .acceptance-summary span,
 .feedback-grid span,
+.local-context-grid span,
 .provider-grid span,
 .route-summary span {
   display: block;
@@ -518,12 +547,54 @@ h2 {
 
 .acceptance-summary strong,
 .feedback-grid strong,
+.local-context-grid strong,
 .provider-grid strong,
 .route-summary strong {
   display: block;
   margin-top: 6px;
   line-height: 1.45;
   overflow-wrap: anywhere;
+}
+
+.local-context-recent {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+  color: var(--muted);
+}
+
+.local-context-prompt {
+  grid-column: 1 / -1;
+}
+
+.local-context-prompt pre {
+  max-height: 220px;
+  overflow: auto;
+  margin: 8px 0 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fbfcfb;
+  color: var(--muted);
+  padding: 10px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.context-turn {
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+}
+
+.context-turn strong {
+  color: var(--text);
+  margin-top: 0;
+}
+
+.context-turn span {
+  margin-top: 4px;
 }
 
 .provider-grid,

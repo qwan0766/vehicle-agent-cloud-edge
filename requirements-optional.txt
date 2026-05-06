@@ -1,0 +1,3 @@
+# Optional enhancement dependencies.
+# The base project still runs without these packages.
+langgraph

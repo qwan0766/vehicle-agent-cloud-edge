@@ -17,10 +17,26 @@ python -m unittest discover -s tests -v
 
 真实 API 通过环境变量启用，参考 `.env.example`。API Key 不应写入代码或提交到 git。
 
+LangGraph 是默认启用的云端编排能力。系统启动时会优先尝试真实 `StateGraph`；如果本机未安装 `langgraph`，会自动回退到项目内置 lightweight graph，保证 offline 可运行。要让默认编排真正走 LangGraph，请安装：
+
+```bash
+python -m pip install -r requirements-optional.txt
+```
+
+如需强制关闭 LangGraph、只使用内置 lightweight graph，可在 `.env` 中设置：
+
+```text
+ENABLE_LANGGRAPH=0
+```
+
+> 当前代码已经按课程附件重构为“八大业务 Agent + 全局调度编排器”的最终交付口径。旧版单文件 demo 说明仍保留在后文作为项目起点材料，实际架构以 `docs/architecture.md` 和 `docs/course-aligned-project-structure.md` 为准。
+
 ## 项目文档
 
+- [docs/course-aligned-project-structure.md](docs/course-aligned-project-structure.md)：课程附件对齐后的项目结构梳理
 - [docs/project-kickoff.md](docs/project-kickoff.md)：项目启动方案
 - [docs/architecture.md](docs/architecture.md)：系统架构说明
+- [docs/local-context-management.md](docs/local-context-management.md)：本地 Agent 上下文管理设计
 - [docs/engineering-notes.md](docs/engineering-notes.md)：工程思维记录
 - [docs/rag-design.md](docs/rag-design.md)：本地 RAG 检索设计
 - [docs/profile-personalization.md](docs/profile-personalization.md)：用户画像检索与个性化决策设计
@@ -152,6 +168,7 @@ GPS：121.48, 31.23
 - 外部生态模拟：离线天气 Provider + 离线换电站 Provider
 - Tool Schema：工具输入输出协议校验
 - LLM 接入：DeepSeek / Mock 双实现，默认离线，有 key 时走真实 LLM
+- 默认启用 LangGraph：安装 `langgraph` 时使用真实 `StateGraph`；未安装时回退到 lightweight graph；`ENABLE_LANGGRAPH=0` 可强制关闭
 
 ### 3.3 模拟端云交互
 

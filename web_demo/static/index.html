@@ -82,6 +82,16 @@
             <h2>Agent 调用链</h2>
             <span id="traceMode">等待输入</span>
           </div>
+          <div class="graph-strip">
+            <div>
+              <span>Graph 模式</span>
+              <strong id="graphMode">-</strong>
+            </div>
+            <div>
+              <span>执行路径</span>
+              <strong id="graphPath">等待图执行</strong>
+            </div>
+          </div>
           <ol id="agentTrace" class="agent-trace"></ol>
           <div id="runtimeTrace" class="runtime-trace">等待工具调用</div>
         </section>
@@ -107,6 +117,35 @@
             <div>
               <span>偏好更新</span>
               <strong id="feedbackPreference">-</strong>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel local-context-panel" aria-label="本地意图Agent上下文管理">
+          <div class="panel-heading">
+            <h2>本地意图Agent上下文</h2>
+            <span id="localContextWindow">0 turns</span>
+          </div>
+          <div class="local-context-grid">
+            <div>
+              <span>本地 Provider</span>
+              <strong id="localContextProvider">-</strong>
+            </div>
+            <div>
+              <span>本地模型</span>
+              <strong id="localContextModel">-</strong>
+            </div>
+            <div>
+              <span>压缩摘要</span>
+              <strong id="localContextSummary">等待本地记忆</strong>
+            </div>
+            <div>
+              <span>最近窗口</span>
+              <div id="localContextRecent" class="local-context-recent">等待交互</div>
+            </div>
+            <div class="local-context-prompt">
+              <span>Prompt 预览</span>
+              <pre id="localContextPrompt">等待 prompt</pre>
             </div>
           </div>
         </section>
@@ -157,6 +196,8 @@
           </div>
           <div class="provider-grid">
             <div><span>LLM</span><strong id="providerLlm">-</strong></div>
+            <div><span>本地 LLM</span><strong id="providerLocalLlm">-</strong></div>
+            <div><span>编排器</span><strong id="providerOrchestrator">-</strong></div>
             <div><span>地图</span><strong id="providerMap">-</strong></div>
             <div><span>天气</span><strong id="providerWeather">-</strong></div>
             <div><span>充电站</span><strong id="providerCharge">-</strong></div>

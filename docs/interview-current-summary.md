@@ -1,6 +1,6 @@
 # 面试项目总结：车载 Multi-Agent 端云协同系统
 
-更新时间：2026-05-05
+更新时间：2026-05-06
 
 ## 1. 项目一句话
 
@@ -21,6 +21,9 @@
 - 有高德路线、高德 POI、Open-Meteo 天气接口。
 - 有离线评测集和一键验收脚本。
 - 有真实错误处理和用户友好错误解释。
+- 有本地 LLM Provider 抽象：支持 mock、Ollama、LM Studio、llama.cpp server。
+- 默认启用 LangGraph 编排：安装 `langgraph` 后使用真实 `StateGraph`，未安装时自动 fallback 到 lightweight graph。
+- 有本地上下文管理：最近交互窗口、压缩摘要、长期偏好读取、prompt 预览和 Web 可视化。
 - 有面试演示脚本、架构文档和验收报告。
 
 当前最新自动化验收结果：
@@ -35,7 +38,7 @@ online matrix: PASS
 最近一次报告显示：
 
 ```text
-Ran 91 tests
+Ran 121 tests
 OK
 ```
 
@@ -48,7 +51,7 @@ reports/acceptance_report.md
 网页演示地址：
 
 ```text
-http://127.0.0.1:8014/
+http://127.0.0.1:8028/
 ```
 
 ## 3. 系统架构怎么讲
@@ -80,33 +83,44 @@ runtime/
 web_demo/
 ```
 
-## 4. 8 个 Agent 职责
+## 4. 8 个业务 Agent 职责
 
-### 4.1 车载端 4 个 Agent
+当前版本已经按课程附件口径重构为“八大业务 Agent + 一个全局调度编排器”。`GlobalDispatchAgent` 是编排器，不计入八大业务 Agent。
 
-| Agent | 职责 | 是否接 LLM |
-| --- | --- | --- |
-| `LocalIntentAgent` | 本地意图识别，必要时可用 LLM 兜底 | 可选 |
-| `SafetyAgent` | 危险关键词与车规安全拦截 | 不接 |
-| `CarControlAgent` | 座舱/车控执行模拟 | 不接 |
-| `NavAgent` | 离线导航执行模拟 | 不接 |
-
-关键讲法：
-
-> 车端 Agent 的重点是确定性和安全性。尤其是 SafetyAgent 和 CarControlAgent 不依赖 LLM，因为车载安全链路不能把是否执行交给概率模型。
-
-### 4.2 云端 4 个 Agent
-
-| Agent | 职责 | 是否接 LLM |
-| --- | --- | --- |
-| `CloudScheduleAgent` | 云端多 Agent 调度，模拟 LangChain 编排 | 是 |
-| `CloudUserProfileAgent` | 用户画像召回、路线偏好判断 | 不直接接 |
-| `CloudEcologyAgent` | 聚合天气、充电站等外部生态 | 不直接接 |
-| `CloudRoutePlanAgent` | RAG 路线规划、地图 Provider 调用、路线建议 | 是 |
+| Agent | 部署位置 | 职责 | 是否接 LLM |
+| --- | --- | --- | --- |
+| `GlobalTripPlanningAgent` | 云端 | 路线规划、补能规划、地图 Provider、路线 RAG 和路线建议 | 是 |
+| `UserProfileAgent` | 云端 | 用户长期画像、路线偏好、座舱偏好和动态偏好读取 | 可选 |
+| `VectorKnowledgeAgent` | 云端 | 意图、路线、画像知识的统一 RAG 召回 | 不直接接 |
+| `ExternalEcologyAgent` | 云端 | 天气、充电站/POI 等外部生态 Provider 聚合 | 不直接接 |
+| `GlobalSafetyDispatchAgent` | 车端 | 指令安全校验、危险操作拦截、云端结果二次校验 | 不接 |
+| `LocalIntentAgent` | 车端 | 本地意图识别、本地 RAG、可选本地/兜底 LLM | 可选 |
+| `CabinVehicleControlAgent` | 车端 | 座舱、车控、离线导航执行适配 | 不接 |
+| `DataUploadAgent` | 车端 | 交互日志、执行结果、偏好更新和数据闭环上报 | 不接 |
 
 关键讲法：
 
-> 我没有让每个 Agent 都接 LLM，而是只在需要语义推理和自然语言生成的位置接入。画像查询、天气、地图、车控这些能力通过确定性 Provider 或规则实现，LLM 负责综合与表达。
+> 我把 Agent 拆分成业务能力单元，而不是按 demo 类名凑数量。全局调度器负责任务拆解和工具编排；真正的八大 Agent 分别覆盖行程规划、用户画像、知识库、生态接口、安全、意图、车控和数据闭环。
+
+### 4.1 LangGraph 怎么讲
+
+当前云端编排已经默认启用 LangGraph：
+
+```text
+默认：尝试 LangGraph StateGraph
+fallback：未安装 langgraph -> lightweight graph
+强制轻量：ENABLE_LANGGRAPH=0 -> lightweight graph
+```
+
+图节点是：
+
+```text
+profile -> knowledge -> route_preference? -> ecology -> trip_plan? -> decision -> assemble
+```
+
+面试表达：
+
+> 我没有在一开始就强行引入 LangGraph，而是先把 Agent 边界、统一状态、工具 trace 和条件分流拆清楚。现在 `GlobalDispatchAgent` 已经抽象为显式图执行，并默认尝试用 LangGraph `StateGraph` 执行；如果环境里没有安装 `langgraph`，同一套节点函数会 fallback 到 lightweight graph。这样既能把真实框架作为默认路径展示，也保留了项目离线可运行和低依赖的交付要求。
 
 ## 5. RAG 是怎么做的
 
@@ -115,7 +129,8 @@ web_demo/
 - `rag/simple_retriever.py`：关键词检索器。
 - `rag/documents.py`：本地和云端知识文档。
 - `LocalIntentAgent`：用本地知识辅助意图识别。
-- `CloudRoutePlanAgent`：用路线知识辅助规划。
+- `VectorKnowledgeAgent`：统一召回意图、画像和路线知识。
+- `GlobalTripPlanningAgent`：用路线知识辅助规划。
 
 当前 RAG 知识包括：
 
@@ -136,24 +151,38 @@ web_demo/
 当前 LLM Provider：
 
 ```text
-DeepSeek
+云端：DeepSeek
+本地：mock_local / Ollama / LM Studio / llama.cpp server
 ```
 
 接入点：
 
-- `CloudRoutePlanAgent`：生成路线建议。
-- `CloudScheduleAgent`：生成最终执行说明。
-- `LocalIntentAgent`：可选意图兜底。
+- `GlobalTripPlanningAgent`：生成路线建议。
+- `GlobalDispatchAgent`：生成最终执行说明。
+- `LocalIntentAgent`：本地小模型可选意图兜底，使用本地 Agent 上下文包。
 
 不接 LLM 的关键模块：
 
-- `SafetyAgent`
+- `GlobalSafetyDispatchAgent`
 - `SafetyPolicy`
-- `CarControlAgent`
+- `CabinVehicleControlAgent`
 
 面试表达：
 
 > LLM 在这里是语义推理层，不是安全控制层。安全拦截和车控执行必须保持确定性。
+
+本地 LLM 的配置方式：
+
+```text
+LOCAL_LLM_PROVIDER=mock_local
+LOCAL_LLM_MODEL=mock-local-intent
+LOCAL_LLM_BASE_URL=http://127.0.0.1:11434
+ENABLE_LLM_INTENT_FALLBACK=0
+```
+
+面试表达：
+
+> 我把云端 LLM 和车端本地 LLM 分开抽象。云端用 DeepSeek 做路线解释和最终说明；车端本地 LLM 通过 `LocalLLMProvider` 接入，默认 mock，后续可以切到 Ollama、LM Studio 或 llama.cpp。它只服务 `LocalIntentAgent` 的兜底识别和上下文窗口展示，不参与最终安全裁决。
 
 ### 6.2 外部接口 Provider
 
@@ -182,7 +211,7 @@ DeepSeek
 当前安全链路：
 
 ```text
-用户输入 -> LocalIntentAgent -> SafetyAgent -> SafetyPolicy -> 执行/拦截
+用户输入 -> LocalIntentAgent -> GlobalSafetyDispatchAgent -> SafetyPolicy -> 执行/拦截
 ```
 
 危险输入例子：
@@ -221,6 +250,20 @@ DeepSeek
 
 > 在线链路不做假成功，是为了展示真实 Provider 的可观测性。失败时系统不会瞎编结果，而是明确告诉用户是地理编码、路线规划还是 LLM 生成失败。
 
+### 8.1 本地上下文管理怎么讲
+
+当前新增了 `LocalAgentContextManager`：
+
+- 按 `agent_id + user_id + session_id` 隔离本地历史。
+- 保留最近交互窗口。
+- 超出窗口后把旧 turn 压缩成摘要。
+- 离线链路由 `LocalIntentAgent` 读取压缩摘要、最近 turn、本地 RAG 召回和长期偏好状态。
+- 在线 LLM 不主动读取多轮历史，避免云端 prompt 膨胀和历史噪声污染。
+
+面试表达：
+
+> 我没有做全局共享记忆，而是把上下文管理收敛到本地意图 Agent。在线链路只接收当前请求需要的结构化上下文；断网时 `LocalIntentAgent` 会拿到自己的短期窗口、压缩摘要、本地 RAG 召回和长期偏好，这样本地小模型可以理解连续任务，同时保持离线可运行。
+
 ## 9. 网页展示有哪些内容
 
 网页当前展示：
@@ -231,6 +274,7 @@ DeepSeek
 - Runtime Trace：展示工具调用、输出和耗时。
 - RAG 召回知识：展示命中的知识条目。
 - 数据闭环：展示事件记录和偏好更新。
+- 本地意图 Agent 上下文：展示压缩摘要、最近交互窗口和已压缩轮数。
 - 离线评测：展示意图准确率、安全召回率、RAG 命中率。
 - 验收报告：展示最近一次自动化验收结果。
 - Provider 状态：展示真实外部接口配置和 smoke test。
@@ -306,11 +350,11 @@ python scripts/run_acceptance.py
 
 原因：
 
-- 早期云端调度把所有在线安全指令都送进 `route.plan`。
+- 早期云端调度把所有在线安全指令都送进路线规划工具。
 
 修复：
 
-- `CloudScheduleAgent` 按 `CommandType` 分流。
+- `GlobalDispatchAgent` 按 `CommandType` 分流。
 - 导航/补能调用路线 Agent。
 - 车控/个性化不调用路线 Agent。
 
@@ -344,7 +388,7 @@ python scripts/run_acceptance.py
 
 答：
 
-> 因为车载场景里安全和控制链路需要确定性。LLM 适合做语义理解、路线建议和最终说明生成，但 SafetyAgent、SafetyPolicy 和 CarControlAgent 不能依赖概率模型。
+> 因为车载场景里安全和控制链路需要确定性。LLM 适合做语义理解、路线建议和最终说明生成，但 `GlobalSafetyDispatchAgent`、`SafetyPolicy` 和 `CabinVehicleControlAgent` 不能依赖概率模型。
 
 ### 问：RAG 为什么没有用向量库？
 

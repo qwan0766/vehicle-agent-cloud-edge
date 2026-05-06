@@ -1,8 +1,9 @@
 from pathlib import Path
 
-from agents.cloud.cloud_route_plan_agent import CloudRoutePlanAgent
-from agents.cloud.cloud_schedule_agent import CloudScheduleAgent
-from agents.cloud.cloud_user_profile_agent import CloudUserProfileAgent
+from agents.cloud.global_trip_planning_agent import GlobalTripPlanningAgent
+from agents.cloud.user_profile_agent import UserProfileAgent
+from agents.cloud.vector_knowledge_agent import VectorKnowledgeAgent
+from agents.orchestrator.global_dispatch_agent import GlobalDispatchAgent
 from agents.vehicle.local_intent_agent import LocalIntentAgent
 from config.env_loader import load_env_file
 from core.constants import CommandType, ExecutionStatus, NetworkStatus, SafetyLevel
@@ -11,6 +12,7 @@ from data.vehicle_state import DEFAULT_VEHICLE_STATE
 from evaluation.offline_evaluator import OfflineEvaluator
 from feedback.feedback_service import FeedbackService
 from llm.factory import create_llm_client
+from llm.local_provider import create_local_llm_provider
 from providers.destination_resolver import resolve_destination_detail
 from providers.factory import (
     create_charge_provider,
@@ -109,7 +111,7 @@ def get_initial_payload():
         "users": USERS,
         "scenarios": SCENARIOS,
         "demo_steps": get_demo_steps(),
-        "cloud_tools": CloudScheduleAgent().tool_registry.list_names(),
+        "cloud_tools": GlobalDispatchAgent().tool_registry.list_names(),
         "offline_evaluation": OfflineEvaluator().run(),
         "providers": _provider_status(),
         "acceptance": get_acceptance_payload(),
@@ -137,6 +139,8 @@ def run_command(content: str, user_id: str = "user_001", network: str = "ONLINE"
             "output": result.output,
         },
         "feedback": result.feedback or {},
+        "local_context": result.local_context or {},
+        "graph": result.graph or {},
         "runtime_trace": result.trace or [],
         "route_summary": _route_summary(content, result.message.command_type, result.message.network),
         "charge_stations": _charge_stations(result.message.command_type, result.message.network),
@@ -226,7 +230,7 @@ def _vehicle_state_payload(network: NetworkStatus):
 
 
 def _agent_trace(command_type: CommandType, safety: SafetyLevel, status: ExecutionStatus):
-    trace = ["LocalIntentAgent", "SafetyAgent"]
+    trace = ["LocalIntentAgent", "GlobalSafetyDispatchAgent"]
 
     if safety == SafetyLevel.DANGEROUS or status == ExecutionStatus.BLOCKED:
         trace.append("SafetyBlock")
@@ -234,22 +238,25 @@ def _agent_trace(command_type: CommandType, safety: SafetyLevel, status: Executi
 
     if status == ExecutionStatus.FALLBACK:
         if command_type == CommandType.NAVIGATION:
-            trace.append("NavAgent")
+            trace.append("CabinVehicleControlAgent")
         elif command_type == CommandType.CAR_CONTROL:
-            trace.append("CarControlAgent")
+            trace.append("CabinVehicleControlAgent")
         else:
             trace.append("LocalFallback")
+        trace.append("DataUploadAgent")
         return trace
 
     trace.extend(
         [
-            "CloudScheduleAgent",
-            "CloudUserProfileAgent",
-            "CloudEcologyAgent",
+            "GlobalDispatchAgent",
+            "UserProfileAgent",
+            "VectorKnowledgeAgent",
+            "ExternalEcologyAgent",
         ]
     )
     if command_type in {CommandType.NAVIGATION, CommandType.CHARGE_PLAN}:
-        trace.append("CloudRoutePlanAgent")
+        trace.append("GlobalTripPlanningAgent")
+    trace.append("DataUploadAgent")
     return trace
 
 
@@ -266,15 +273,19 @@ def _rag_context(content: str, user_id: str, command_type: CommandType, network:
         CommandType.CAR_CONTROL,
         CommandType.PERSONALIZE,
     }:
-        profile_agent = CloudUserProfileAgent()
+        profile_agent = UserProfileAgent()
         for result in profile_agent.retrieve_context(user_id, content):
             context.append(_context_payload("用户画像召回", result))
+
+        knowledge_agent = VectorKnowledgeAgent()
+        for result in knowledge_agent.retrieve(content, user_id=user_id, command_type=command_type):
+            context.append(_context_payload("向量知识库召回", result))
 
     if network == NetworkStatus.ONLINE and command_type in {
         CommandType.NAVIGATION,
         CommandType.CHARGE_PLAN,
     }:
-        route_agent = CloudRoutePlanAgent()
+        route_agent = GlobalTripPlanningAgent()
         for result in route_agent.retrieve_context(content):
             context.append(_context_payload("云端路线规划", result))
 
@@ -292,8 +303,15 @@ def _context_payload(stage: str, result):
 
 
 def _provider_status():
+    orchestrator = GlobalDispatchAgent()
     return {
         "llm": create_llm_client().provider_name,
+        "local_llm": create_local_llm_provider().provider_name,
+        "orchestrator": (
+            "langgraph_default"
+            if orchestrator.enable_langgraph
+            else "lightweight_forced"
+        ),
         "map": create_map_provider().provider_name,
         "weather": create_weather_provider().provider_name,
         "charge": create_charge_provider().provider_name,
