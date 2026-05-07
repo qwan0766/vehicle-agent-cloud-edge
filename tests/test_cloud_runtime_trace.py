@@ -58,7 +58,6 @@ class TestCloudRuntimeTrace(unittest.TestCase):
             [
                 "user_profile.lookup",
                 "knowledge.retrieve",
-                "ecology.snapshot",
                 "decision.summarize",
             ],
         )

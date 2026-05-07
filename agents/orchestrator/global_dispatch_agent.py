@@ -74,7 +74,8 @@ class GlobalDispatchAgent:
         state = self._graph_knowledge(state)
         if self._requires_trip_planning(msg.command_type):
             state = self._graph_route_preference(state)
-        state = self._graph_ecology(state)
+        if self._requires_external_ecology(msg.command_type):
+            state = self._graph_ecology(state)
         if self._requires_trip_planning(msg.command_type):
             state = self._graph_trip_plan(state)
         state = self._graph_decision(state)
@@ -234,6 +235,9 @@ class GlobalDispatchAgent:
 
     def _requires_trip_planning(self, command_type: CommandType) -> bool:
         return command_type in {CommandType.NAVIGATION, CommandType.CHARGE_PLAN}
+
+    def _requires_external_ecology(self, command_type: CommandType) -> bool:
+        return self._requires_trip_planning(command_type)
 
     def _non_route_context(self, command_type: CommandType) -> str:
         if command_type == CommandType.CAR_CONTROL:

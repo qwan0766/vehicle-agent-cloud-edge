@@ -251,10 +251,10 @@ def _agent_trace(command_type: CommandType, safety: SafetyLevel, status: Executi
             "GlobalDispatchAgent",
             "UserProfileAgent",
             "VectorKnowledgeAgent",
-            "ExternalEcologyAgent",
         ]
     )
     if command_type in {CommandType.NAVIGATION, CommandType.CHARGE_PLAN}:
+        trace.append("ExternalEcologyAgent")
         trace.append("GlobalTripPlanningAgent")
     trace.append("DataUploadAgent")
     return trace

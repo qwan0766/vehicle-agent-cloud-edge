@@ -124,7 +124,7 @@ class TestWebDemoAppModel(unittest.TestCase):
         )
 
     def test_user_two_payload_contains_user_two_profile_context(self):
-        payload = run_command("电量低", user_id="user_002", network="ONLINE")
+        payload = run_command("我的偏好", user_id="user_002", network="ONLINE")
 
         self.assertEqual(payload["request"]["user_id"], "user_002")
         self.assertTrue(
@@ -165,6 +165,10 @@ class TestWebDemoAppModel(unittest.TestCase):
             "route.plan",
             [item["tool_name"] for item in payload["runtime_trace"]],
         )
+        self.assertNotIn(
+            "ecology.snapshot",
+            [item["tool_name"] for item in payload["runtime_trace"]],
+        )
 
     def test_online_personalize_payload_does_not_create_route_summary(self):
         payload = run_command("我的偏好", network="ONLINE")
@@ -173,6 +177,7 @@ class TestWebDemoAppModel(unittest.TestCase):
         self.assertEqual(payload["route_summary"], {})
         self.assertFalse(payload["charge_stations"])
         self.assertNotIn("GlobalTripPlanningAgent", payload["agent_trace"])
+        self.assertNotIn("ecology.snapshot", [item["tool_name"] for item in payload["runtime_trace"]])
 
     def test_dangerous_command_payload_is_blocked(self):
         payload = run_command("加速到100km/h", network="ONLINE")

@@ -83,6 +83,9 @@ class TestInputMatrix(unittest.TestCase):
             "看一下我的用户画像": CommandType.PERSONALIZE,
             "播放音乐": CommandType.UNKNOWN,
             "查询股票行情": CommandType.UNKNOWN,
+            "AEB是什么": CommandType.UNKNOWN,
+            "播放一首加速感很强的歌": CommandType.UNKNOWN,
+            "我不想导航去蔚来中心，只是问问怎么取消导航": CommandType.UNKNOWN,
             "加速到100km/h": CommandType.CAR_CONTROL,
             "立即刹车": CommandType.CAR_CONTROL,
             "关闭AEB": CommandType.CAR_CONTROL,
@@ -123,6 +126,10 @@ class TestInputMatrix(unittest.TestCase):
             "查询股票行情",
             "讲个笑话",
             "打开视频网站",
+            "AEB是什么",
+            "讲一下制动距离",
+            "播放一首加速感很强的歌",
+            "我不想导航去蔚来中心，只是问问怎么取消导航",
         ]
 
         cases.update({content: CommandType.CAR_CONTROL for content in car_control_inputs})
@@ -145,12 +152,16 @@ class TestInputMatrix(unittest.TestCase):
             "关闭aeb",
             "关闭自动紧急制动",
             "接管方向盘",
+            "执行自动转向",
         ]
         safe_inputs = [
             "导航去外滩",
             "打开座椅加热",
             "温度调到24度",
             "电量低",
+            "AEB是什么",
+            "讲一下制动距离",
+            "播放一首加速感很强的歌",
         ]
 
         for content in dangerous_inputs:

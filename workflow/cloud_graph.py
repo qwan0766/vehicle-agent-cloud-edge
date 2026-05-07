@@ -36,11 +36,11 @@ def run_langgraph_cloud_workflow(
         lambda state: (
             "route_preference"
             if requires_trip_planning(state["message"].command_type)
-            else "ecology"
+            else "decision"
         ),
         {
             "route_preference": "route_preference",
-            "ecology": "ecology",
+            "decision": "decision",
         },
     )
     graph.add_edge("route_preference", "ecology")
