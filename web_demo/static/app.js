@@ -463,6 +463,7 @@ function renderResult(payload) {
 function renderClarification(clarification, fallbackOutput) {
   const payload = clarification || {};
   const suggestions = Array.isArray(payload.suggestions) ? payload.suggestions : [];
+  const candidates = Array.isArray(payload.candidates) ? payload.candidates : [];
   nodes.resultOutput.innerHTML = "";
 
   const card = document.createElement("article");
@@ -493,6 +494,30 @@ function renderClarification(clarification, fallbackOutput) {
       suggestionBox.appendChild(button);
     });
     card.appendChild(suggestionBox);
+  }
+
+  if (candidates.length) {
+    const candidateBox = document.createElement("div");
+    candidateBox.className = "clarification-candidates";
+    candidates.forEach((candidate) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "clarification-candidate";
+      const confidence =
+        typeof candidate.confidence === "number"
+          ? `${Math.round(candidate.confidence * 100)}%`
+          : "未知";
+      button.innerHTML =
+        `<strong>${escapeHtml(candidate.name || "候选地点")}</strong>` +
+        `<span>${escapeHtml(candidate.address || candidate.gps || "无地址")}</span>` +
+        `<small>置信度 ${escapeHtml(confidence)} · ${escapeHtml(candidate.source || "provider")}</small>`;
+      button.addEventListener("click", () => {
+        nodes.commandInput.value = candidate.name || payload.query || "";
+        nodes.commandInput.focus();
+      });
+      candidateBox.appendChild(button);
+    });
+    card.appendChild(candidateBox);
   }
 
   nodes.resultOutput.appendChild(card);

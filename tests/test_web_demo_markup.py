@@ -34,6 +34,8 @@ class TestWebDemoMarkup(unittest.TestCase):
 
         self.assertIn(".clarification-card", css)
         self.assertIn(".clarification-suggestions", css)
+        self.assertIn(".clarification-candidates", css)
+        self.assertIn(".clarification-candidate", css)
 
 
 if __name__ == "__main__":

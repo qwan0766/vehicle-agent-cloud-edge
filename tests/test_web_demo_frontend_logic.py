@@ -46,6 +46,14 @@ class TestWebDemoFrontendLogic(unittest.TestCase):
         self.assertIn("nodes.commandInput.value = suggestion", script)
         self.assertIn("nodes.commandInput.focus()", script)
 
+    def test_clarification_rendering_supports_destination_candidates(self):
+        script = Path("web_demo/static/app.js").read_text(encoding="utf-8")
+
+        self.assertIn("clarification-candidates", script)
+        self.assertIn("candidate.confidence", script)
+        self.assertIn("candidate.source", script)
+        self.assertIn("nodes.commandInput.value = candidate.name", script)
+
 
 if __name__ == "__main__":
     unittest.main()
