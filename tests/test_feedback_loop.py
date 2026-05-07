@@ -55,6 +55,26 @@ class TestFeedbackLoop(unittest.TestCase):
         self.assertEqual(update.delta, 1)
         self.assertIn("路线偏好高速", update.description)
 
+    def test_preference_updater_does_not_learn_from_clarification_prompt(self):
+        updater = PreferenceUpdater()
+        event = UsageEvent(
+            request_id="req-clarify",
+            user_id="user_001",
+            user_input="导航去北京",
+            command_type="NAVIGATION",
+            safety="SAFE",
+            network="ONLINE",
+            execution_status="NEEDS_CLARIFICATION",
+            output="请补充更具体的目的地",
+            timestamp="2026-05-05T00:00:00",
+        )
+
+        update = updater.update(event)
+
+        self.assertEqual(update.preference_key, "clarification_pending")
+        self.assertEqual(update.delta, 0)
+        self.assertIn("澄清", update.description)
+
     def test_feedback_service_records_result_and_returns_summary(self):
         runtime_dir = Path(".test_runtime") / f"feedback_service_{uuid.uuid4().hex}"
         service = FeedbackService(runtime_dir=runtime_dir)

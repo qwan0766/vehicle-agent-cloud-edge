@@ -37,6 +37,15 @@ class TestWebDemoFrontendLogic(unittest.TestCase):
         self.assertIn("renderGraphPath", script)
         self.assertIn("payload.graph", script)
 
+    def test_result_rendering_supports_destination_clarification(self):
+        script = Path("web_demo/static/app.js").read_text(encoding="utf-8")
+
+        self.assertIn("renderClarification", script)
+        self.assertIn('result.status === "NEEDS_CLARIFICATION"', script)
+        self.assertIn("clarification-suggestions", script)
+        self.assertIn("nodes.commandInput.value = suggestion", script)
+        self.assertIn("nodes.commandInput.focus()", script)
+
 
 if __name__ == "__main__":
     unittest.main()

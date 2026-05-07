@@ -123,6 +123,7 @@ def run_command(content: str, user_id: str = "user_001", network: str = "ONLINE"
     network_status = _parse_network(network)
     service = VehicleCoreService(feedback_service=FeedbackService())
     result = service.run(content, user_id=user_id, network=network_status)
+    should_show_route = result.status != ExecutionStatus.NEEDS_CLARIFICATION
 
     return {
         "vehicle_state": _vehicle_state_payload(network_status),
@@ -137,18 +138,28 @@ def run_command(content: str, user_id: str = "user_001", network: str = "ONLINE"
         "result": {
             "status": result.status.value,
             "output": result.output,
+            "clarification": result.clarification or {},
         },
         "feedback": result.feedback or {},
         "local_context": result.local_context or {},
         "graph": result.graph or {},
         "runtime_trace": result.trace or [],
-        "route_summary": _route_summary(content, result.message.command_type, result.message.network),
-        "charge_stations": _charge_stations(result.message.command_type, result.message.network),
+        "route_summary": (
+            _route_summary(content, result.message.command_type, result.message.network)
+            if should_show_route
+            else {}
+        ),
+        "charge_stations": (
+            _charge_stations(result.message.command_type, result.message.network)
+            if should_show_route
+            else []
+        ),
         "rag_context": _rag_context(
             result.message.content,
             result.message.user_id,
             result.message.command_type,
             result.message.network,
+            include_route_context=should_show_route,
         ),
         "agent_trace": _agent_trace(result.message.command_type, result.message.safety, result.status),
     }
@@ -232,6 +243,11 @@ def _vehicle_state_payload(network: NetworkStatus):
 def _agent_trace(command_type: CommandType, safety: SafetyLevel, status: ExecutionStatus):
     trace = ["LocalIntentAgent", "GlobalSafetyDispatchAgent"]
 
+    if status == ExecutionStatus.NEEDS_CLARIFICATION:
+        trace.append("DestinationClarification")
+        trace.append("DataUploadAgent")
+        return trace
+
     if safety == SafetyLevel.DANGEROUS or status == ExecutionStatus.BLOCKED:
         trace.append("SafetyBlock")
         return trace
@@ -260,7 +276,13 @@ def _agent_trace(command_type: CommandType, safety: SafetyLevel, status: Executi
     return trace
 
 
-def _rag_context(content: str, user_id: str, command_type: CommandType, network: NetworkStatus):
+def _rag_context(
+    content: str,
+    user_id: str,
+    command_type: CommandType,
+    network: NetworkStatus,
+    include_route_context: bool = True,
+):
     context = []
 
     intent_agent = LocalIntentAgent()
@@ -281,7 +303,7 @@ def _rag_context(content: str, user_id: str, command_type: CommandType, network:
         for result in knowledge_agent.retrieve(content, user_id=user_id, command_type=command_type):
             context.append(_context_payload("向量知识库召回", result))
 
-    if network == NetworkStatus.ONLINE and command_type in {
+    if include_route_context and network == NetworkStatus.ONLINE and command_type in {
         CommandType.NAVIGATION,
         CommandType.CHARGE_PLAN,
     }:

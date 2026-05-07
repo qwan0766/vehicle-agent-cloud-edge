@@ -97,6 +97,10 @@ h2 {
   color: var(--red);
 }
 
+.badge-clarification {
+  color: var(--amber);
+}
+
 .dashboard-grid {
   display: grid;
   grid-template-columns: 1fr 1.25fr;
@@ -745,6 +749,49 @@ h2 {
   border: 0;
   background: transparent;
   padding: 0;
+}
+
+.clarification-card {
+  display: grid;
+  gap: 8px;
+  border-left: 4px solid var(--amber);
+  padding-left: 12px;
+}
+
+.clarification-card strong {
+  color: var(--amber);
+}
+
+.clarification-card p,
+.clarification-card small {
+  margin: 0;
+}
+
+.clarification-card small {
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.clarification-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.clarification-suggestions button {
+  min-height: 32px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface-muted);
+  color: var(--text);
+  cursor: pointer;
+  padding: 0 10px;
+  text-align: left;
+}
+
+.clarification-suggestions button:hover {
+  border-color: var(--amber);
 }
 
 @media (max-width: 820px) {

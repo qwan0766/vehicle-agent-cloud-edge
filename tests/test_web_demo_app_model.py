@@ -188,16 +188,25 @@ class TestWebDemoAppModel(unittest.TestCase):
         self.assertEqual(payload["result"]["status"], "BLOCKED")
         self.assertIn("GlobalSafetyDispatchAgent", payload["agent_trace"])
 
-    def test_fuzzy_navigation_error_does_not_return_executed_route(self):
-        error = None
-        try:
-            run_command("导航去高老庄", network="ONLINE")
-        except Exception as exc:
-            error = build_error_response(exc, content="导航去高老庄", network="ONLINE")
+    def test_fuzzy_navigation_returns_structured_clarification(self):
+        payload = run_command(
+            "导航去高老庄",
+            user_id=f"user_{uuid.uuid4().hex}",
+            network="ONLINE",
+        )
 
-        self.assertIsNotNone(error)
-        self.assertEqual(error["provider"], "destination_clarification")
-        self.assertEqual(error["user_title"], "需要确认目的地")
+        self.assertEqual(payload["request"]["command_type"], "NAVIGATION")
+        self.assertEqual(payload["result"]["status"], "NEEDS_CLARIFICATION")
+        self.assertEqual(payload["result"]["clarification"]["type"], "destination")
+        self.assertEqual(payload["result"]["clarification"]["query"], "高老庄")
+        self.assertEqual(payload["route_summary"], {})
+        self.assertFalse(payload["charge_stations"])
+        self.assertIn("DestinationClarification", payload["agent_trace"])
+        self.assertNotIn("GlobalTripPlanningAgent", payload["agent_trace"])
+        self.assertFalse(
+            any(item["stage"] == "云端路线规划" for item in payload["rag_context"])
+        )
+        self.assertEqual(payload["runtime_trace"], [])
 
 
 if __name__ == "__main__":

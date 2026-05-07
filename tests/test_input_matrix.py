@@ -1,10 +1,16 @@
 import unittest
+import uuid
+from pathlib import Path
 
 from agents.cloud.cloud_route_plan_agent import CloudRoutePlanAgent
 from agents.vehicle.local_intent_agent import LocalIntentAgent
 from agents.vehicle.safety_agent import SafetyAgent
 from core.constants import CommandType
+from core.constants import ExecutionStatus
+from core.constants import NetworkStatus
 from core.constants import SafetyLevel
+from core.vehicle_core_service import VehicleCoreService
+from memory.pending_clarification_store import PendingClarificationStore
 from providers.destination_resolver import DestinationClarificationRequired, resolve_destination_detail
 from web_demo.server import build_error_response
 
@@ -47,6 +53,27 @@ class FakeLLM:
     def generate(self, system_prompt, user_prompt, context=None):
         destination = (context or {}).get("destination", {})
         return f"已规划到{destination.get('name')}的路线"
+
+
+class RecordingCloudAgent:
+    def __init__(self):
+        self.contents = []
+
+    def dispatch(self, msg):
+        self.contents.append(msg.content)
+        return "route ok"
+
+    def get_last_trace(self):
+        return []
+
+    def get_last_graph(self):
+        return {}
+
+
+def pending_matrix_path():
+    path = Path(".tmp-tests") / f"input-matrix-{uuid.uuid4().hex}.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    return path
 
 
 class TestInputMatrix(unittest.TestCase):
@@ -202,6 +229,32 @@ class TestInputMatrix(unittest.TestCase):
                 with self.assertRaises(DestinationClarificationRequired):
                     resolve_destination_detail(content, geocoder=geocoder)
                 self.assertEqual(geocoder.addresses, [])
+
+    def test_vehicle_service_matrix_handles_clarification_and_precise_inputs(self):
+        cases = [
+            ("导航去北京", ExecutionStatus.NEEDS_CLARIFICATION, []),
+            ("导航去上海", ExecutionStatus.NEEDS_CLARIFICATION, []),
+            ("导航去高老庄", ExecutionStatus.NEEDS_CLARIFICATION, []),
+            ("导航去霓虹蔚来中心", ExecutionStatus.NEEDS_CLARIFICATION, []),
+            ("导航去121.48,31.23", ExecutionStatus.EXECUTED, ["导航去121.48,31.23"]),
+            ("打开座椅加热", ExecutionStatus.EXECUTED, ["打开座椅加热"]),
+            ("关闭AEB", ExecutionStatus.BLOCKED, []),
+        ]
+
+        for content, expected_status, expected_cloud_contents in cases:
+            with self.subTest(content=content):
+                cloud = RecordingCloudAgent()
+                service = VehicleCoreService(
+                    cloud_agent=cloud,
+                    pending_clarification_store=PendingClarificationStore(
+                        pending_matrix_path()
+                    ),
+                )
+
+                result = service.run(content, network=NetworkStatus.ONLINE)
+
+                self.assertEqual(result.status, expected_status)
+                self.assertEqual(cloud.contents, expected_cloud_contents)
 
     def test_cloud_route_agent_records_provider_level_trace_for_dynamic_destination(self):
         agent = CloudRoutePlanAgent(

@@ -28,6 +28,15 @@ class PreferenceUpdater:
                 timestamp=event.timestamp,
             )
 
+        if event.execution_status == "NEEDS_CLARIFICATION":
+            return PreferenceUpdate(
+                user_id=event.user_id,
+                preference_key="clarification_pending",
+                delta=0,
+                description="等待用户澄清，不更新偏好",
+                timestamp=event.timestamp,
+            )
+
         if event.command_type == "NAVIGATION":
             return PreferenceUpdate(
                 user_id=event.user_id,

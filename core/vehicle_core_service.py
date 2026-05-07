@@ -5,10 +5,20 @@ from agents.vehicle.cabin_vehicle_control_agent import CabinVehicleControlAgent
 from agents.vehicle.data_upload_agent import DataUploadAgent
 from agents.vehicle.global_safety_dispatch_agent import GlobalSafetyDispatchAgent
 from agents.vehicle.local_intent_agent import LocalIntentAgent
+from core.clarification import (
+    build_destination_clarification,
+    is_destination_refinement,
+    reconstruct_destination_command,
+)
 from core.constants import CommandType, ExecutionStatus, NetworkStatus
 from core.message import Message
 from data.vehicle_state import DEFAULT_VEHICLE_STATE
-from memory.local_agent_context_manager import LocalAgentContextManager
+from memory.local_agent_context_manager import DEFAULT_SESSION_ID, LocalAgentContextManager
+from memory.pending_clarification_store import PendingClarificationStore
+from providers.destination_resolver import (
+    DestinationClarificationRequired,
+    resolve_destination_detail,
+)
 
 
 @dataclass(frozen=True)
@@ -20,6 +30,7 @@ class ExecutionResult:
     trace: list = None
     local_context: dict = None
     graph: dict = None
+    clarification: dict = None
 
 
 class VehicleCoreService:
@@ -32,6 +43,7 @@ class VehicleCoreService:
         safety_agent=None,
         control_agent=None,
         data_upload_agent=None,
+        pending_clarification_store=None,
     ):
         self.context_manager = context_manager or LocalAgentContextManager()
         self.intent_agent = intent_agent or LocalIntentAgent(
@@ -44,6 +56,9 @@ class VehicleCoreService:
         self.cloud_agent = cloud_agent or GlobalDispatchAgent()
         self.feedback_service = feedback_service
         self.data_upload_agent = data_upload_agent or DataUploadAgent(feedback_service)
+        self.pending_clarification_store = (
+            pending_clarification_store or PendingClarificationStore()
+        )
 
     def run(
         self,
@@ -51,6 +66,18 @@ class VehicleCoreService:
         user_id: str = "user_001",
         network: NetworkStatus = NetworkStatus.ONLINE,
     ) -> ExecutionResult:
+        pending_clarification = self.pending_clarification_store.get(
+            user_id,
+            DEFAULT_SESSION_ID,
+        )
+        if pending_clarification:
+            if is_destination_refinement(user_input, pending_clarification):
+                user_input = reconstruct_destination_command(
+                    user_input,
+                    pending_clarification,
+                )
+            self.pending_clarification_store.clear(user_id, DEFAULT_SESSION_ID)
+
         command_type = self.intent_agent.recognize(
             user_input,
             user_id=user_id,
@@ -92,6 +119,22 @@ class VehicleCoreService:
                     status=ExecutionStatus.BLOCKED,
                     output=output,
                     message=msg,
+                )
+            )
+
+        clarification = self._destination_clarification(user_input, command_type)
+        if clarification:
+            self.pending_clarification_store.save(
+                user_id,
+                DEFAULT_SESSION_ID,
+                clarification,
+            )
+            return self._complete_result(
+                ExecutionResult(
+                    status=ExecutionStatus.NEEDS_CLARIFICATION,
+                    output=clarification["question"],
+                    message=msg,
+                    clarification=clarification,
                 )
             )
 
@@ -142,6 +185,21 @@ class VehicleCoreService:
     ) -> str:
         return self.control_agent.execute(command_type, user_input, local_context)
 
+    def _destination_clarification(
+        self,
+        user_input: str,
+        command_type: CommandType,
+    ):
+        if command_type not in {CommandType.NAVIGATION, CommandType.CHARGE_PLAN}:
+            return None
+        try:
+            resolve_destination_detail(user_input, geocoder=None)
+        except DestinationClarificationRequired as exc:
+            return build_destination_clarification(exc, original_content=user_input)
+        except ValueError:
+            return None
+        return None
+
     def _complete_result(self, result: ExecutionResult) -> ExecutionResult:
         context_snapshot = None
         if self.intent_agent:
@@ -154,6 +212,7 @@ class VehicleCoreService:
                 trace=result.trace,
                 local_context=context_snapshot,
                 graph=result.graph,
+                clarification=result.clarification,
             )
         return self._with_feedback(result)
 
@@ -169,6 +228,7 @@ class VehicleCoreService:
             trace=result.trace,
             local_context=result.local_context,
             graph=result.graph,
+            clarification=result.clarification,
         )
 
     def _cloud_graph_snapshot(self):

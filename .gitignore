@@ -5,7 +5,10 @@ __pycache__/
 
 # Test and tooling cache
 .pytest_cache/
+.pytest-basetemp/
+pytest-tmp-*/
 pytest-cache-files-*/
+.tmp-tests/
 .coverage
 htmlcov/
 

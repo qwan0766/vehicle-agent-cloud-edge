@@ -414,22 +414,35 @@ function renderResult(payload) {
   nodes.commandTypeValue.textContent = request.command_type;
   nodes.safetyValue.textContent = request.safety;
   nodes.executionValue.textContent = result.status;
-  renderMarkdown(nodes.resultOutput, result.output);
+  const needsClarification = result.status === "NEEDS_CLARIFICATION";
+  if (needsClarification) {
+    renderClarification(result.clarification || {}, result.output);
+  } else {
+    renderMarkdown(nodes.resultOutput, result.output);
+  }
   nodes.traceMode.textContent =
-    result.status === "BLOCKED"
+    needsClarification
+      ? "需要确认"
+      : result.status === "BLOCKED"
       ? "安全拦截"
       : request.network === "ONLINE"
       ? "端云协同"
       : "本地兜底";
 
-  if (result.status === "BLOCKED") {
+  if (needsClarification) {
+    nodes.safetyBadge.textContent = "需要确认";
+  } else if (result.status === "BLOCKED") {
     nodes.safetyBadge.textContent =
       request.safety === "DANGEROUS" ? "危险拦截" : "策略拦截";
   } else {
     nodes.safetyBadge.textContent = "安全正常";
   }
   nodes.safetyBadge.classList.toggle("badge-danger", result.status === "BLOCKED");
-  nodes.safetyBadge.classList.toggle("badge-safe", result.status !== "BLOCKED");
+  nodes.safetyBadge.classList.toggle("badge-clarification", needsClarification);
+  nodes.safetyBadge.classList.toggle(
+    "badge-safe",
+    result.status !== "BLOCKED" && !needsClarification
+  );
 
   nodes.agentTrace.innerHTML = "";
   agentTrace.forEach((agent) => {
@@ -445,6 +458,44 @@ function renderResult(payload) {
   renderRagContext(payload.rag_context || []);
   renderFeedback(payload.feedback || {});
   renderLocalContext(payload.local_context || {});
+}
+
+function renderClarification(clarification, fallbackOutput) {
+  const payload = clarification || {};
+  const suggestions = Array.isArray(payload.suggestions) ? payload.suggestions : [];
+  nodes.resultOutput.innerHTML = "";
+
+  const card = document.createElement("article");
+  card.className = "clarification-card";
+
+  const title = document.createElement("strong");
+  title.textContent = "需要确认目的地";
+  const question = document.createElement("p");
+  question.textContent = payload.question || fallbackOutput || "请补充更具体的目的地。";
+  const meta = document.createElement("small");
+  meta.textContent = payload.query
+    ? `待确认：${payload.query} · ${payload.reason || "unclear_destination"}`
+    : payload.reason || "unclear_destination";
+
+  card.append(title, question, meta);
+
+  if (suggestions.length) {
+    const suggestionBox = document.createElement("div");
+    suggestionBox.className = "clarification-suggestions";
+    suggestions.forEach((suggestion) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = suggestion;
+      button.addEventListener("click", () => {
+        nodes.commandInput.value = suggestion;
+        nodes.commandInput.focus();
+      });
+      suggestionBox.appendChild(button);
+    });
+    card.appendChild(suggestionBox);
+  }
+
+  nodes.resultOutput.appendChild(card);
 }
 
 function renderRouteSummary(route, stations) {
@@ -706,7 +757,8 @@ function agentClass(agent) {
   if (
     agent.includes("Fallback") ||
     agent.includes("CabinVehicleControl") ||
-    agent.includes("DataUpload")
+    agent.includes("DataUpload") ||
+    agent.includes("Clarification")
   ) {
     return "local";
   }

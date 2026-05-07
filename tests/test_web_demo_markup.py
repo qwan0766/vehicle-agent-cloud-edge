@@ -29,6 +29,12 @@ class TestWebDemoMarkup(unittest.TestCase):
         self.assertIn('id="graphMode"', html)
         self.assertIn('id="graphPath"', html)
 
+    def test_styles_include_clarification_card_targets(self):
+        css = Path("web_demo/static/styles.css").read_text(encoding="utf-8")
+
+        self.assertIn(".clarification-card", css)
+        self.assertIn(".clarification-suggestions", css)
+
 
 if __name__ == "__main__":
     unittest.main()
