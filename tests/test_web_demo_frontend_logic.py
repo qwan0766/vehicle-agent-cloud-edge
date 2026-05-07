@@ -52,7 +52,42 @@ class TestWebDemoFrontendLogic(unittest.TestCase):
         self.assertIn("clarification-candidates", script)
         self.assertIn("candidate.confidence", script)
         self.assertIn("candidate.source", script)
-        self.assertIn("nodes.commandInput.value = candidate.name", script)
+        self.assertIn("const confirmedTarget = candidate.gps || candidate.name", script)
+        self.assertIn("runCommand();", script)
+
+    def test_scenario_buttons_mark_manual_trigger_and_auto_events_render_separately(self):
+        script = Path("web_demo/static/app.js").read_text(encoding="utf-8")
+
+        self.assertIn("scenario.trigger", script)
+        self.assertIn("手动演示", script)
+        self.assertIn("renderAutoEvents", script)
+        self.assertIn("自动触发", script)
+
+    def test_frontend_updates_vehicle_state_through_api(self):
+        markup = Path("web_demo/static/index.html").read_text(encoding="utf-8")
+        script = Path("web_demo/static/app.js").read_text(encoding="utf-8")
+
+        self.assertIn("roadTypeInput", markup)
+        self.assertIn("batteryInput", markup)
+        self.assertIn("updateVehicleStateBtn", markup)
+        self.assertIn("/api/vehicle-state", script)
+        self.assertIn("updateVehicleState", script)
+        self.assertIn("renderAutoEvents(payload.auto_events", script)
+
+    def test_frontend_polls_vehicle_events(self):
+        script = Path("web_demo/static/app.js").read_text(encoding="utf-8")
+
+        self.assertIn("/api/vehicle-events", script)
+        self.assertIn("startVehicleEventPolling", script)
+        self.assertIn("setInterval", script)
+        self.assertIn("event.severity", script)
+
+    def test_vehicle_event_polling_does_not_overwrite_state_form_draft(self):
+        script = Path("web_demo/static/app.js").read_text(encoding="utf-8")
+
+        self.assertIn("syncControls", script)
+        self.assertIn("syncNetwork", script)
+        self.assertIn("renderVehicle(payload.vehicle_state, { syncControls: false, syncNetwork: false })", script)
 
 
 if __name__ == "__main__":

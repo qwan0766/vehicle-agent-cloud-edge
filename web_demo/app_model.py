@@ -8,7 +8,8 @@ from agents.vehicle.local_intent_agent import LocalIntentAgent
 from config.env_loader import load_env_file
 from core.constants import CommandType, ExecutionStatus, NetworkStatus, SafetyLevel
 from core.vehicle_core_service import VehicleCoreService
-from data.vehicle_state import DEFAULT_VEHICLE_STATE
+from data.vehicle_state_service import VehicleStateService
+from data.vehicle_event_service import VehicleEventService
 from evaluation.offline_evaluator import OfflineEvaluator
 from feedback.feedback_service import FeedbackService
 from llm.factory import create_llm_client
@@ -25,6 +26,8 @@ from scripts.smoke_real_providers import run_smoke_checks
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_ACCEPTANCE_REPORT = PROJECT_ROOT / "reports" / "acceptance_report.md"
+VEHICLE_STATE_SERVICE = VehicleStateService()
+VEHICLE_EVENT_SERVICE = VehicleEventService()
 
 
 USERS = [
@@ -33,11 +36,11 @@ USERS = [
 ]
 
 SCENARIOS = [
-    {"label": "导航去蔚来中心", "content": "导航去蔚来中心", "network": "ONLINE"},
-    {"label": "打开座椅加热", "content": "打开座椅加热", "network": "OFFLINE"},
-    {"label": "电量低", "content": "电量低", "network": "ONLINE"},
-    {"label": "我的偏好", "content": "我的偏好", "network": "ONLINE"},
-    {"label": "加速到100km/h", "content": "加速到100km/h", "network": "ONLINE"},
+    {"label": "导航去蔚来中心", "content": "导航去蔚来中心", "network": "ONLINE", "trigger": "MANUAL"},
+    {"label": "打开座椅加热", "content": "打开座椅加热", "network": "OFFLINE", "trigger": "MANUAL"},
+    {"label": "电量低（手动）", "content": "电量低", "network": "ONLINE", "trigger": "MANUAL"},
+    {"label": "我的偏好", "content": "我的偏好", "network": "ONLINE", "trigger": "MANUAL"},
+    {"label": "关闭AEB", "content": "关闭AEB", "network": "ONLINE", "trigger": "MANUAL"},
 ]
 
 DEMO_STEPS = [
@@ -106,8 +109,11 @@ DEMO_STEPS = [
 
 def get_initial_payload():
     load_env_file()
+    event_payload = get_vehicle_events_payload()
     return {
-        "vehicle_state": _vehicle_state_payload(NetworkStatus.ONLINE),
+        "vehicle_state": event_payload["vehicle_state"],
+        "auto_events": event_payload["events"],
+        "auto_event_rules": event_payload["event_rules"],
         "users": USERS,
         "scenarios": SCENARIOS,
         "demo_steps": get_demo_steps(),
@@ -121,7 +127,7 @@ def get_initial_payload():
 def run_command(content: str, user_id: str = "user_001", network: str = "ONLINE"):
     load_env_file()
     network_status = _parse_network(network)
-    service = VehicleCoreService(feedback_service=FeedbackService())
+    service = _build_vehicle_service()
     result = service.run(content, user_id=user_id, network=network_status)
     should_show_route = result.status != ExecutionStatus.NEEDS_CLARIFICATION
 
@@ -165,6 +171,28 @@ def run_command(content: str, user_id: str = "user_001", network: str = "ONLINE"
     }
 
 
+def update_vehicle_state(updates: dict):
+    VEHICLE_STATE_SERVICE.update(updates or {})
+    event_payload = get_vehicle_events_payload()
+    return {
+        "vehicle_state": event_payload["vehicle_state"],
+        "auto_events": event_payload["events"],
+        "auto_event_rules": event_payload["event_rules"],
+    }
+
+
+def reset_vehicle_state():
+    VEHICLE_STATE_SERVICE.reset()
+
+
+def get_vehicle_events_payload(network: str = "ONLINE"):
+    network_status = _parse_network(network)
+    return VEHICLE_EVENT_SERVICE.snapshot(
+        VEHICLE_STATE_SERVICE.current_state(),
+        network=network_status,
+    )
+
+
 def run_provider_smoke_test():
     load_env_file()
     return {"results": run_smoke_checks()}
@@ -202,6 +230,13 @@ def _parse_network(network: str) -> NetworkStatus:
     return NetworkStatus.ONLINE
 
 
+def _build_vehicle_service(vehicle_state=None):
+    return VehicleCoreService(
+        feedback_service=FeedbackService(),
+        vehicle_state=vehicle_state or VEHICLE_STATE_SERVICE.current_state(),
+    )
+
+
 def _extract_report_value(text: str, prefix: str) -> str:
     for line in text.splitlines():
         if line.startswith(prefix):
@@ -231,17 +266,16 @@ def _parse_acceptance_steps(text: str):
 
 
 def _vehicle_state_payload(network: NetworkStatus):
-    return {
-        "speed_kmh": DEFAULT_VEHICLE_STATE.speed_kmh,
-        "battery_percent": DEFAULT_VEHICLE_STATE.battery_percent,
-        "network": network.value,
-        "gps": DEFAULT_VEHICLE_STATE.gps,
-        "safety_state": "正常",
-    }
+    return VEHICLE_STATE_SERVICE.to_payload(network)
 
 
 def _agent_trace(command_type: CommandType, safety: SafetyLevel, status: ExecutionStatus):
     trace = ["LocalIntentAgent", "GlobalSafetyDispatchAgent"]
+
+    if status == ExecutionStatus.NEEDS_DRIVER_CONFIRMATION:
+        trace.append("DriverConfirmation")
+        trace.append("DataUploadAgent")
+        return trace
 
     if status == ExecutionStatus.NEEDS_CLARIFICATION:
         trace.append("DestinationClarification")
@@ -349,8 +383,9 @@ def _route_summary(content: str, command_type: CommandType, network: NetworkStat
         return {}
 
     destination = resolve_destination_detail(content, geocoder=create_geocode_provider())
+    vehicle_state = VEHICLE_STATE_SERVICE.current_state()
     route = create_map_provider().plan_route(
-        DEFAULT_VEHICLE_STATE.gps,
+        vehicle_state.gps,
         destination.gps,
         preference="高速",
     )
@@ -372,7 +407,8 @@ def _charge_stations(command_type: CommandType, network: NetworkStatus):
     }:
         return []
 
-    stations = create_charge_provider().find_nearby(DEFAULT_VEHICLE_STATE.gps, limit=3)
+    vehicle_state = VEHICLE_STATE_SERVICE.current_state()
+    stations = create_charge_provider().find_nearby(vehicle_state.gps, limit=3)
     return [
         {
             "name": station.name,

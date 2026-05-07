@@ -10,6 +10,7 @@ class TestOfflineEvaluator(unittest.TestCase):
         self.assertGreaterEqual(report["total"], 20)
         self.assertGreaterEqual(report["intent_accuracy"], 0.8)
         self.assertEqual(report["safety_block_recall"], 1.0)
+        self.assertEqual(report["driver_confirmation_recall"], 1.0)
         self.assertGreaterEqual(report["rag_hit_rate"], 0.5)
         self.assertEqual(report["failed_cases"], [])
 

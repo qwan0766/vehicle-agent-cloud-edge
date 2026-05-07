@@ -8,6 +8,7 @@ from providers.amap_route_provider import AmapRouteProvider
 from providers.baidu_map_provider import BaiduMapProvider
 from providers.factory import (
     create_charge_provider,
+    create_destination_candidate_provider,
     create_geocode_provider,
     create_map_provider,
     create_weather_provider,
@@ -24,6 +25,7 @@ class TestProviderFactory(unittest.TestCase):
         with patch.dict(os.environ, {}, clear=True):
             self.assertIsInstance(create_map_provider(), OfflineMapProvider)
             self.assertIsNone(create_geocode_provider())
+            self.assertIsNone(create_destination_candidate_provider())
             self.assertIsInstance(create_weather_provider(), OfflineWeatherProvider)
             self.assertIsInstance(create_charge_provider(), OfflineChargeProvider)
 
@@ -40,6 +42,7 @@ class TestProviderFactory(unittest.TestCase):
         ):
             self.assertIsInstance(create_map_provider(), AmapRouteProvider)
             self.assertIsInstance(create_geocode_provider(), AmapGeocodeProvider)
+            self.assertIsInstance(create_destination_candidate_provider(), AmapPOIProvider)
             self.assertIsInstance(create_weather_provider(), OpenMeteoWeatherProvider)
             self.assertIsInstance(create_charge_provider(), AmapPOIProvider)
 

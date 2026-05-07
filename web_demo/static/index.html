@@ -40,6 +40,43 @@
           <div class="battery-track" aria-hidden="true">
             <div id="batteryBar" class="battery-fill"></div>
           </div>
+          <div class="vehicle-context">
+            <div><span>道路</span><strong id="roadTypeValue">-</strong></div>
+            <div><span>限速</span><strong id="speedLimitValue">-</strong></div>
+            <div><span>辅助模式</span><strong id="assistModeValue">-</strong></div>
+          </div>
+          <div class="vehicle-state-controls" aria-label="车辆状态模拟控制">
+            <label>
+              <span>道路场景</span>
+              <select id="roadTypeInput">
+                <option value="HIGHWAY">高速</option>
+                <option value="URBAN">城市</option>
+                <option value="UNKNOWN">未知</option>
+              </select>
+            </label>
+            <label>
+              <span>限速</span>
+              <input id="speedLimitInput" type="number" min="0" max="160" step="10" value="120" />
+            </label>
+            <label>
+              <span>车速</span>
+              <input id="vehicleSpeedInput" type="number" min="0" max="240" step="5" value="60" />
+            </label>
+            <label>
+              <span>电量</span>
+              <input id="batteryInput" type="number" min="0" max="100" step="1" value="35" />
+            </label>
+            <label>
+              <span>辅助模式</span>
+              <select id="assistModeInput">
+                <option value="ACC">ACC</option>
+                <option value="NOA">NOA</option>
+                <option value="MANUAL">手动</option>
+              </select>
+            </label>
+            <button id="updateVehicleStateBtn" class="small-action" type="button">应用状态</button>
+          </div>
+          <div id="autoEvents" class="auto-events">等待车辆状态事件</div>
           <div class="network-toggle" aria-label="网络状态">
             <button id="onlineBtn" class="toggle active" type="button">ONLINE</button>
             <button id="offlineBtn" class="toggle" type="button">OFFLINE</button>

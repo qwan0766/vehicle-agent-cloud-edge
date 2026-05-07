@@ -39,3 +39,15 @@ class UsageLogger:
             payload = json.loads(row)
             events.append(UsageEvent(**payload))
         return events
+
+    def read_all(self) -> List[UsageEvent]:
+        if not self.log_path.exists():
+            return []
+
+        events = []
+        for row in self.log_path.read_text(encoding="utf-8").splitlines():
+            if not row.strip():
+                continue
+            payload = json.loads(row)
+            events.append(UsageEvent(**payload))
+        return events

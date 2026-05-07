@@ -180,6 +180,93 @@ h2 {
   background: var(--green);
 }
 
+.vehicle-context {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.vehicle-context div,
+.auto-event {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface-muted);
+  padding: 10px;
+}
+
+.vehicle-context span,
+.auto-event span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.vehicle-context strong,
+.auto-event strong {
+  display: block;
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+}
+
+.vehicle-state-controls {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.vehicle-state-controls label {
+  display: grid;
+  gap: 5px;
+}
+
+.vehicle-state-controls label span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.vehicle-state-controls input,
+.vehicle-state-controls select {
+  width: 100%;
+  min-height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface-muted);
+  color: var(--text);
+  padding: 0 8px;
+}
+
+.vehicle-state-controls button {
+  align-self: end;
+  min-height: 36px;
+}
+
+.auto-events {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.auto-event.active {
+  border-color: var(--amber);
+  background: #fff8ec;
+}
+
+.auto-event.warning {
+  border-color: var(--amber);
+  background: #fff8ec;
+}
+
+.auto-event.critical {
+  border-color: var(--red);
+  background: #fff5f5;
+}
+
+.auto-event.critical strong {
+  color: var(--red);
+}
+
 .network-toggle {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -213,8 +300,19 @@ h2 {
 }
 
 .scenario-grid button {
+  display: grid;
+  gap: 3px;
   padding: 0 10px;
   overflow-wrap: anywhere;
+}
+
+.scenario-grid button strong {
+  line-height: 1.25;
+}
+
+.scenario-grid button span {
+  color: var(--muted);
+  font-size: 12px;
 }
 
 .scenario-grid button:hover,
@@ -888,6 +986,8 @@ h2 {
   }
 
   .metric-row,
+  .vehicle-context,
+  .vehicle-state-controls,
   .network-toggle,
   .scenario-grid,
   .graph-strip,

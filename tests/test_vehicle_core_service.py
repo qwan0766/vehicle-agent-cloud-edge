@@ -1,7 +1,10 @@
 import unittest
 
 from core.constants import CommandType, ExecutionStatus, NetworkStatus
+from core.constants import RoadType
+from data.vehicle_state import VehicleState
 from core.vehicle_core_service import VehicleCoreService
+from providers.destination_resolver import DestinationClarificationRequired
 
 
 class FakeCloudAgent:
@@ -13,6 +16,26 @@ class FakeCloudAgent:
 
     def get_last_graph(self):
         return {"mode": "lightweight", "path": ["profile", "trip_plan", "decision"]}
+
+
+class FakeDestinationConfidenceAgent:
+    def ensure_executable(self, content, **kwargs):
+        raise DestinationClarificationRequired(
+            "世博园",
+            "destination_candidate_confirmation",
+            suggestions=("请确认要去哪个世博园。",),
+            candidates=[
+                {
+                    "name": "上海世博园",
+                    "gps": "121.50,31.18",
+                    "address": "上海市浦东新区",
+                    "source": "fake_poi",
+                    "confidence": 0.91,
+                    "distance_km": None,
+                    "reason": "provider_text_search",
+                }
+            ],
+        )
 
 
 class TestVehicleCoreService(unittest.TestCase):
@@ -33,7 +56,7 @@ class TestVehicleCoreService(unittest.TestCase):
 
     def test_dangerous_command_is_blocked_before_execution(self):
         service = VehicleCoreService()
-        result = service.run("加速到100km/h", network=NetworkStatus.ONLINE)
+        result = service.run("关闭AEB", network=NetworkStatus.ONLINE)
 
         self.assertEqual(result.status, ExecutionStatus.BLOCKED)
         self.assertIn("危险指令", result.output)
@@ -45,6 +68,37 @@ class TestVehicleCoreService(unittest.TestCase):
 
         self.assertEqual(result.message.command_type, CommandType.INFO_QUERY)
         self.assertEqual(result.status, ExecutionStatus.EXECUTED)
+
+    def test_highway_speed_request_requires_driver_confirmation_not_cloud_execution(self):
+        service = VehicleCoreService(
+            cloud_agent=FakeCloudAgent(),
+            vehicle_state=VehicleState(
+                speed_kmh=80,
+                battery_percent=35,
+                network=NetworkStatus.ONLINE,
+                gps="121.48, 31.23",
+                road_type=RoadType.HIGHWAY,
+                speed_limit_kmh=120,
+            ),
+        )
+
+        result = service.run("加速到100km/h", network=NetworkStatus.ONLINE)
+
+        self.assertEqual(result.status, ExecutionStatus.NEEDS_DRIVER_CONFIRMATION)
+        self.assertIn("驾驶员确认", result.output)
+
+    def test_online_navigation_candidate_confirmation_is_normal_status(self):
+        service = VehicleCoreService(
+            cloud_agent=FakeCloudAgent(),
+            destination_confidence_agent=FakeDestinationConfidenceAgent(),
+        )
+
+        result = service.run("导航去世博园", network=NetworkStatus.ONLINE)
+
+        self.assertEqual(result.message.command_type, CommandType.NAVIGATION)
+        self.assertEqual(result.status, ExecutionStatus.NEEDS_CLARIFICATION)
+        self.assertEqual(result.clarification["reason"], "destination_candidate_confirmation")
+        self.assertEqual(result.clarification["candidates"][0]["name"], "上海世博园")
 
 
 if __name__ == "__main__":

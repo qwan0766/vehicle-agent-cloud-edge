@@ -49,12 +49,13 @@ class GlobalSafetyDispatchAgent:
     def check(self, content: str) -> SafetyLevel:
         return self.keyword_agent.check(content)
 
-    def evaluate(self, command_type, safety, network, content):
+    def evaluate(self, command_type, safety, network, content, vehicle_state=None):
         return self.policy.evaluate(
             command_type=command_type,
             safety=safety,
             network=network,
             content=content,
+            vehicle_state=vehicle_state,
         )
 
     def verify_cloud_result(self, result_text: str):

@@ -158,7 +158,7 @@ OFFLINE_SCENARIOS = [
         NetworkStatus.ONLINE,
         CommandType.CAR_CONTROL,
         SafetyLevel.DANGEROUS,
-        ExecutionStatus.BLOCKED,
+        ExecutionStatus.NEEDS_DRIVER_CONFIRMATION,
         expected_rag_hit=False,
     ),
     OfflineScenario(

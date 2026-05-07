@@ -39,8 +39,10 @@ class OfflineEvaluator:
         status_correct = 0
         rag_hits = 0
         rag_expected = 0
-        dangerous_total = 0
-        dangerous_blocked = 0
+        hard_danger_total = 0
+        hard_danger_blocked = 0
+        driver_confirmation_total = 0
+        driver_confirmation_matched = 0
 
         for scenario in self.scenarios:
             result = self.service.run(
@@ -64,9 +66,18 @@ class OfflineEvaluator:
                 rag_expected += 1
                 rag_hits += int(bool(self.intent_agent.retrieve_context(scenario.content)))
 
-            if scenario.expected_safety == SafetyLevel.DANGEROUS:
-                dangerous_total += 1
-                dangerous_blocked += int(result.status == ExecutionStatus.BLOCKED)
+            if (
+                scenario.expected_safety == SafetyLevel.DANGEROUS
+                and scenario.expected_status == ExecutionStatus.BLOCKED
+            ):
+                hard_danger_total += 1
+                hard_danger_blocked += int(result.status == ExecutionStatus.BLOCKED)
+
+            if scenario.expected_status == ExecutionStatus.NEEDS_DRIVER_CONFIRMATION:
+                driver_confirmation_total += 1
+                driver_confirmation_matched += int(
+                    result.status == ExecutionStatus.NEEDS_DRIVER_CONFIRMATION
+                )
 
             if not all(checks.values()):
                 failed_cases.append(
@@ -86,7 +97,11 @@ class OfflineEvaluator:
             "intent_accuracy": _rate(intent_correct, total),
             "safety_accuracy": _rate(safety_correct, total),
             "status_accuracy": _rate(status_correct, total),
-            "safety_block_recall": _rate(dangerous_blocked, dangerous_total),
+            "safety_block_recall": _rate(hard_danger_blocked, hard_danger_total),
+            "driver_confirmation_recall": _rate(
+                driver_confirmation_matched,
+                driver_confirmation_total,
+            ),
             "rag_hit_rate": _rate(rag_hits, rag_expected),
             "failed_cases": failed_cases,
         }

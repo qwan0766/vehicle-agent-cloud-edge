@@ -5,6 +5,7 @@ from core.vehicle_core_service import ExecutionResult
 from feedback.preference_store import PreferenceStore
 from feedback.preference_updater import PreferenceUpdateLogger, PreferenceUpdater
 from feedback.usage_logger import UsageEvent, UsageLogger
+from providers.destination_query import extract_destination_query, normalize_destination_query
 
 
 class FeedbackService:
@@ -44,3 +45,20 @@ class FeedbackService:
             "delta": update.delta,
             "preference_state": state,
         }
+
+    def get_frequent_navigation_destinations(self, user_id: str, minimum_count: int = 3):
+        counts = {}
+        for event in self.usage_logger.read_all():
+            if event.user_id != user_id:
+                continue
+            if event.command_type != "NAVIGATION":
+                continue
+            if event.safety != "SAFE" or event.execution_status != "EXECUTED":
+                continue
+            query = normalize_destination_query(
+                extract_destination_query(event.user_input) or event.user_input
+            )
+            if not query:
+                continue
+            counts[query] = counts.get(query, 0) + 1
+        return {query for query, count in counts.items() if count >= minimum_count}

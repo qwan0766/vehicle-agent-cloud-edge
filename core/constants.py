@@ -30,3 +30,16 @@ class ExecutionStatus(StrEnum):
     BLOCKED = "BLOCKED"
     FALLBACK = "FALLBACK"
     NEEDS_CLARIFICATION = "NEEDS_CLARIFICATION"
+    NEEDS_DRIVER_CONFIRMATION = "NEEDS_DRIVER_CONFIRMATION"
+
+
+class RoadType(StrEnum):
+    URBAN = "URBAN"
+    HIGHWAY = "HIGHWAY"
+    UNKNOWN = "UNKNOWN"
+
+
+class DriverAssistMode(StrEnum):
+    MANUAL = "MANUAL"
+    ACC = "ACC"
+    NOA = "NOA"

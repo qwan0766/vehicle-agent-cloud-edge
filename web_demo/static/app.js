@@ -16,6 +16,16 @@ const nodes = {
   speedValue: document.querySelector("#speedValue"),
   batteryValue: document.querySelector("#batteryValue"),
   batteryBar: document.querySelector("#batteryBar"),
+  roadTypeValue: document.querySelector("#roadTypeValue"),
+  speedLimitValue: document.querySelector("#speedLimitValue"),
+  assistModeValue: document.querySelector("#assistModeValue"),
+  roadTypeInput: document.querySelector("#roadTypeInput"),
+  speedLimitInput: document.querySelector("#speedLimitInput"),
+  vehicleSpeedInput: document.querySelector("#vehicleSpeedInput"),
+  batteryInput: document.querySelector("#batteryInput"),
+  assistModeInput: document.querySelector("#assistModeInput"),
+  updateVehicleStateBtn: document.querySelector("#updateVehicleStateBtn"),
+  autoEvents: document.querySelector("#autoEvents"),
   onlineBtn: document.querySelector("#onlineBtn"),
   offlineBtn: document.querySelector("#offlineBtn"),
   userIdValue: document.querySelector("#userIdValue"),
@@ -81,6 +91,7 @@ async function init() {
     state.demoSteps = payload.demo_steps || [];
     state.users = payload.users;
     renderVehicle(payload.vehicle_state);
+    renderAutoEvents(payload.auto_events || [], payload.auto_event_rules || []);
     renderOfflineEvaluation(payload.offline_evaluation);
     renderAcceptance(payload.acceptance);
     renderProviders(payload.providers);
@@ -88,6 +99,7 @@ async function init() {
     renderScenarioButtons();
     renderDemoSteps();
     bindEvents();
+    startVehicleEventPolling();
   } catch (error) {
     nodes.resultOutput.textContent = `页面初始化失败：${error.message}`;
   }
@@ -158,6 +170,7 @@ function bindEvents() {
   nodes.onlineBtn.addEventListener("click", () => setNetwork("ONLINE"));
   nodes.offlineBtn.addEventListener("click", () => setNetwork("OFFLINE"));
   nodes.runBtn.addEventListener("click", runCommand);
+  nodes.updateVehicleStateBtn.addEventListener("click", updateVehicleState);
   nodes.smokeBtn.addEventListener("click", runSmokeTest);
   nodes.acceptanceRefreshBtn.addEventListener("click", refreshAcceptance);
   nodes.userSelect.addEventListener("change", () => {
@@ -169,6 +182,54 @@ function bindEvents() {
       runCommand();
     }
   });
+}
+
+async function updateVehicleState() {
+  nodes.updateVehicleStateBtn.disabled = true;
+  nodes.updateVehicleStateBtn.textContent = "更新中";
+  try {
+    const response = await fetch("/api/vehicle-state", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        road_type: nodes.roadTypeInput.value,
+        speed_limit_kmh: nodes.speedLimitInput.value,
+        speed_kmh: nodes.vehicleSpeedInput.value,
+        battery_percent: nodes.batteryInput.value,
+        driver_assist_mode: nodes.assistModeInput.value,
+      }),
+    });
+    const payload = await parseJsonResponse(response);
+    renderVehicle(payload.vehicle_state);
+    renderAutoEvents(payload.auto_events || [], payload.auto_event_rules || []);
+  } catch (error) {
+    renderCommandError(error);
+  } finally {
+    nodes.updateVehicleStateBtn.disabled = false;
+    nodes.updateVehicleStateBtn.textContent = "应用状态";
+  }
+}
+
+function startVehicleEventPolling() {
+  refreshVehicleEvents();
+  setInterval(refreshVehicleEvents, 3000);
+}
+
+async function refreshVehicleEvents() {
+  try {
+    const response = await fetch("/api/vehicle-events");
+    const payload = await parseJsonResponse(response);
+    renderVehicle(payload.vehicle_state, { syncControls: false, syncNetwork: false });
+    renderAutoEvents(payload.events || [], payload.event_rules || []);
+  } catch (error) {
+    const item = document.createElement("article");
+    item.className = "auto-event active critical";
+    item.innerHTML =
+      "<strong>状态事件刷新失败</strong>" +
+      `<span>${escapeHtml(error.message)}</span>`;
+    nodes.autoEvents.innerHTML = "";
+    nodes.autoEvents.appendChild(item);
+  }
 }
 
 async function refreshAcceptance() {
@@ -282,7 +343,9 @@ function renderScenarioButtons() {
   state.scenarios.forEach((scenario) => {
     const button = document.createElement("button");
     button.type = "button";
-    button.textContent = scenario.label;
+    button.innerHTML =
+      `<strong>${escapeHtml(scenario.label)}</strong>` +
+      `<span>${scenario.trigger === "AUTO" ? "自动触发" : "手动演示"}</span>`;
     button.addEventListener("click", () => {
       nodes.commandInput.value = scenario.content;
       setNetwork(scenario.network);
@@ -397,15 +460,55 @@ async function parseJsonResponse(response) {
   return payload;
 }
 
-function renderVehicle(vehicle) {
+function renderVehicle(vehicle, options = {}) {
+  const syncControls = options.syncControls !== false;
+  const syncNetwork = options.syncNetwork !== false;
   nodes.gpsValue.textContent = vehicle.gps;
   nodes.speedValue.textContent = vehicle.speed_kmh;
   nodes.batteryValue.textContent = vehicle.battery_percent;
   nodes.batteryBar.style.width = `${vehicle.battery_percent}%`;
-  nodes.networkBadge.textContent = vehicle.network;
-  state.network = vehicle.network;
-  nodes.onlineBtn.classList.toggle("active", vehicle.network === "ONLINE");
-  nodes.offlineBtn.classList.toggle("active", vehicle.network === "OFFLINE");
+  nodes.roadTypeValue.textContent = vehicle.road_type || "UNKNOWN";
+  nodes.speedLimitValue.textContent = vehicle.speed_limit_kmh
+    ? `${vehicle.speed_limit_kmh} km/h`
+    : "-";
+  nodes.assistModeValue.textContent = vehicle.driver_assist_mode || "-";
+  if (syncControls) {
+    nodes.roadTypeInput.value = vehicle.road_type || "UNKNOWN";
+    nodes.speedLimitInput.value = vehicle.speed_limit_kmh || 0;
+    nodes.vehicleSpeedInput.value = vehicle.speed_kmh || 0;
+    nodes.batteryInput.value = vehicle.battery_percent || 0;
+    nodes.assistModeInput.value = vehicle.driver_assist_mode || "MANUAL";
+  }
+  if (syncNetwork) {
+    nodes.networkBadge.textContent = vehicle.network;
+    state.network = vehicle.network;
+    nodes.onlineBtn.classList.toggle("active", vehicle.network === "ONLINE");
+    nodes.offlineBtn.classList.toggle("active", vehicle.network === "OFFLINE");
+  }
+}
+
+function renderAutoEvents(events, rules) {
+  nodes.autoEvents.innerHTML = "";
+  const eventList = Array.isArray(events) ? events : [];
+  if (eventList.length) {
+    eventList.forEach((event) => {
+      const item = document.createElement("article");
+      item.className = `auto-event active ${String(event.severity || "INFO").toLowerCase()}`;
+      item.innerHTML =
+        `<strong>自动触发：${escapeHtml(event.type || "STATE_EVENT")} · ${escapeHtml(event.severity || "INFO")}</strong>` +
+        `<span>${escapeHtml(event.reason || event.content || "")}</span>` +
+        `<span>${escapeHtml(event.recommended_action || "")}</span>`;
+      nodes.autoEvents.appendChild(item);
+    });
+    return;
+  }
+  const rule = Array.isArray(rules) && rules.length ? rules[0] : null;
+  const item = document.createElement("article");
+  item.className = "auto-event";
+  item.innerHTML =
+    "<strong>当前无自动触发</strong>" +
+    `<span>${escapeHtml(rule ? rule.description : "低电量等车辆状态事件会由系统监控触发。")}</span>`;
+  nodes.autoEvents.appendChild(item);
 }
 
 function renderResult(payload) {
@@ -415,6 +518,7 @@ function renderResult(payload) {
   nodes.safetyValue.textContent = request.safety;
   nodes.executionValue.textContent = result.status;
   const needsClarification = result.status === "NEEDS_CLARIFICATION";
+  const needsDriverConfirmation = result.status === "NEEDS_DRIVER_CONFIRMATION";
   if (needsClarification) {
     renderClarification(result.clarification || {}, result.output);
   } else {
@@ -423,6 +527,8 @@ function renderResult(payload) {
   nodes.traceMode.textContent =
     needsClarification
       ? "需要确认"
+      : needsDriverConfirmation
+      ? "驾驶员确认"
       : result.status === "BLOCKED"
       ? "安全拦截"
       : request.network === "ONLINE"
@@ -431,6 +537,8 @@ function renderResult(payload) {
 
   if (needsClarification) {
     nodes.safetyBadge.textContent = "需要确认";
+  } else if (needsDriverConfirmation) {
+    nodes.safetyBadge.textContent = "待驾驶员确认";
   } else if (result.status === "BLOCKED") {
     nodes.safetyBadge.textContent =
       request.safety === "DANGEROUS" ? "危险拦截" : "策略拦截";
@@ -438,10 +546,13 @@ function renderResult(payload) {
     nodes.safetyBadge.textContent = "安全正常";
   }
   nodes.safetyBadge.classList.toggle("badge-danger", result.status === "BLOCKED");
-  nodes.safetyBadge.classList.toggle("badge-clarification", needsClarification);
+  nodes.safetyBadge.classList.toggle(
+    "badge-clarification",
+    needsClarification || needsDriverConfirmation
+  );
   nodes.safetyBadge.classList.toggle(
     "badge-safe",
-    result.status !== "BLOCKED" && !needsClarification
+    result.status !== "BLOCKED" && !needsClarification && !needsDriverConfirmation
   );
 
   nodes.agentTrace.innerHTML = "";
@@ -512,8 +623,13 @@ function renderClarification(clarification, fallbackOutput) {
         `<span>${escapeHtml(candidate.address || candidate.gps || "无地址")}</span>` +
         `<small>置信度 ${escapeHtml(confidence)} · ${escapeHtml(candidate.source || "provider")}</small>`;
       button.addEventListener("click", () => {
-        nodes.commandInput.value = candidate.name || payload.query || "";
-        nodes.commandInput.focus();
+        const confirmedTarget = candidate.gps || candidate.name || payload.query || "";
+        nodes.commandInput.value = confirmedTarget ? `导航去${confirmedTarget}` : "";
+        if (confirmedTarget) {
+          runCommand();
+        } else {
+          nodes.commandInput.focus();
+        }
       });
       candidateBox.appendChild(button);
     });

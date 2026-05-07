@@ -37,6 +37,15 @@ class PreferenceUpdater:
                 timestamp=event.timestamp,
             )
 
+        if event.execution_status == "NEEDS_DRIVER_CONFIRMATION":
+            return PreferenceUpdate(
+                user_id=event.user_id,
+                preference_key="driver_confirmation_pending",
+                delta=0,
+                description="等待驾驶员确认，不更新偏好",
+                timestamp=event.timestamp,
+            )
+
         if event.command_type == "NAVIGATION":
             return PreferenceUpdate(
                 user_id=event.user_id,

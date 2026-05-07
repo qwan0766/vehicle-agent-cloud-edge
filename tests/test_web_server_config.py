@@ -13,8 +13,14 @@ class TestWebServerConfig(unittest.TestCase):
     def test_provider_smoke_path_is_registered(self):
         self.assertIn("/api/provider-smoke", WebDemoHandler.POST_ROUTES)
 
+    def test_vehicle_state_update_path_is_registered(self):
+        self.assertIn("/api/vehicle-state", WebDemoHandler.POST_ROUTES)
+
     def test_acceptance_path_is_registered(self):
         self.assertIn("/api/acceptance", WebDemoHandler.GET_ROUTES)
+
+    def test_vehicle_events_path_is_registered(self):
+        self.assertIn("/api/vehicle-events", WebDemoHandler.GET_ROUTES)
 
 
 if __name__ == "__main__":

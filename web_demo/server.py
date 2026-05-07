@@ -14,15 +14,17 @@ if str(PROJECT_ROOT) not in sys.path:
 from web_demo.app_model import (
     get_acceptance_payload,
     get_initial_payload,
+    get_vehicle_events_payload,
     run_command,
     run_provider_smoke_test,
+    update_vehicle_state,
 )
 from providers.destination_resolver import extract_destination_query
 
 
 class WebDemoHandler(SimpleHTTPRequestHandler):
-    GET_ROUTES = {"/api/state", "/api/acceptance"}
-    POST_ROUTES = {"/api/run", "/api/provider-smoke"}
+    GET_ROUTES = {"/api/state", "/api/acceptance", "/api/vehicle-events"}
+    POST_ROUTES = {"/api/run", "/api/provider-smoke", "/api/vehicle-state"}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(STATIC_ROOT), **kwargs)
@@ -33,6 +35,9 @@ class WebDemoHandler(SimpleHTTPRequestHandler):
             return
         if self.path == "/api/acceptance":
             self._send_json(get_acceptance_payload())
+            return
+        if self.path == "/api/vehicle-events":
+            self._send_json(get_vehicle_events_payload())
             return
         if self.path == "/":
             self.path = "/index.html"
@@ -52,6 +57,10 @@ class WebDemoHandler(SimpleHTTPRequestHandler):
             payload = json.loads(raw_body)
         except json.JSONDecodeError:
             self.send_error(400, "Invalid JSON")
+            return
+
+        if self.path == "/api/vehicle-state":
+            self._send_json(update_vehicle_state(payload))
             return
 
         content = payload.get("content", "")

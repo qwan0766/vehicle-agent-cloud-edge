@@ -2,6 +2,7 @@ import json
 from urllib import parse, request
 
 from providers.offline_charge_provider import ChargeStation
+from providers.destination_models import DestinationCandidate
 
 
 class AmapPOIProvider:
@@ -29,6 +30,21 @@ class AmapPOIProvider:
         )
         return f"https://restapi.amap.com/v3/place/around?{query}"
 
+    def build_text_search_url(self, keyword: str, city: str = "", limit: int = 3) -> str:
+        params = {
+            "key": self.api_key,
+            "keywords": keyword,
+            "offset": limit,
+            "page": 1,
+            "extensions": "all",
+            "output": "JSON",
+        }
+        if city:
+            params["city"] = city
+            params["citylimit"] = "true"
+        query = parse.urlencode(params)
+        return f"https://restapi.amap.com/v3/place/text?{query}"
+
     def find_nearby(self, gps: str, limit: int = 3):
         payload = self.transport(self.build_around_search_url(gps, limit=limit), self.timeout)
         if payload.get("status") != "1":
@@ -46,6 +62,29 @@ class AmapPOIProvider:
             )
         return stations
 
+    def search_text(self, keyword: str, city: str = "", limit: int = 3):
+        payload = self.transport(
+            self.build_text_search_url(keyword, city=city, limit=limit),
+            self.timeout,
+        )
+        if payload.get("status") != "1":
+            raise RuntimeError(f"AMap POI text error: {payload.get('info', 'UNKNOWN')}")
+        candidates = []
+        for item in payload.get("pois", [])[:limit]:
+            location = item.get("location", "")
+            candidates.append(
+                DestinationCandidate(
+                    name=item.get("name", keyword),
+                    gps=location,
+                    address=item.get("address") or item.get("pname", ""),
+                    source=self.provider_name,
+                    confidence=_poi_confidence(keyword, item),
+                    distance_km=_distance_km(item),
+                    reason="provider_text_search",
+                )
+            )
+        return candidates
+
 
 def _normalize_gps(gps: str) -> str:
     longitude, latitude = [part.strip() for part in gps.split(",", 1)]
@@ -58,6 +97,30 @@ def _station_status(item: dict) -> str:
     if rating:
         return f"可用，评分{rating}"
     return "可用"
+
+
+def _distance_km(item: dict):
+    distance = item.get("distance")
+    if not distance:
+        return None
+    try:
+        return round(float(distance) / 1000, 2)
+    except (TypeError, ValueError):
+        return None
+
+
+def _poi_confidence(keyword: str, item: dict) -> float:
+    name = item.get("name", "")
+    address = item.get("address", "")
+    city = item.get("cityname", "")
+    text = f"{name}{address}{city}"
+    if keyword and keyword in text:
+        return 0.9
+    keyword_chars = {char for char in keyword if char.strip()}
+    if not keyword_chars:
+        return 0.0
+    matched = {char for char in keyword_chars if char in text}
+    return round(len(matched) / len(keyword_chars), 2)
 
 
 def _get_json(url: str, timeout: int):

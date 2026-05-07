@@ -45,3 +45,10 @@ def create_charge_provider():
     if api_key or os.getenv("USE_OPENCHARGEMAP") == "1":
         return OpenChargeMapProvider(api_key=api_key)
     return OfflineChargeProvider()
+
+
+def create_destination_candidate_provider():
+    amap_key = os.getenv("AMAP_API_KEY")
+    if amap_key:
+        return AmapPOIProvider(api_key=amap_key)
+    return None

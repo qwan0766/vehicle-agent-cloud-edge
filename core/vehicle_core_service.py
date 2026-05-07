@@ -5,6 +5,8 @@ from agents.vehicle.cabin_vehicle_control_agent import CabinVehicleControlAgent
 from agents.vehicle.data_upload_agent import DataUploadAgent
 from agents.vehicle.global_safety_dispatch_agent import GlobalSafetyDispatchAgent
 from agents.vehicle.local_intent_agent import LocalIntentAgent
+from agents.cloud.destination_confidence_agent import DestinationConfidenceAgent
+from agents.vehicle.vehicle_state_monitor_agent import VehicleStateMonitorAgent
 from core.clarification import (
     build_destination_clarification,
     is_destination_refinement,
@@ -19,6 +21,7 @@ from providers.destination_resolver import (
     DestinationClarificationRequired,
     resolve_destination_detail,
 )
+from providers.factory import create_destination_candidate_provider, create_geocode_provider
 
 
 @dataclass(frozen=True)
@@ -44,6 +47,9 @@ class VehicleCoreService:
         control_agent=None,
         data_upload_agent=None,
         pending_clarification_store=None,
+        destination_confidence_agent=None,
+        vehicle_state=None,
+        state_monitor_agent=None,
     ):
         self.context_manager = context_manager or LocalAgentContextManager()
         self.intent_agent = intent_agent or LocalIntentAgent(
@@ -59,6 +65,11 @@ class VehicleCoreService:
         self.pending_clarification_store = (
             pending_clarification_store or PendingClarificationStore()
         )
+        self.destination_confidence_agent = (
+            destination_confidence_agent or DestinationConfidenceAgent()
+        )
+        self.vehicle_state = vehicle_state or DEFAULT_VEHICLE_STATE
+        self.state_monitor_agent = state_monitor_agent or VehicleStateMonitorAgent()
 
     def run(
         self,
@@ -98,6 +109,7 @@ class VehicleCoreService:
             safety=safety,
             network=network,
             content=user_input,
+            vehicle_state=self._vehicle_state_payload(network),
         )
         if not safety_decision.allowed:
             explain_blocked = getattr(
@@ -121,8 +133,21 @@ class VehicleCoreService:
                     message=msg,
                 )
             )
+        if safety_decision.status == ExecutionStatus.NEEDS_DRIVER_CONFIRMATION:
+            return self._complete_result(
+                ExecutionResult(
+                    status=ExecutionStatus.NEEDS_DRIVER_CONFIRMATION,
+                    output=safety_decision.reason,
+                    message=msg,
+                )
+            )
 
-        clarification = self._destination_clarification(user_input, command_type)
+        clarification = self._destination_clarification(
+            user_input,
+            command_type,
+            network,
+            user_id,
+        )
         if clarification:
             self.pending_clarification_store.save(
                 user_id,
@@ -134,6 +159,7 @@ class VehicleCoreService:
                     status=ExecutionStatus.NEEDS_CLARIFICATION,
                     output=clarification["question"],
                     message=msg,
+                    trace=self._destination_confidence_trace(),
                     clarification=clarification,
                 )
             )
@@ -155,7 +181,28 @@ class VehicleCoreService:
                 )
             )
 
-        output = self.cloud_agent.dispatch(msg)
+        try:
+            output = self.cloud_agent.dispatch(msg)
+        except DestinationClarificationRequired as exc:
+            clarification = build_destination_clarification(
+                exc,
+                original_content=user_input,
+            )
+            self.pending_clarification_store.save(
+                user_id,
+                DEFAULT_SESSION_ID,
+                clarification,
+            )
+            return self._complete_result(
+                ExecutionResult(
+                    status=ExecutionStatus.NEEDS_CLARIFICATION,
+                    output=clarification["question"],
+                    message=msg,
+                    clarification=clarification,
+                    trace=self._destination_confidence_trace(),
+                    graph=self._cloud_graph_snapshot(),
+                )
+            )
         allowed, reason = self.safety_agent.verify_cloud_result(output)
         if not allowed:
             return self._complete_result(
@@ -189,6 +236,8 @@ class VehicleCoreService:
         self,
         user_input: str,
         command_type: CommandType,
+        network: NetworkStatus,
+        user_id: str,
     ):
         if command_type not in {CommandType.NAVIGATION, CommandType.CHARGE_PLAN}:
             return None
@@ -197,7 +246,24 @@ class VehicleCoreService:
         except DestinationClarificationRequired as exc:
             return build_destination_clarification(exc, original_content=user_input)
         except ValueError:
+            if command_type != CommandType.NAVIGATION:
+                return None
+        else:
             return None
+
+        try:
+            self.destination_confidence_agent.ensure_executable(
+                user_input,
+                candidate_provider=(
+                    create_destination_candidate_provider()
+                    if network == NetworkStatus.ONLINE
+                    else None
+                ),
+                geocoder=create_geocode_provider() if network == NetworkStatus.ONLINE else None,
+                frequent_destinations=self._frequent_navigation_destinations(user_id),
+            )
+        except DestinationClarificationRequired as exc:
+            return build_destination_clarification(exc, original_content=user_input)
         return None
 
     def _complete_result(self, result: ExecutionResult) -> ExecutionResult:
@@ -247,8 +313,34 @@ class VehicleCoreService:
 
     def _vehicle_state_payload(self, network: NetworkStatus):
         return {
-            "speed_kmh": DEFAULT_VEHICLE_STATE.speed_kmh,
-            "battery_percent": DEFAULT_VEHICLE_STATE.battery_percent,
+            "speed_kmh": self.vehicle_state.speed_kmh,
+            "battery_percent": self.vehicle_state.battery_percent,
             "network": network.value,
-            "gps": DEFAULT_VEHICLE_STATE.gps,
+            "gps": self.vehicle_state.gps,
+            "road_type": self.vehicle_state.road_type.value,
+            "speed_limit_kmh": self.vehicle_state.speed_limit_kmh,
+            "driver_assist_mode": self.vehicle_state.driver_assist_mode.value,
+            "vehicle_ready": self.vehicle_state.vehicle_ready,
+            "lane_confidence": self.vehicle_state.lane_confidence,
         }
+
+    def detect_state_events(self):
+        return self.state_monitor_agent.detect_events(self.vehicle_state)
+
+    def _frequent_navigation_destinations(self, user_id: str):
+        if not self.feedback_service:
+            return set()
+        getter = getattr(
+            self.feedback_service,
+            "get_frequent_navigation_destinations",
+            None,
+        )
+        if not callable(getter):
+            return set()
+        return getter(user_id)
+
+    def _destination_confidence_trace(self):
+        trace_getter = getattr(self.destination_confidence_agent, "get_last_trace", None)
+        if not callable(trace_getter):
+            return []
+        return trace_getter()

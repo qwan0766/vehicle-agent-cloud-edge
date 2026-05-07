@@ -97,6 +97,30 @@ class TestFeedbackLoop(unittest.TestCase):
         self.assertIn("座椅加热偏好", summary["preference_update"])
         self.assertTrue((runtime_dir / "usage_events.jsonl").exists())
 
+    def test_feedback_service_extracts_frequent_navigation_destinations(self):
+        runtime_dir = Path(".test_runtime") / f"frequent_destinations_{uuid.uuid4().hex}"
+        service = FeedbackService(runtime_dir=runtime_dir)
+
+        for _ in range(3):
+            message = Message.create(
+                user_id="user_001",
+                command_type=CommandType.NAVIGATION,
+                safety=SafetyLevel.SAFE,
+                content="导航去世博园",
+                network=NetworkStatus.ONLINE,
+            )
+            service.record(
+                ExecutionResult(
+                    status=ExecutionStatus.EXECUTED,
+                    output="ok",
+                    message=message,
+                )
+            )
+
+        frequent = service.get_frequent_navigation_destinations("user_001")
+
+        self.assertEqual(frequent, {"世博园"})
+
 
 if __name__ == "__main__":
     unittest.main()

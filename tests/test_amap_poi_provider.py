@@ -34,6 +34,38 @@ class TestAmapPOIProvider(unittest.TestCase):
         self.assertEqual(stations[0].distance_km, 0.32)
         self.assertEqual(stations[0].status, "可用")
 
+    def test_builds_text_search_url_for_destination_candidates(self):
+        provider = AmapPOIProvider(api_key="amap-key")
+
+        url = provider.build_text_search_url("世博园", city="上海", limit=2)
+
+        self.assertIn("https://restapi.amap.com/v3/place/text", url)
+        self.assertIn("keywords=%E4%B8%96%E5%8D%9A%E5%9B%AD", url)
+        self.assertIn("city=%E4%B8%8A%E6%B5%B7", url)
+        self.assertIn("citylimit=true", url)
+        self.assertIn("offset=2", url)
+
+    def test_parses_text_search_pois_into_destination_candidates(self):
+        payload = {
+            "status": "1",
+            "pois": [
+                {
+                    "name": "上海世博园",
+                    "location": "121.50,31.18",
+                    "address": "世博大道",
+                    "cityname": "上海市",
+                }
+            ],
+        }
+        provider = AmapPOIProvider(api_key="amap-key", transport=lambda url, timeout: payload)
+
+        candidates = provider.search_text("世博园", limit=1)
+
+        self.assertEqual(candidates[0].name, "上海世博园")
+        self.assertEqual(candidates[0].gps, "121.50,31.18")
+        self.assertEqual(candidates[0].source, "amap_poi")
+        self.assertGreaterEqual(candidates[0].confidence, 0.9)
+
 
 if __name__ == "__main__":
     unittest.main()

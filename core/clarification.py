@@ -52,6 +52,10 @@ DEFAULT_SUGGESTIONS = {
         "候选地点置信度较低，请确认是否选择该地点。",
         "也可以补充城市、商圈、完整门店名称或完整地址。",
     ],
+    "destination_candidate_confirmation": [
+        "地图返回了多个可能地点，请先确认唯一目的地。",
+        "也可以补充城市、商圈、完整门店名称或完整地址。",
+    ],
 }
 
 QUESTIONS = {
@@ -59,6 +63,7 @@ QUESTIONS = {
     "unknown_chain_poi_qualifier": "这个门店名称不够明确，可能匹配到错误地点。请补充城市、商圈或完整门店名称。",
     "unclear_destination": "这个目的地信息还不够具体。请补充城市、区县、商圈或完整 POI 名称。",
     "low_confidence_provider_result": "地图返回了低置信度候选地点。为了避免导航到错误位置，请先确认目的地。",
+    "destination_candidate_confirmation": "我找到了可能的目的地，但还不能确定哪一个就是你想去的地方。请先选择候选地点或补充更完整的信息。",
 }
 
 

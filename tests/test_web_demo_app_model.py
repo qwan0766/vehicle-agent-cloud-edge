@@ -6,10 +6,16 @@ from web_demo.app_model import run_command
 from web_demo.app_model import get_initial_payload
 from web_demo.app_model import get_acceptance_payload
 from web_demo.app_model import get_demo_steps
+from web_demo.app_model import get_vehicle_events_payload
+from web_demo.app_model import reset_vehicle_state
+from web_demo.app_model import update_vehicle_state
 from web_demo.server import build_error_response
 
 
 class TestWebDemoAppModel(unittest.TestCase):
+    def setUp(self):
+        reset_vehicle_state()
+
     def test_initial_payload_contains_user_options(self):
         payload = get_initial_payload()
 
@@ -25,6 +31,9 @@ class TestWebDemoAppModel(unittest.TestCase):
         self.assertIn("map", payload["providers"])
         self.assertIn("acceptance", payload)
         self.assertIn("demo_steps", payload)
+        self.assertIn("auto_events", payload)
+        self.assertEqual(payload["vehicle_state"]["road_type"], "HIGHWAY")
+        self.assertEqual(payload["vehicle_state"]["speed_limit_kmh"], 120)
 
     def test_demo_steps_cover_interview_storyline(self):
         steps = get_demo_steps()
@@ -181,12 +190,55 @@ class TestWebDemoAppModel(unittest.TestCase):
         self.assertNotIn("ecology.snapshot", [item["tool_name"] for item in payload["runtime_trace"]])
 
     def test_dangerous_command_payload_is_blocked(self):
-        payload = run_command("加速到100km/h", network="ONLINE")
+        payload = run_command("关闭AEB", network="ONLINE")
 
         self.assertEqual(payload["request"]["command_type"], "CAR_CONTROL")
         self.assertEqual(payload["request"]["safety"], "DANGEROUS")
         self.assertEqual(payload["result"]["status"], "BLOCKED")
         self.assertIn("GlobalSafetyDispatchAgent", payload["agent_trace"])
+
+    def test_highway_speed_request_payload_requires_driver_confirmation(self):
+        payload = run_command("加速到100km/h", network="ONLINE")
+
+        self.assertEqual(payload["request"]["command_type"], "CAR_CONTROL")
+        self.assertEqual(payload["request"]["safety"], "DANGEROUS")
+        self.assertEqual(payload["result"]["status"], "NEEDS_DRIVER_CONFIRMATION")
+        self.assertIn("驾驶员确认", payload["result"]["output"])
+        self.assertIn("DriverConfirmation", payload["agent_trace"])
+
+    def test_vehicle_state_update_changes_speed_safety_context(self):
+        update_vehicle_state(
+            {
+                "road_type": "URBAN",
+                "speed_limit_kmh": 60,
+                "speed_kmh": 40,
+                "driver_assist_mode": "MANUAL",
+            }
+        )
+
+        payload = run_command("加速到100km/h", network="ONLINE")
+
+        self.assertEqual(payload["vehicle_state"]["road_type"], "URBAN")
+        self.assertEqual(payload["vehicle_state"]["speed_limit_kmh"], 60)
+        self.assertEqual(payload["result"]["status"], "BLOCKED")
+        self.assertIn("限速", payload["result"]["output"])
+
+    def test_vehicle_state_update_triggers_low_battery_auto_event(self):
+        payload = update_vehicle_state({"battery_percent": 18})
+
+        self.assertEqual(payload["vehicle_state"]["battery_percent"], 18)
+        self.assertEqual(payload["auto_events"][0]["type"], "BATTERY_LOW")
+        self.assertEqual(payload["auto_events"][0]["trigger"], "AUTO")
+
+    def test_vehicle_events_payload_is_independent_from_command_execution(self):
+        update_vehicle_state({"battery_percent": 8})
+
+        payload = get_vehicle_events_payload()
+
+        self.assertEqual(payload["vehicle_state"]["battery_percent"], 8)
+        self.assertEqual(payload["events"][0]["type"], "BATTERY_CRITICAL")
+        self.assertEqual(payload["events"][0]["severity"], "CRITICAL")
+        self.assertEqual(payload["events"][0]["trigger"], "AUTO")
 
     def test_info_query_payload_is_normal_non_route_result(self):
         payload = run_command("AEB是什么", network="ONLINE")
