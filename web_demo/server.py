@@ -127,6 +127,24 @@ def build_error_response(exc: Exception, content: str = "", network: str = "ONLI
         )
         return response
 
+    if "AMap geocode low confidence" in technical_message:
+        response.update(
+            {
+                "provider": "amap_geocode",
+                "user_title": "目的地置信度过低",
+                "user_message": (
+                    f"地图服务返回了一个与“{destination}”不够一致的候选地点，"
+                    "系统没有直接开始导航，避免把您带到错误位置。"
+                ),
+                "suggestions": [
+                    "请补充城市、商圈或完整 POI 名称，例如“导航去上海松江印象城蔚来中心”。",
+                    "如果您只是测试不存在的地点，可以换一个真实地标再试。",
+                    "如果页面显示了候选地点，请确认名称一致后再重新发起导航。",
+                ],
+            }
+        )
+        return response
+
     if "AMap route error" in technical_message:
         response.update(
             {

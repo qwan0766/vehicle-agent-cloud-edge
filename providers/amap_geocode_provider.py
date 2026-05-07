@@ -50,6 +50,15 @@ class GeocodeResult:
     name: str
     gps: str
     formatted_address: str
+    confidence: float = 1.0
+    quality_reason: str = "not_checked"
+    level: str = ""
+
+
+@dataclass(frozen=True)
+class GeocodeQuality:
+    confidence: float
+    reason: str
 
 
 class AmapGeocodeProvider:
@@ -87,10 +96,22 @@ class AmapGeocodeProvider:
         gps = first.get("location", "")
         if not gps:
             raise RuntimeError(f"AMap geocode returned empty location: {address}")
+        formatted_address = first.get("formatted_address", address)
+        level = first.get("level", "")
+        quality = assess_geocode_quality(address, formatted_address, level=level)
+        if quality.confidence < 0.75:
+            raise RuntimeError(
+                "AMap geocode low confidence: "
+                f"query={address}, formatted_address={formatted_address}, "
+                f"confidence={quality.confidence:.2f}, reason={quality.reason}"
+            )
         return GeocodeResult(
             name=address,
             gps=gps,
-            formatted_address=first.get("formatted_address", address),
+            formatted_address=formatted_address,
+            confidence=quality.confidence,
+            quality_reason=quality.reason,
+            level=level,
         )
 
 
@@ -107,6 +128,98 @@ def _infer_city(address: str) -> str:
         if any(keyword in normalized for keyword in keywords):
             return city
     return ""
+
+
+def assess_geocode_quality(address: str, formatted_address: str, level: str = "") -> GeocodeQuality:
+    query = _normalize_text(address)
+    formatted = _normalize_text(formatted_address)
+    if not query or not formatted:
+        return GeocodeQuality(0.0, "empty_query_or_result")
+
+    if query in formatted:
+        return GeocodeQuality(0.98, "query_contained_in_result")
+
+    terms = _significant_terms(query)
+    missing_terms = [term for term in terms if not _term_matches(term, formatted)]
+    if missing_terms:
+        return GeocodeQuality(
+            0.35,
+            "missing_significant_terms:" + ",".join(missing_terms),
+        )
+
+    coverage = _character_coverage(query, formatted)
+    if terms and coverage >= 0.65:
+        return GeocodeQuality(0.86, "matched_significant_terms")
+    if coverage >= 0.82:
+        return GeocodeQuality(0.78, "high_character_coverage")
+    return GeocodeQuality(coverage, "low_character_coverage")
+
+
+def _normalize_text(value: str) -> str:
+    text = (value or "").strip()
+    text = text.replace("（", "(").replace("）", ")")
+    text = text.replace("的", "")
+    for char in " \t\r\n,，。.!！？?:：;；-_/\\()[]【】":
+        text = text.replace(char, "")
+    return text
+
+
+def _significant_terms(query: str):
+    terms = []
+    remainder = query
+
+    for city, _keywords in _CITY_HINTS:
+        if city in query:
+            terms.append(city)
+            remainder = remainder.replace(city, "")
+
+    for phrase in _KNOWN_PLACE_PHRASES:
+        if phrase in query:
+            terms.append(phrase)
+            remainder = remainder.replace(phrase, "")
+
+    if len(remainder) >= 2:
+        terms.append(remainder)
+
+    if not terms and query:
+        terms.append(query)
+
+    return terms
+
+
+def _term_matches(term: str, formatted: str) -> bool:
+    if term in formatted:
+        return True
+    aliases = _TERM_ALIASES.get(term, ())
+    return any(all(part in formatted for part in alias_parts) for alias_parts in aliases)
+
+
+def _character_coverage(query: str, formatted: str) -> float:
+    unique_query_chars = {char for char in query if char.strip()}
+    if not unique_query_chars:
+        return 0.0
+    matched = {char for char in unique_query_chars if char in formatted}
+    return len(matched) / len(unique_query_chars)
+
+
+_KNOWN_PLACE_PHRASES = (
+    "萧山国际机场",
+    "萧山机场",
+    "蔚来中心",
+    "虹桥站",
+    "人民广场",
+    "东方明珠",
+    "静安寺",
+    "陆家嘴",
+    "外滩",
+    "换电站",
+    "充电站",
+)
+
+_TERM_ALIASES = {
+    "萧山机场": (("萧山", "机场"),),
+    "虹桥站": (("虹桥", "站"),),
+}
 
 
 def _get_json(url: str, timeout: int):

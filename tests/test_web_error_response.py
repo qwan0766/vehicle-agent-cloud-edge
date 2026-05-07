@@ -23,6 +23,21 @@ class TestWebErrorResponse(unittest.TestCase):
         self.assertEqual(payload["user_title"], "外部服务响应超时")
         self.assertTrue(any("Smoke Test" in item for item in payload["suggestions"]))
 
+    def test_maps_low_confidence_geocode_to_clarification_guidance(self):
+        payload = build_error_response(
+            RuntimeError(
+                "AMap geocode low confidence: query=霓虹蔚来中心, "
+                "formatted_address=上海市松江区蔚来中心(上海松江印象城)"
+            ),
+            content="导航去霓虹蔚来中心",
+            network="ONLINE",
+        )
+
+        self.assertEqual(payload["provider"], "amap_geocode")
+        self.assertEqual(payload["user_title"], "目的地置信度过低")
+        self.assertIn("没有直接开始导航", payload["user_message"])
+        self.assertIn("霓虹蔚来中心", payload["user_message"])
+
 
 if __name__ == "__main__":
     unittest.main()

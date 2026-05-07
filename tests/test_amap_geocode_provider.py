@@ -65,6 +65,48 @@ class TestAmapGeocodeProvider(unittest.TestCase):
         self.assertEqual(result.gps, "121.490317,31.237972")
         self.assertEqual(result.formatted_address, "上海市黄浦区外滩")
 
+    def test_rejects_low_confidence_fuzzy_nio_center_match(self):
+        payload = {
+            "status": "1",
+            "geocodes": [
+                {
+                    "formatted_address": "上海市松江区蔚来中心(上海松江印象城)",
+                    "location": "121.222719,31.062206",
+                    "level": "兴趣点",
+                }
+            ],
+        }
+        provider = AmapGeocodeProvider(
+            api_key="amap-key",
+            transport=lambda url, timeout: payload,
+        )
+
+        with self.assertRaisesRegex(RuntimeError, "low confidence"):
+            provider.geocode("霓虹蔚来中心")
+
+    def test_accepts_city_qualified_nio_center_when_terms_match(self):
+        payload = {
+            "status": "1",
+            "geocodes": [
+                {
+                    "formatted_address": "北京市东城区蔚来中心(北京东方广场)",
+                    "location": "116.416954,39.909126",
+                    "level": "兴趣点",
+                }
+            ],
+        }
+        provider = AmapGeocodeProvider(
+            api_key="amap-key",
+            transport=lambda url, timeout: payload,
+        )
+
+        result = provider.geocode("北京蔚来中心")
+
+        self.assertEqual(result.name, "北京蔚来中心")
+        self.assertEqual(result.gps, "116.416954,39.909126")
+        self.assertGreaterEqual(result.confidence, 0.8)
+        self.assertEqual(result.quality_reason, "matched_significant_terms")
+
 
 if __name__ == "__main__":
     unittest.main()
