@@ -102,6 +102,16 @@ class LocalIntentAgent:
             )
 
         if _is_non_actionable_question(text) and not _is_charge_request(text):
+            info_slots = _extract_info_query_slots(text)
+            if info_slots:
+                return self._frame(
+                    CommandType.INFO_QUERY,
+                    slots=info_slots,
+                    confidence=0.82,
+                    evidence=evidence,
+                    risk_signals=risk_signals,
+                    reason="info_query_pattern",
+                )
             return self._frame(
                 CommandType.UNKNOWN,
                 confidence=0.35,
@@ -280,7 +290,7 @@ class LocalIntentAgent:
         user_prompt = (
             f"用户指令：{current_input}\n"
             "请只输出以下枚举之一："
-            "NAVIGATION、CAR_CONTROL、CHARGE_PLAN、PERSONALIZE、UNKNOWN。"
+            "NAVIGATION、CAR_CONTROL、CHARGE_PLAN、PERSONALIZE、INFO_QUERY、UNKNOWN。"
         )
         prompt_preview = _compact_prompt_preview(
             system_prompt=system_prompt,
@@ -494,6 +504,26 @@ def _extract_car_control_slots(content: str) -> Dict[str, object]:
         return slots
 
     return slots
+
+
+def _extract_info_query_slots(content: str) -> Dict[str, object]:
+    normalized = (content or "").replace(" ", "")
+    topics = (
+        "AEB",
+        "自动紧急制动",
+        "制动距离",
+        "能耗",
+        "续航",
+        "换电",
+        "充电",
+        "电池",
+        "胎压",
+        "安全气囊",
+    )
+    for topic in topics:
+        if topic.lower() in normalized.lower():
+            return {"topic": topic}
+    return {}
 
 
 def _contains_actionable_dangerous_control(content: str) -> bool:

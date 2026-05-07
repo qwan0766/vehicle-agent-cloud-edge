@@ -1,6 +1,6 @@
 import unittest
 
-from core.constants import ExecutionStatus, NetworkStatus
+from core.constants import CommandType, ExecutionStatus, NetworkStatus
 from core.vehicle_core_service import VehicleCoreService
 
 
@@ -37,6 +37,14 @@ class TestVehicleCoreService(unittest.TestCase):
 
         self.assertEqual(result.status, ExecutionStatus.BLOCKED)
         self.assertIn("危险指令", result.output)
+
+    def test_info_query_enters_online_execution_without_route_planning(self):
+        service = VehicleCoreService(cloud_agent=FakeCloudAgent())
+
+        result = service.run("AEB是什么", network=NetworkStatus.ONLINE)
+
+        self.assertEqual(result.message.command_type, CommandType.INFO_QUERY)
+        self.assertEqual(result.status, ExecutionStatus.EXECUTED)
 
 
 if __name__ == "__main__":

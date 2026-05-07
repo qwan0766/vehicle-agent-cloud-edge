@@ -33,6 +33,16 @@ class TestGlobalSafetyDispatchAgent(unittest.TestCase):
         self.assertTrue(allowed)
         self.assertEqual(reason, "")
 
+    def test_cloud_result_allows_info_query_explanation_about_emergency_braking(self):
+        agent = GlobalSafetyDispatchAgent()
+
+        allowed, reason = agent.verify_cloud_result(
+            "信息查询上下文：AEB 是自动紧急制动功能说明，本次不会执行车控动作。"
+        )
+
+        self.assertTrue(allowed)
+        self.assertEqual(reason, "")
+
     def test_cloud_result_blocks_actionable_dangerous_control(self):
         agent = GlobalSafetyDispatchAgent()
 

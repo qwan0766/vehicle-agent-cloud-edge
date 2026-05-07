@@ -244,6 +244,8 @@ class GlobalDispatchAgent:
             return "座舱/车控上下文：本次指令仅涉及舒适控制，不调用地图路线规划。"
         if command_type == CommandType.PERSONALIZE:
             return "个性化上下文：本次指令查询用户画像与偏好，不调用地图路线规划。"
+        if command_type == CommandType.INFO_QUERY:
+            return "信息查询上下文：本次指令只需要解释车辆知识或功能含义，不调用地图路线规划，也不执行车控动作。"
         return "通用执行上下文：本次指令不需要地图路线规划。"
 
     def _build_tool_registry(self):

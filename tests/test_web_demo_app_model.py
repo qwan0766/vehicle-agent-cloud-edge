@@ -188,6 +188,20 @@ class TestWebDemoAppModel(unittest.TestCase):
         self.assertEqual(payload["result"]["status"], "BLOCKED")
         self.assertIn("GlobalSafetyDispatchAgent", payload["agent_trace"])
 
+    def test_info_query_payload_is_normal_non_route_result(self):
+        payload = run_command("AEB是什么", network="ONLINE")
+
+        self.assertEqual(payload["request"]["command_type"], "INFO_QUERY")
+        self.assertEqual(payload["request"]["safety"], "SAFE")
+        self.assertEqual(payload["result"]["status"], "EXECUTED")
+        self.assertEqual(payload["route_summary"], {})
+        self.assertFalse(payload["charge_stations"])
+        self.assertNotIn("GlobalTripPlanningAgent", payload["agent_trace"])
+        self.assertNotIn(
+            "trip.plan",
+            [item["tool_name"] for item in payload["runtime_trace"]],
+        )
+
     def test_fuzzy_navigation_returns_structured_clarification(self):
         payload = run_command(
             "导航去高老庄",

@@ -294,6 +294,7 @@ def _rag_context(
         CommandType.CHARGE_PLAN,
         CommandType.CAR_CONTROL,
         CommandType.PERSONALIZE,
+        CommandType.INFO_QUERY,
     }:
         profile_agent = UserProfileAgent()
         for result in profile_agent.retrieve_context(user_id, content):

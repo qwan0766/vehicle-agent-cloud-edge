@@ -75,6 +75,8 @@ class CabinVehicleControlAgent:
             return "断网模式：根据本地知识库建议前往最近换电站"
         if command_type == CommandType.PERSONALIZE:
             return self._local_personalize_response(local_context)
+        if command_type == CommandType.INFO_QUERY:
+            return self._local_info_query_response(command, local_context)
         return "断网模式：当前指令无法本地执行"
 
     def _local_personalize_response(self, local_context) -> str:
@@ -92,4 +94,18 @@ class CabinVehicleControlAgent:
             f"- 历史摘要：{summary}\n"
             f"- 最近交互：{recent_count} 条\n"
             f"- 动态偏好：{preference_text}"
+        )
+
+    def _local_info_query_response(self, command: str, local_context) -> str:
+        context = local_context or {}
+        retrieved = context.get("retrieved_context") or []
+        knowledge = "；".join(
+            item.get("text", "") for item in retrieved[:2] if item.get("text")
+        )
+        if not knowledge:
+            knowledge = "本地知识库暂无精确条目，建议联网后获取更完整解释。"
+        return (
+            "断网模式：这是信息查询，不会执行车辆控制动作。\n"
+            f"- 用户问题：{command}\n"
+            f"- 本地知识：{knowledge}"
         )

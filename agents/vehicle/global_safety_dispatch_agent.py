@@ -87,4 +87,26 @@ class GlobalSafetyDispatchAgent:
 
     def _contains_actionable_dangerous_command(self, content: str) -> bool:
         normalized = (content or "").replace(" ", "")
+        if _looks_like_non_actionable_explanation(normalized):
+            explicit_actions = tuple(
+                pattern
+                for pattern in ACTIONABLE_DANGEROUS_PATTERNS
+                if pattern not in {"紧急制动"}
+            )
+            return any(pattern in normalized for pattern in explicit_actions)
         return any(pattern in normalized for pattern in ACTIONABLE_DANGEROUS_PATTERNS)
+
+
+def _looks_like_non_actionable_explanation(normalized: str) -> bool:
+    explanation_markers = (
+        "信息查询",
+        "功能说明",
+        "不会执行车控动作",
+        "不执行车控动作",
+        "不执行车辆控制",
+        "不是执行指令",
+        "解释",
+        "是什么",
+        "含义",
+    )
+    return any(marker in normalized for marker in explanation_markers)

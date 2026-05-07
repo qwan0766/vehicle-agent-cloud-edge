@@ -35,14 +35,41 @@ class TestLocalIntentAgent(unittest.TestCase):
         self.assertEqual(frame.slots["destination_query"], "北京蔚来中心")
         self.assertGreaterEqual(frame.confidence, 0.9)
 
-    def test_safety_keyword_question_is_not_car_control_intent(self):
+    def test_safety_keyword_question_is_info_query_not_car_control_intent(self):
         agent = LocalIntentAgent()
 
         frame = agent.analyze("AEB是什么")
 
-        self.assertEqual(frame.command_type, CommandType.UNKNOWN)
+        self.assertEqual(frame.command_type, CommandType.INFO_QUERY)
         self.assertIn("AEB", frame.evidence["keyword_hits"])
-        self.assertEqual(agent.recognize("AEB是什么"), CommandType.UNKNOWN)
+        self.assertEqual(agent.recognize("AEB是什么"), CommandType.INFO_QUERY)
+
+    def test_info_query_is_not_unknown(self):
+        agent = LocalIntentAgent()
+
+        frame = agent.analyze("AEB是什么")
+
+        self.assertEqual(frame.command_type, CommandType.INFO_QUERY)
+        self.assertEqual(frame.slots["topic"], "AEB")
+        self.assertIn("AEB", frame.evidence["keyword_hits"])
+        self.assertEqual(agent.recognize("AEB是什么"), CommandType.INFO_QUERY)
+
+    def test_safety_knowledge_question_is_info_query(self):
+        agent = LocalIntentAgent()
+
+        frame = agent.analyze("讲一下制动距离")
+
+        self.assertEqual(frame.command_type, CommandType.INFO_QUERY)
+        self.assertEqual(frame.slots["topic"], "制动距离")
+        self.assertEqual(frame.reason, "info_query_pattern")
+
+    def test_actionable_aeb_command_remains_dangerous_car_control(self):
+        agent = LocalIntentAgent()
+
+        frame = agent.analyze("关闭AEB")
+
+        self.assertEqual(frame.command_type, CommandType.CAR_CONTROL)
+        self.assertIn("actionable_dangerous_control", frame.risk_signals)
 
     def test_media_request_with_motion_keyword_is_unknown_not_car_control(self):
         agent = LocalIntentAgent()
