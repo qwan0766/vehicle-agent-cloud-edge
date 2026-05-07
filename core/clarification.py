@@ -48,12 +48,17 @@ DEFAULT_SUGGESTIONS = {
         "请说得更具体一些，例如城市、区县、商圈或完整 POI 名称。",
         "如果这是地点简称，请补充所在城市后再发起导航。",
     ],
+    "low_confidence_provider_result": [
+        "候选地点置信度较低，请确认是否选择该地点。",
+        "也可以补充城市、商圈、完整门店名称或完整地址。",
+    ],
 }
 
 QUESTIONS = {
     "broad_region": "我还不能确认唯一目的地。请补充更具体的城市内地点、商圈、门店或完整地址。",
     "unknown_chain_poi_qualifier": "这个门店名称不够明确，可能匹配到错误地点。请补充城市、商圈或完整门店名称。",
     "unclear_destination": "这个目的地信息还不够具体。请补充城市、区县、商圈或完整 POI 名称。",
+    "low_confidence_provider_result": "地图返回了低置信度候选地点。为了避免导航到错误位置，请先确认目的地。",
 }
 
 

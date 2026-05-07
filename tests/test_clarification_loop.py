@@ -78,6 +78,34 @@ def test_build_destination_clarification_explains_uncertain_chain_store():
     assert "门店" in payload["question"]
 
 
+def test_build_destination_clarification_includes_low_confidence_candidates():
+    from core.clarification import build_destination_clarification
+
+    candidate = {
+        "name": "北京东方未来中心",
+        "gps": "116.417,39.915",
+        "address": "北京市东城区东方广场",
+        "source": "fake_geocode",
+        "confidence": 0.35,
+        "distance_km": None,
+        "reason": "missing_significant_terms:蔚来中心",
+    }
+    exc = DestinationClarificationRequired(
+        query="北京东方广场蔚来中心",
+        reason="low_confidence_provider_result",
+        candidates=[candidate],
+    )
+
+    payload = build_destination_clarification(
+        exc,
+        original_content="导航去北京东方广场蔚来中心",
+    )
+
+    assert payload["reason"] == "low_confidence_provider_result"
+    assert payload["candidates"] == [candidate]
+    assert "置信度" in payload["question"]
+
+
 def test_destination_refinement_reconstructs_original_navigation_intent():
     from core.clarification import (
         is_destination_refinement,

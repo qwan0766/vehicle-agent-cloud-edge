@@ -61,6 +61,29 @@ class GeocodeQuality:
     reason: str
 
 
+class LowConfidenceGeocodeError(RuntimeError):
+    def __init__(
+        self,
+        query: str,
+        formatted_address: str,
+        gps: str,
+        confidence: float,
+        reason: str,
+        provider_name: str,
+    ):
+        self.query = query
+        self.formatted_address = formatted_address
+        self.gps = gps
+        self.confidence = confidence
+        self.reason = reason
+        self.provider_name = provider_name
+        super().__init__(
+            "AMap geocode low confidence: "
+            f"query={query}, formatted_address={formatted_address}, "
+            f"confidence={confidence:.2f}, reason={reason}"
+        )
+
+
 class AmapGeocodeProvider:
     provider_name = "amap_geocode"
 
@@ -100,10 +123,13 @@ class AmapGeocodeProvider:
         level = first.get("level", "")
         quality = assess_geocode_quality(address, formatted_address, level=level)
         if quality.confidence < 0.75:
-            raise RuntimeError(
-                "AMap geocode low confidence: "
-                f"query={address}, formatted_address={formatted_address}, "
-                f"confidence={quality.confidence:.2f}, reason={quality.reason}"
+            raise LowConfidenceGeocodeError(
+                query=address,
+                formatted_address=formatted_address,
+                gps=gps,
+                confidence=quality.confidence,
+                reason=quality.reason,
+                provider_name=self.provider_name,
             )
         return GeocodeResult(
             name=address,
