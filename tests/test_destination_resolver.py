@@ -1,6 +1,7 @@
 import unittest
 
 from providers.destination_resolver import (
+    DestinationClarificationRequired,
     extract_destination_query,
     resolve_destination,
     resolve_destination_detail,
@@ -58,6 +59,36 @@ class TestDestinationResolver(unittest.TestCase):
     def test_unknown_destination_requires_geocoder(self):
         with self.assertRaises(ValueError):
             resolve_destination("导航去外滩")
+
+    def test_broad_region_requires_clarification_before_geocoder(self):
+        geocoder = FakeGeocoder()
+
+        with self.assertRaises(DestinationClarificationRequired) as context:
+            resolve_destination_detail("导航去北京", geocoder=geocoder)
+
+        self.assertEqual(context.exception.query, "北京")
+        self.assertEqual(context.exception.reason, "broad_region")
+        self.assertEqual(geocoder.addresses, [])
+
+    def test_fictional_or_unclear_place_requires_clarification_before_geocoder(self):
+        geocoder = FakeGeocoder()
+
+        with self.assertRaises(DestinationClarificationRequired) as context:
+            resolve_destination_detail("导航去高老庄", geocoder=geocoder)
+
+        self.assertEqual(context.exception.query, "高老庄")
+        self.assertEqual(context.exception.reason, "unclear_destination")
+        self.assertEqual(geocoder.addresses, [])
+
+    def test_unknown_qualifier_for_chain_poi_requires_clarification_before_geocoder(self):
+        geocoder = FakeGeocoder()
+
+        with self.assertRaises(DestinationClarificationRequired) as context:
+            resolve_destination_detail("导航去霓虹蔚来中心", geocoder=geocoder)
+
+        self.assertEqual(context.exception.query, "霓虹蔚来中心")
+        self.assertEqual(context.exception.reason, "unknown_chain_poi_qualifier")
+        self.assertEqual(geocoder.addresses, [])
 
 
 if __name__ == "__main__":

@@ -38,6 +38,21 @@ class TestWebErrorResponse(unittest.TestCase):
         self.assertIn("没有直接开始导航", payload["user_message"])
         self.assertIn("霓虹蔚来中心", payload["user_message"])
 
+    def test_maps_pre_geocode_clarification_to_user_question(self):
+        payload = build_error_response(
+            ValueError(
+                "Destination clarification required: query=高老庄, "
+                "reason=unclear_destination"
+            ),
+            content="导航去高老庄",
+            network="ONLINE",
+        )
+
+        self.assertEqual(payload["provider"], "destination_clarification")
+        self.assertEqual(payload["user_title"], "需要确认目的地")
+        self.assertIn("高老庄", payload["user_message"])
+        self.assertTrue(any("更具体" in item for item in payload["suggestions"]))
+
 
 if __name__ == "__main__":
     unittest.main()

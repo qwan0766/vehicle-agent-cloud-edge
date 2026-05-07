@@ -6,6 +6,7 @@ from web_demo.app_model import run_command
 from web_demo.app_model import get_initial_payload
 from web_demo.app_model import get_acceptance_payload
 from web_demo.app_model import get_demo_steps
+from web_demo.server import build_error_response
 
 
 class TestWebDemoAppModel(unittest.TestCase):
@@ -186,6 +187,17 @@ class TestWebDemoAppModel(unittest.TestCase):
         self.assertEqual(payload["request"]["safety"], "DANGEROUS")
         self.assertEqual(payload["result"]["status"], "BLOCKED")
         self.assertIn("GlobalSafetyDispatchAgent", payload["agent_trace"])
+
+    def test_fuzzy_navigation_error_does_not_return_executed_route(self):
+        error = None
+        try:
+            run_command("导航去高老庄", network="ONLINE")
+        except Exception as exc:
+            error = build_error_response(exc, content="导航去高老庄", network="ONLINE")
+
+        self.assertIsNotNone(error)
+        self.assertEqual(error["provider"], "destination_clarification")
+        self.assertEqual(error["user_title"], "需要确认目的地")
 
 
 if __name__ == "__main__":

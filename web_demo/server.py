@@ -109,6 +109,24 @@ def build_error_response(exc: Exception, content: str = "", network: str = "ONLI
         ],
     }
 
+    if "Destination clarification required" in technical_message:
+        response.update(
+            {
+                "provider": "destination_clarification",
+                "user_title": "需要确认目的地",
+                "user_message": (
+                    f"“{destination}”还不足以确认唯一可导航地点，"
+                    "系统没有直接调用地图规划路线。请补充更具体的城市、商圈、门店或完整地址。"
+                ),
+                "suggestions": [
+                    "请说得更具体一些，例如“导航去北京东方广场蔚来中心”。",
+                    "如果只是城市名，请补充具体地点，例如机场、车站、商圈或门店。",
+                    "如果是连锁门店，请补充城市或所在商场，避免导航到错误分店。",
+                ],
+            }
+        )
+        return response
+
     if "AMap geocode error" in technical_message:
         response.update(
             {

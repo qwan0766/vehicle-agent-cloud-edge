@@ -5,14 +5,19 @@ from agents.vehicle.local_intent_agent import LocalIntentAgent
 from agents.vehicle.safety_agent import SafetyAgent
 from core.constants import CommandType
 from core.constants import SafetyLevel
-from providers.destination_resolver import resolve_destination_detail
+from providers.destination_resolver import DestinationClarificationRequired, resolve_destination_detail
 from web_demo.server import build_error_response
 
 
 class FakeGeocoder:
     provider_name = "fake_geocode"
 
+    def __init__(self):
+        self.addresses = []
+
     def geocode(self, address):
+        self.addresses.append(address)
+
         class Result:
             name = address
             gps = "121.497253,31.238235"
@@ -189,6 +194,14 @@ class TestInputMatrix(unittest.TestCase):
                 self.assertEqual(result.name, name)
                 self.assertEqual(result.gps, gps)
                 self.assertEqual(result.source, source)
+
+    def test_destination_matrix_clarifies_fuzzy_inputs_before_geocoder(self):
+        for content in ["导航去高老庄", "导航去北京", "导航去霓虹蔚来中心"]:
+            with self.subTest(content=content):
+                geocoder = FakeGeocoder()
+                with self.assertRaises(DestinationClarificationRequired):
+                    resolve_destination_detail(content, geocoder=geocoder)
+                self.assertEqual(geocoder.addresses, [])
 
     def test_cloud_route_agent_records_provider_level_trace_for_dynamic_destination(self):
         agent = CloudRoutePlanAgent(
