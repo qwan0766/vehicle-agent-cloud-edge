@@ -2,6 +2,7 @@ import unittest
 
 from scripts.run_acceptance import (
     AcceptanceStepResult,
+    ONLINE_CASES,
     OnlineCaseExpectation,
     acceptance_passed,
     render_markdown_report,
@@ -84,6 +85,55 @@ class TestAcceptanceRunner(unittest.TestCase):
 
         self.assertFalse(ok)
         self.assertIn("forbidden trace tool", detail)
+
+    def test_online_cases_include_info_query_and_clarification(self):
+        contents = [case.content for case in ONLINE_CASES]
+
+        self.assertIn("AEB是什么", contents)
+        self.assertIn("导航去北京", contents)
+
+    def test_online_case_validation_accepts_clarification_as_normal_status(self):
+        payload = {
+            "request": {
+                "command_type": "NAVIGATION",
+                "safety": "SAFE",
+            },
+            "result": {
+                "status": "NEEDS_CLARIFICATION",
+                "clarification": {
+                    "query": "北京",
+                    "question": "请补充更具体的目的地。",
+                },
+            },
+            "runtime_trace": [],
+        }
+        expectation = OnlineCaseExpectation(
+            content="导航去北京",
+            expected_command_type="NAVIGATION",
+            expected_safety="SAFE",
+            expected_status="NEEDS_CLARIFICATION",
+            forbidden_trace_tools=("trip.plan", "provider.map.route"),
+        )
+
+        ok, detail = validate_online_case(payload, expectation)
+
+        self.assertTrue(ok, detail)
+
+    def test_report_mentions_engineering_hardening_scenarios(self):
+        report = render_markdown_report(
+            [
+                AcceptanceStepResult(
+                    "online matrix",
+                    "PASS",
+                    '[{"content": "AEB是什么"}, {"content": "导航去北京"}]',
+                    0.1,
+                )
+            ],
+            generated_at="2026-05-07T10:00:00+08:00",
+        )
+
+        self.assertIn("INFO_QUERY", report)
+        self.assertIn("NEEDS_CLARIFICATION", report)
 
 
 if __name__ == "__main__":

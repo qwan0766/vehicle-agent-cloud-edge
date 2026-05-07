@@ -5,16 +5,25 @@
 ```mermaid
 flowchart LR
     A["用户指令"] --> B["LocalIntentAgent<br/>本地意图识别"]
-    B --> C["SafetyAgent + SafetyPolicy<br/>安全拦截"]
-    C --> D{"NetworkStatus"}
-    D -->|ONLINE| E["CloudScheduleAgent<br/>云端多 Agent 调度"]
-    D -->|OFFLINE| F["本地兜底执行<br/>CarControlAgent / NavAgent"]
-    E --> G["CloudUserProfileAgent<br/>用户画像召回"]
-    E --> H["CloudEcologyAgent<br/>外部生态模拟"]
-    E --> I["CloudRoutePlanAgent<br/>路线 RAG 规划"]
-    G --> J["ExecutionResult"]
+    B --> B1{"CommandType"}
+    B1 -->|INFO_QUERY| C["SafetyAgent + SafetyPolicy<br/>安全拦截"]
+    B1 -->|NAVIGATION / CHARGE_PLAN| R["DestinationResolver<br/>目的地唯一性 / 澄清策略 / 候选契约"]
+    R -->|NEEDS_CLARIFICATION| Q["Clarification Payload<br/>question / suggestions / candidates"]
+    R -->|明确目的地| C
+    B1 -->|CAR_CONTROL / PERSONALIZE / UNKNOWN| C
+    C -->|BLOCKED| J["ExecutionResult"]
+    C -->|SAFE| D{"NetworkStatus"}
+    D -->|ONLINE| E["GlobalDispatchAgent<br/>LangGraph 云端多 Agent 调度"]
+    D -->|OFFLINE| F["本地兜底执行<br/>CabinVehicleControlAgent"]
+    E --> G["UserProfileAgent<br/>用户画像召回"]
+    E --> H["ExternalEcologyAgent<br/>天气 / 补能 / POI"]
+    E --> I["GlobalTripPlanningAgent<br/>路线 RAG + 地图 Provider"]
+    E --> L["Decision LLM<br/>最终执行说明"]
+    G --> J
     H --> J
     I --> J
+    L --> J
+    Q --> J
     F --> J
     J --> K["FeedbackService<br/>数据闭环"]
 ```

@@ -158,15 +158,18 @@ class TestInputMatrix(unittest.TestCase):
             "查询股票行情",
             "讲个笑话",
             "打开视频网站",
-            "AEB是什么",
-            "讲一下制动距离",
             "播放一首加速感很强的歌",
             "我不想导航去蔚来中心，只是问问怎么取消导航",
+        ]
+        info_query_inputs = [
+            "AEB是什么",
+            "讲一下制动距离",
         ]
 
         cases.update({content: CommandType.CAR_CONTROL for content in car_control_inputs})
         cases.update({content: CommandType.CHARGE_PLAN for content in charge_inputs})
         cases.update({content: CommandType.PERSONALIZE for content in personalize_inputs})
+        cases.update({content: CommandType.INFO_QUERY for content in info_query_inputs})
         cases.update({content: CommandType.UNKNOWN for content in unknown_inputs})
 
         for content, expected in cases.items():

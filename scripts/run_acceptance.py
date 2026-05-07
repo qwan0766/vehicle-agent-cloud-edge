@@ -79,6 +79,20 @@ ONLINE_CASES = (
         forbidden_trace_tools=("trip.plan", "provider.map.route"),
     ),
     OnlineCaseExpectation(
+        content="AEB是什么",
+        expected_command_type="INFO_QUERY",
+        expected_safety="SAFE",
+        expected_status="EXECUTED",
+        forbidden_trace_tools=("trip.plan", "provider.map.route"),
+    ),
+    OnlineCaseExpectation(
+        content="导航去北京",
+        expected_command_type="NAVIGATION",
+        expected_safety="SAFE",
+        expected_status="NEEDS_CLARIFICATION",
+        forbidden_trace_tools=("trip.plan", "provider.map.route"),
+    ),
+    OnlineCaseExpectation(
         content="打开视频网站",
         expected_command_type="UNKNOWN",
         expected_safety="SAFE",
@@ -270,6 +284,10 @@ def validate_online_case(payload: dict, expectation: OnlineCaseExpectation) -> t
         checks["destination source"] = (
             route_summary.get("destination_source") == expectation.expected_destination_source
         )
+    if expectation.expected_status == "NEEDS_CLARIFICATION":
+        clarification = result_payload.get("clarification") or {}
+        checks["clarification query"] = bool(clarification.get("query"))
+        checks["clarification question"] = bool(clarification.get("question"))
 
     failed = [name for name, ok in checks.items() if not ok]
     if failed:
@@ -301,6 +319,18 @@ def render_markdown_report(
         lines.append(
             f"| {result.name} | {result.status} | {result.duration_seconds:.2f}s |"
         )
+
+    lines.extend(
+        [
+            "",
+            "## 本轮工程硬化覆盖",
+            "",
+            "- `INFO_QUERY`：安全知识问答从 `UNKNOWN` 中拆出，作为正常业务意图。",
+            "- `NEEDS_CLARIFICATION`：模糊目的地是正常澄清状态，不作为外部接口错误。",
+            "- 目的地候选契约：低置信度地图结果可携带候选地点给前端确认。",
+            "- 数据闭环：澄清态不更新用户偏好，避免把不完整输入写成长期偏好。",
+        ]
+    )
 
     lines.extend(["", "## 详细输出", ""])
     for result in results:

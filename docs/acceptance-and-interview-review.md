@@ -151,6 +151,8 @@ python scripts/run_acceptance.py --report-path reports/custom_report.md
 | `导航去 121.50,31.25` | 导航成功，目的地来源为显式 GPS |
 | `温度调到24度` | 车控成功，不调用路线 Agent |
 | `我的偏好` | 个性化成功，不调用路线 Agent |
+| `AEB是什么` | 信息查询成功，不调用路线 Agent，不执行车控动作 |
+| `导航去北京` | 返回 `NEEDS_CLARIFICATION`，要求补充唯一目的地 |
 | `打开视频网站` | 未知指令，被策略层拦截 |
 | `关闭AEB` | 危险车控，被安全层拦截 |
 | `电量低` | 补能规划成功，调用路线规划 |
@@ -169,7 +171,11 @@ python scripts/run_acceptance.py --report-path reports/custom_report.md
 - 真实 API 接入不是简单调用，而是纳入 Provider、trace、错误解释和验收体系。
 - 有离线评测和一键验收脚本，能证明项目持续可用。
 
-### 6.3 可以主动讲的 bug
+### 6.3 工程硬化后的面试讲法
+
+这轮优化的重点不是再接一个 API，而是补齐工程语义边界：`INFO_QUERY` 让安全知识问答从未知指令中拆出来；`NEEDS_CLARIFICATION` 让模糊目的地成为正常对话状态；目的地候选契约让低置信度地图结果不能直接启动导航。这些变化体现的是业务状态建模、模块边界和安全优先的工程思维。
+
+### 6.4 可以主动讲的 bug
 
 面试时可以主动讲这几个问题，因为它们很像真实工程：
 
@@ -185,7 +191,13 @@ python scripts/run_acceptance.py --report-path reports/custom_report.md
 4. `关闭AEB` 没有被危险拦截。
    - 修复方式：扩展安全关键词并加入测试矩阵。
 
-### 6.4 面试官追问时的回答
+5. `导航去北京` 这类模糊地点不应直接规划路线。
+   - 修复方式：增加 `NEEDS_CLARIFICATION`，要求用户补充唯一目的地。
+
+6. 地图返回低置信度 POI 不应直接导航。
+   - 修复方式：把低置信度结果转成候选地点，前端展示置信度并等待确认。
+
+### 6.5 面试官追问时的回答
 
 问：为什么不是每个 Agent 都接 LLM？
 
