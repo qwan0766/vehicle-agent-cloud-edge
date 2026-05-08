@@ -30,22 +30,27 @@ export async function updateVehicleState(deps) {
   nodes.updateVehicleStateBtn.disabled = true;
   nodes.updateVehicleStateBtn.textContent = "更新中";
   try {
-    const payload = await api.updateVehicleStateRequest({
+    await applyVehicleState(deps, {
       road_type: nodes.roadTypeInput.value,
       speed_limit_kmh: nodes.speedLimitInput.value,
       speed_kmh: nodes.vehicleSpeedInput.value,
       battery_percent: nodes.batteryInput.value,
       driver_assist_mode: nodes.assistModeInput.value,
     });
-    const renderAutoEvents = (events, rules) => renderers.renderAutoEvents(nodes, events, rules);
-    renderers.renderVehicle(nodes, payload.vehicle_state, {}, state);
-    renderAutoEvents(payload.auto_events || [], payload.auto_event_rules || []);
   } catch (error) {
     renderers.renderCommandError(nodes, error, resultHelpers(deps));
   } finally {
     nodes.updateVehicleStateBtn.disabled = false;
     nodes.updateVehicleStateBtn.textContent = "应用状态";
   }
+}
+
+export async function applyVehicleState(deps, updates) {
+  const { nodes, state, api, renderers } = deps;
+  const payload = await api.updateVehicleStateRequest(updates || {});
+  renderers.renderVehicle(nodes, payload.vehicle_state, {}, state);
+  renderers.renderAutoEvents(nodes, payload.auto_events || [], payload.auto_event_rules || []);
+  return payload;
 }
 
 export function startVehicleEventPolling(deps) {

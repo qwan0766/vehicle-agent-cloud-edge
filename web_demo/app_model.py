@@ -49,6 +49,13 @@ DEMO_STEPS = [
         "title": "在线导航端云协同",
         "content": "导航去蔚来中心",
         "network": "ONLINE",
+        "vehicle_state": {
+            "road_type": "HIGHWAY",
+            "speed_limit_kmh": 120,
+            "speed_kmh": 60,
+            "battery_percent": 35,
+            "driver_assist_mode": "ACC",
+        },
         "focus": "端云协同、RAG 召回、真实地图路线、DeepSeek 决策说明",
         "talk_track": (
             "这一步展示完整在线链路：车端先做本地意图识别和安全校验，"
@@ -57,52 +64,80 @@ DEMO_STEPS = [
         "expected_panels": ["Agent 调用链", "RAG 召回知识", "路线与补能", "执行结果"],
     },
     {
-        "id": "car_control_no_route",
-        "title": "车控指令不误调地图",
-        "content": "温度调到24度",
+        "id": "fuzzy_destination_clarification",
+        "title": "模糊目的地澄清",
+        "content": "导航去北京",
         "network": "ONLINE",
-        "focus": "按意图分流，车控只走画像、生态和 LLM 决策，不调用 route.plan",
+        "vehicle_state": {
+            "road_type": "HIGHWAY",
+            "speed_limit_kmh": 120,
+            "speed_kmh": 60,
+            "battery_percent": 35,
+            "driver_assist_mode": "ACC",
+        },
+        "focus": "目的地只有城市级信息时进入 NEEDS_CLARIFICATION，不直接调用地图规划",
         "talk_track": (
-            "这一步用来说明 Multi-Agent 编排不是所有 Agent 都调用。"
-            "车控指令不会进入路线规划 Agent，避免把温度设置误解析成目的地。"
+            "这一步展示业务状态建模：导航意图已明确，但目的地不够具体。"
+            "系统会要求用户补充门店、商圈或完整地址，而不是把低置信度结果直接执行。"
         ),
-        "expected_panels": ["Agent 调用链", "Runtime Trace", "执行结果"],
+        "expected_panels": ["执行结果", "Agent 调用链", "RAG 召回知识"],
     },
     {
-        "id": "charge_planning",
-        "title": "低电量补能规划",
-        "content": "电量低",
+        "id": "highway_speed_confirmation",
+        "title": "高速速度请求确认",
+        "content": "加速到100km/h",
         "network": "ONLINE",
-        "focus": "补能 RAG、附近充电站 POI、路线规划、用户偏好高速",
+        "vehicle_state": {
+            "road_type": "HIGHWAY",
+            "speed_limit_kmh": 120,
+            "speed_kmh": 60,
+            "battery_percent": 35,
+            "driver_assist_mode": "ACC",
+        },
+        "focus": "同样是速度请求，高速限速 120 场景下进入驾驶员确认，而不是直接动力控制",
         "talk_track": (
-            "这一步展示补能场景：系统根据低电量知识召回补能建议，"
-            "再结合高德 POI 找附近充电站，并用路线 Provider 规划可执行路线。"
+            "这一步回应车载安全细节：系统不会直接执行加速，"
+            "但在高速且目标速度未超限时，可以转化为巡航目标确认。"
         ),
-        "expected_panels": ["RAG 召回知识", "路线与补能", "Provider 状态"],
+        "expected_panels": ["车辆状态", "Agent 调用链", "执行结果"],
     },
     {
-        "id": "safety_block",
-        "title": "危险指令安全拦截",
-        "content": "关闭AEB",
+        "id": "urban_speed_block",
+        "title": "城市超限危险拦截",
+        "content": "加速到100km/h",
         "network": "ONLINE",
-        "focus": "SafetyAgent 与 SafetyPolicy 前置拦截，危险车控不进入云端执行链",
+        "vehicle_state": {
+            "road_type": "URBAN",
+            "speed_limit_kmh": 60,
+            "speed_kmh": 40,
+            "battery_percent": 35,
+            "driver_assist_mode": "MANUAL",
+        },
+        "focus": "同一句速度请求切换到城市限速 60 后变成 BLOCKED，体现状态驱动安全策略",
         "talk_track": (
-            "这一步强调车载 AI 的安全边界。即使系统能识别这是车控指令，"
-            "涉及 AEB 等安全能力时也必须被策略层拦截。"
+            "这一步展示车辆上下文不是展示字段，而是决策输入。"
+            "道路类型和限速变化后，系统会拦截超限速度请求。"
         ),
-        "expected_panels": ["Agent 调用链", "执行结果"],
+        "expected_panels": ["车辆状态", "Agent 调用链", "执行结果"],
     },
     {
-        "id": "online_error_explain",
-        "title": "真实接口失败解释",
-        "content": "导航去巴黎",
+        "id": "low_battery_energy_policy",
+        "title": "低电量状态与能源策略",
+        "content": "导航去蔚来中心",
         "network": "ONLINE",
-        "focus": "在线模式不静默离线兜底，失败时给出可理解原因和建议",
+        "vehicle_state": {
+            "road_type": "HIGHWAY",
+            "speed_limit_kmh": 120,
+            "speed_kmh": 60,
+            "battery_percent": 8,
+            "driver_assist_mode": "ACC",
+        },
+        "focus": "严重低电量由状态事件主动提示，并在导航前进入补能确认",
         "talk_track": (
-            "这一步展示真实 API 失败处理：高德无法规划跨境目的地时，"
-            "系统不会编造结果，而是把技术错误转换成用户能理解的解释。"
+            "这一步展示低电量不是用户输入按钮，而是车辆状态事件。"
+            "当电量进入 critical 区间时，EnergyPolicyAgent 会要求先确认补能规划。"
         ),
-        "expected_panels": ["错误说明", "Agent 调用链", "RAG 召回知识"],
+        "expected_panels": ["车辆状态", "Agent 调用链", "执行结果", "路线与补能"],
     },
 ]
 

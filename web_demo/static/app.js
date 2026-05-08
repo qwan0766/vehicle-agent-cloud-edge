@@ -9,6 +9,7 @@ import {
 import { nodes } from "./js/dom.js";
 import { state } from "./js/state.js";
 import {
+  applyVehicleState,
   bindEvents,
   runCommand,
   setNetwork,
@@ -80,6 +81,7 @@ async function init() {
 
     const setNetworkForRenderers = (network) => setNetwork(nodes, state, network);
     const runCommandForRenderers = () => runCommand(deps);
+    const applyVehicleStateForRenderers = (updates) => applyVehicleState(deps, updates);
 
     renderVehicle(nodes, payload.vehicle_state, {}, state);
     renderAutoEvents(nodes, payload.auto_events || [], payload.auto_event_rules || []);
@@ -88,7 +90,13 @@ async function init() {
     renderProviders(nodes, payload.providers);
     renderUsers(nodes, state);
     renderScenarioButtons(nodes, state, setNetworkForRenderers, runCommandForRenderers);
-    renderDemoSteps(nodes, state, setNetworkForRenderers, runCommandForRenderers);
+    renderDemoSteps(
+      nodes,
+      state,
+      setNetworkForRenderers,
+      applyVehicleStateForRenderers,
+      runCommandForRenderers
+    );
     bindEvents(deps);
     startVehicleEventPolling(deps);
   } catch (error) {

@@ -124,3 +124,42 @@ LangGraph 用于云端多 Agent 编排，把用户画像、知识召回、路线
 4. **真实车端状态源适配层**
    - 当前车辆状态是内存模拟。
    - 后续可抽象为 CAN/车机状态服务/地图道路属性服务适配器。
+
+## 2026-05-08 交付验收补充
+
+本轮已补齐“交付级演示与验收闭环”，项目不再只依赖手工点击页面证明功能可用。
+
+新增能力：
+
+- `scripts/run_delivery_check.py`：一键交付验收脚本。
+- `reports/delivery_check_report.md`：自动生成的交付验收报告。
+- Demo Mode 车辆状态预设：点击面试演示场景时，会先写入对应车辆上下文，再运行指令。
+- 前端模块化：`web_demo/static/app.js` 已拆分为 API、state、events、markdown 与 renderers 多个模块。
+
+推荐验收命令：
+
+```bash
+python scripts/run_delivery_check.py
+```
+
+如果只想做快速演示前检查，可跳过完整单元测试：
+
+```bash
+python scripts/run_delivery_check.py --skip-unit-tests
+```
+
+最新稳定回归基线：
+
+```text
+231 passed, 1 warning, 139 subtests passed
+```
+
+当前 5 个面试必演示场景：
+
+| 场景 | 指令 | 车辆上下文 | 预期状态 |
+| --- | --- | --- | --- |
+| 正常导航端云协同 | `导航去蔚来中心` | HIGHWAY / 120km/h / 35% | `NAVIGATION / EXECUTED` |
+| 模糊目的地澄清 | `导航去北京` | HIGHWAY / 120km/h / 35% | `NAVIGATION / NEEDS_CLARIFICATION` |
+| 高速速度请求确认 | `加速到100km/h` | HIGHWAY / 120km/h / 35% | `CAR_CONTROL / NEEDS_DRIVER_CONFIRMATION` |
+| 城市超限危险拦截 | `加速到100km/h` | URBAN / 60km/h / 35% | `CAR_CONTROL / BLOCKED` |
+| 低电量状态与能源策略 | `导航去蔚来中心` | HIGHWAY / 120km/h / 8% | `NAVIGATION / NEEDS_CHARGE_CONFIRMATION` |

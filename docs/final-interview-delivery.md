@@ -187,3 +187,52 @@ python scripts/web_qa.py --base-url http://127.0.0.1:8000 --screenshots
 3. 增加 LangGraph checkpoint、interrupt、human-in-the-loop。
 4. 引入更完整的安全策略集和权限系统。
 5. 把 JSONL 数据闭环迁移到 SQLite 或轻量数据库。
+
+## 13. 交付级演示脚本
+
+面试时建议不要从“项目用了哪些技术”开始讲，而是从“车载 AI 为什么需要端云协同和多 Agent”切入，然后按下面 5 个场景现场演示。
+
+| 顺序 | 场景 | 操作 | 讲解重点 |
+| --- | --- | --- | --- |
+| 1 | 正常导航端云协同 | 点击 `正常导航端云协同` / 输入 `导航去蔚来中心` | 展示本地意图识别、安全校验、LangGraph 云端编排、RAG、地图路线、LLM 最终说明。 |
+| 2 | 模糊目的地澄清 | 点击 `模糊目的地澄清` / 输入 `导航去北京` | 说明导航不是地图返回一个点就执行，城市级或低置信度目的地要进入 `NEEDS_CLARIFICATION`。 |
+| 3 | 高速速度请求确认 | 点击 `高速速度请求确认` / 输入 `加速到100km/h` | 展示同一句危险相关指令在高速限速 120 场景下不会直接控制动力，而是转为驾驶员确认。 |
+| 4 | 城市超限危险拦截 | 点击 `城市超限危险拦截` / 输入 `加速到100km/h` | 展示车辆状态是决策输入：切换到城市限速 60 后，同一句话会被策略层拦截。 |
+| 5 | 低电量状态与能源策略 | 点击 `低电量状态与能源策略` / 输入 `导航去蔚来中心` | 展示低电量不是用户输入才触发，而是车辆状态事件；严重低电量会影响后续导航策略。 |
+
+面试表达可以这样收束：
+
+> 这套演示不是单纯把大模型接到车机页面上，而是把车端状态、用户意图、安全策略、云端编排、真实 Provider 和数据闭环串成一个可观测链路。每个场景都能看到 Agent Trace、Runtime Trace、RAG 召回和最终业务状态，因此能解释“为什么执行、为什么拦截、为什么要澄清”。
+
+## 14. 一键交付验收
+
+新增交付验收脚本：
+
+```bash
+python scripts/run_delivery_check.py
+```
+
+脚本会生成：
+
+```text
+reports/delivery_check_report.md
+```
+
+验收内容包括：
+
+- 全量单元测试。
+- 前端 ES Module 语法检查。
+- 五个面试 Demo 场景回归。
+- 可选真实 Provider smoke test：`python scripts/run_delivery_check.py --include-provider-smoke`。
+
+快速演示前检查：
+
+```bash
+python scripts/run_delivery_check.py --skip-unit-tests
+```
+
+当前稳定测试基线：
+
+```text
+231 passed, 1 warning, 139 subtests passed
+```

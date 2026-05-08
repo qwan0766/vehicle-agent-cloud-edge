@@ -29,7 +29,7 @@ export function renderScenarioButtons(nodes, state, setNetwork, runCommand) {
   });
 }
 
-export function renderDemoSteps(nodes, state, setNetwork, runCommand) {
+export function renderDemoSteps(nodes, state, setNetwork, applyVehicleState, runCommand) {
   nodes.demoSteps.innerHTML = "";
   nodes.demoStepCount.textContent = `${state.demoSteps.length} steps`;
   if (!state.demoSteps.length) {
@@ -48,16 +48,24 @@ export function renderDemoSteps(nodes, state, setNetwork, runCommand) {
     const meta = document.createElement("span");
     meta.textContent = `${step.network} · ${step.content}`;
     button.append(title, meta);
-    button.addEventListener("click", () =>
-      activateDemoStep(nodes, state, step, true, setNetwork, runCommand)
+    button.addEventListener("click", async () =>
+      activateDemoStep(nodes, state, step, true, setNetwork, applyVehicleState, runCommand)
     );
     nodes.demoSteps.appendChild(button);
   });
 
-  activateDemoStep(nodes, state, state.demoSteps[0], false, setNetwork, runCommand);
+  activateDemoStep(nodes, state, state.demoSteps[0], false, setNetwork, applyVehicleState, runCommand);
 }
 
-export function activateDemoStep(nodes, state, step, shouldRun, setNetwork, runCommand) {
+export async function activateDemoStep(
+  nodes,
+  state,
+  step,
+  shouldRun,
+  setNetwork,
+  applyVehicleState,
+  runCommand
+) {
   state.activeDemoId = step.id;
   nodes.commandInput.value = step.content;
   setNetwork(step.network);
@@ -66,6 +74,9 @@ export function activateDemoStep(nodes, state, step, shouldRun, setNetwork, runC
     button.classList.toggle("active", button.dataset.demoId === step.id);
   });
   if (shouldRun) {
+    if (step.vehicle_state) {
+      await applyVehicleState(step.vehicle_state);
+    }
     runCommand();
   }
 }

@@ -38,15 +38,31 @@ class TestWebDemoAppModel(unittest.TestCase):
     def test_demo_steps_cover_interview_storyline(self):
         steps = get_demo_steps()
 
-        self.assertGreaterEqual(len(steps), 5)
+        self.assertEqual(len(steps), 5)
+        self.assertEqual(
+            [step["id"] for step in steps],
+            [
+                "online_navigation",
+                "fuzzy_destination_clarification",
+                "highway_speed_confirmation",
+                "urban_speed_block",
+                "low_battery_energy_policy",
+            ],
+        )
         self.assertEqual(steps[0]["id"], "online_navigation")
         self.assertEqual(steps[0]["content"], "导航去蔚来中心")
         self.assertEqual(steps[0]["network"], "ONLINE")
         self.assertIn("端云协同", steps[0]["focus"])
         self.assertTrue(steps[0]["talk_track"])
         self.assertIn("expected_panels", steps[0])
-        self.assertTrue(any(step["content"] == "导航去巴黎" for step in steps))
-        self.assertTrue(any(step["content"] == "关闭AEB" for step in steps))
+        self.assertTrue(all("vehicle_state" in step for step in steps))
+        self.assertEqual(steps[2]["vehicle_state"]["road_type"], "HIGHWAY")
+        self.assertEqual(steps[2]["vehicle_state"]["speed_limit_kmh"], 120)
+        self.assertEqual(steps[3]["vehicle_state"]["road_type"], "URBAN")
+        self.assertEqual(steps[3]["vehicle_state"]["speed_limit_kmh"], 60)
+        self.assertEqual(steps[4]["vehicle_state"]["battery_percent"], 8)
+        self.assertTrue(any(step["content"] == "导航去北京" for step in steps))
+        self.assertTrue(any(step["content"] == "加速到100km/h" for step in steps))
 
     def test_acceptance_payload_parses_report_summary(self):
         runtime_dir = Path(".test_runtime")

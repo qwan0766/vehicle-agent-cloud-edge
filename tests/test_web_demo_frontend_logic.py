@@ -83,7 +83,8 @@ class TestWebDemoFrontendLogic(unittest.TestCase):
         self.assertIn("updateVehicleStateBtn", markup)
         self.assertIn("/api/vehicle-state", script)
         self.assertIn("updateVehicleState", script)
-        self.assertIn("renderAutoEvents(payload.auto_events", script)
+        self.assertIn("applyVehicleState", script)
+        self.assertIn("payload.auto_events || []", script)
 
     def test_frontend_polls_vehicle_events(self):
         script = self.read_frontend_scripts()
@@ -101,6 +102,15 @@ class TestWebDemoFrontendLogic(unittest.TestCase):
         self.assertIn("renderVehicle", script)
         self.assertIn("syncControls: false", script)
         self.assertIn("syncNetwork: false", script)
+
+    def test_demo_mode_applies_vehicle_state_before_running_command(self):
+        script = self.read_frontend_scripts()
+
+        self.assertIn("applyVehicleState", script)
+        self.assertIn("step.vehicle_state", script)
+        self.assertIn("await applyVehicleState(step.vehicle_state)", script)
+        self.assertIn("activateDemoStep", script)
+        self.assertIn("async", script)
 
     def test_frontend_uses_native_es_modules(self):
         markup = Path("web_demo/static/index.html").read_text(encoding="utf-8")
