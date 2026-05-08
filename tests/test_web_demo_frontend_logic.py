@@ -104,6 +104,13 @@ class TestWebDemoFrontendLogic(unittest.TestCase):
         self.assertIn("setInterval", script)
         self.assertIn("event.severity", script)
 
+    def test_vehicle_renderer_updates_safety_badge_from_vehicle_state(self):
+        script = self.read_frontend_scripts()
+
+        self.assertIn("vehicle.safety_state", script)
+        self.assertIn("renderSafetyBadge", script)
+        self.assertIn("badge-clarification", script)
+
     def test_vehicle_event_polling_does_not_overwrite_state_form_draft(self):
         script = self.read_frontend_scripts()
 

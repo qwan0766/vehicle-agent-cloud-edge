@@ -10,6 +10,19 @@ class VehicleStateMonitorAgent:
 
     def detect_events(self, vehicle_state):
         events = []
+        speed = int(getattr(vehicle_state, "speed_kmh", 0))
+        speed_limit = int(getattr(vehicle_state, "speed_limit_kmh", 0))
+        if speed_limit > 0 and speed > speed_limit:
+            events.append(
+                {
+                    "type": "SPEED_OVER_LIMIT",
+                    "command_type": CommandType.CAR_CONTROL.value,
+                    "content": "车速超过当前限速",
+                    "trigger": "AUTO",
+                    "reason": f"当前车速{speed}km/h，高于限速{speed_limit}km/h",
+                }
+            )
+
         battery = int(getattr(vehicle_state, "battery_percent", 0))
         if battery <= self.critical_battery_threshold:
             events.append(

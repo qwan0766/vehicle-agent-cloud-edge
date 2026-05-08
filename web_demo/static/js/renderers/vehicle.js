@@ -12,6 +12,7 @@ export function renderVehicle(nodes, vehicle, options = {}, state = null) {
     ? `${vehicle.speed_limit_kmh} km/h`
     : "-";
   nodes.assistModeValue.textContent = vehicle.driver_assist_mode || "-";
+  renderSafetyBadge(nodes, vehicle.safety_state || "正常");
   if (syncControls) {
     nodes.roadTypeInput.value = vehicle.road_type || "UNKNOWN";
     nodes.speedLimitInput.value = vehicle.speed_limit_kmh || 0;
@@ -27,6 +28,16 @@ export function renderVehicle(nodes, vehicle, options = {}, state = null) {
     nodes.onlineBtn.classList.toggle("active", vehicle.network === "ONLINE");
     nodes.offlineBtn.classList.toggle("active", vehicle.network === "OFFLINE");
   }
+}
+
+function renderSafetyBadge(nodes, safetyState) {
+  nodes.safetyBadge.textContent = safetyState === "正常" ? "安全正常" : safetyState;
+  nodes.safetyBadge.classList.toggle("badge-safe", safetyState === "正常");
+  nodes.safetyBadge.classList.toggle("badge-danger", safetyState === "严重低电量");
+  nodes.safetyBadge.classList.toggle(
+    "badge-clarification",
+    safetyState !== "正常" && safetyState !== "严重低电量"
+  );
 }
 
 export function renderAutoEvents(nodes, events, rules) {

@@ -11,7 +11,7 @@ class VehicleEventService:
     def snapshot(self, vehicle_state, network: NetworkStatus = None) -> dict:
         raw_events = self.monitor_agent.detect_events(vehicle_state)
         return {
-            "vehicle_state": _vehicle_state_payload(vehicle_state, network),
+            "vehicle_state": _vehicle_state_payload(vehicle_state, network, raw_events),
             "events": [self._normalize_event(event) for event in raw_events],
             "event_rules": event_rules(),
         }
@@ -49,10 +49,17 @@ def event_rules():
             "target_command_type": "CHARGE_PLAN",
             "description": "严重低电量会主动提示优先补能，并影响后续导航和车控策略。",
         },
+        {
+            "type": "SPEED_OVER_LIMIT",
+            "condition": "speed_kmh > speed_limit_kmh",
+            "severity": "WARNING",
+            "target_command_type": "CAR_CONTROL",
+            "description": "当前车速超过道路限速时由车辆状态监控 Agent 自动触发，提示驾驶员减速。",
+        },
     ]
 
 
-def _vehicle_state_payload(vehicle_state, network: NetworkStatus = None) -> dict:
+def _vehicle_state_payload(vehicle_state, network: NetworkStatus = None, events=None) -> dict:
     network_status = network or vehicle_state.network
     return {
         "speed_kmh": vehicle_state.speed_kmh,
@@ -64,19 +71,21 @@ def _vehicle_state_payload(vehicle_state, network: NetworkStatus = None) -> dict
         "driver_assist_mode": vehicle_state.driver_assist_mode.value,
         "vehicle_ready": vehicle_state.vehicle_ready,
         "lane_confidence": vehicle_state.lane_confidence,
-        "safety_state": "正常",
+        "safety_state": _safety_state_for(events or []),
     }
 
 
 def _severity_for(event_type: str) -> str:
     if event_type == "BATTERY_CRITICAL":
         return "CRITICAL"
-    if event_type == "BATTERY_LOW":
+    if event_type in {"BATTERY_LOW", "SPEED_OVER_LIMIT"}:
         return "WARNING"
     return "INFO"
 
 
 def _recommended_action(event_type: str) -> str:
+    if event_type == "SPEED_OVER_LIMIT":
+        return "请降低车速并保持安全车距"
     if event_type == "BATTERY_CRITICAL":
         return "请优先前往最近补能点"
     if event_type == "BATTERY_LOW":
@@ -87,3 +96,14 @@ def _recommended_action(event_type: str) -> str:
 def _event_id(event_type: str) -> str:
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
     return f"{event_type.lower()}-{timestamp}"
+
+
+def _safety_state_for(events) -> str:
+    event_types = {event.get("type") for event in events}
+    if "BATTERY_CRITICAL" in event_types:
+        return "严重低电量"
+    if "SPEED_OVER_LIMIT" in event_types:
+        return "超速预警"
+    if "BATTERY_LOW" in event_types:
+        return "低电量预警"
+    return "正常"

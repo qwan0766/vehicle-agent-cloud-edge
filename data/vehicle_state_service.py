@@ -81,7 +81,7 @@ class VehicleStateService:
             "driver_assist_mode": state.driver_assist_mode.value,
             "vehicle_ready": state.vehicle_ready,
             "lane_confidence": state.lane_confidence,
-            "safety_state": "正常",
+            "safety_state": _safety_state_for_state(state),
         }
 
 
@@ -108,3 +108,13 @@ def _bounded_float(payload, key: str, fallback: float, minimum: float, maximum: 
     except (TypeError, ValueError):
         return fallback
     return max(minimum, min(maximum, value))
+
+
+def _safety_state_for_state(state: VehicleState) -> str:
+    if state.battery_percent <= 10:
+        return "严重低电量"
+    if state.speed_limit_kmh > 0 and state.speed_kmh > state.speed_limit_kmh:
+        return "超速预警"
+    if state.battery_percent <= 20:
+        return "低电量预警"
+    return "正常"

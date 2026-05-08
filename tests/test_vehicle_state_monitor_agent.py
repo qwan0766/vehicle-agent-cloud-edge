@@ -39,3 +39,27 @@ def test_normal_battery_state_has_no_auto_event():
     )
 
     assert agent.detect_events(state) == []
+
+
+def test_speed_over_limit_generates_warning_event():
+    agent = VehicleStateMonitorAgent()
+    state = VehicleState(
+        speed_kmh=150,
+        battery_percent=35,
+        network=NetworkStatus.ONLINE,
+        gps="121.48, 31.23",
+        road_type=RoadType.HIGHWAY,
+        speed_limit_kmh=120,
+    )
+
+    events = agent.detect_events(state)
+
+    assert events == [
+        {
+            "type": "SPEED_OVER_LIMIT",
+            "command_type": "CAR_CONTROL",
+            "content": "车速超过当前限速",
+            "trigger": "AUTO",
+            "reason": "当前车速150km/h，高于限速120km/h",
+        }
+    ]

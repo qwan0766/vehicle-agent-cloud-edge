@@ -267,6 +267,15 @@ class TestWebDemoAppModel(unittest.TestCase):
         self.assertEqual(payload["auto_events"][0]["type"], "BATTERY_LOW")
         self.assertEqual(payload["auto_events"][0]["trigger"], "AUTO")
 
+    def test_vehicle_state_update_triggers_speed_over_limit_event(self):
+        payload = update_vehicle_state({"speed_kmh": 150, "speed_limit_kmh": 120})
+
+        self.assertEqual(payload["vehicle_state"]["speed_kmh"], 150)
+        self.assertEqual(payload["vehicle_state"]["speed_limit_kmh"], 120)
+        self.assertEqual(payload["vehicle_state"]["safety_state"], "超速预警")
+        self.assertEqual(payload["auto_events"][0]["type"], "SPEED_OVER_LIMIT")
+        self.assertEqual(payload["auto_events"][0]["severity"], "WARNING")
+
     def test_vehicle_events_payload_is_independent_from_command_execution(self):
         update_vehicle_state({"battery_percent": 8})
 
