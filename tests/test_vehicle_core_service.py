@@ -4,6 +4,7 @@ from core.constants import CommandType, ExecutionStatus, NetworkStatus
 from core.constants import RoadType
 from data.vehicle_state import VehicleState
 from core.vehicle_core_service import VehicleCoreService
+from agents.vehicle.global_safety_dispatch_agent import GlobalSafetyDispatchAgent
 from providers.destination_resolver import DestinationClarificationRequired
 
 
@@ -16,6 +17,30 @@ class FakeCloudAgent:
 
     def get_last_graph(self):
         return {"mode": "lightweight", "path": ["profile", "trip_plan", "decision"]}
+
+
+class AmbiguousCloudAgent(FakeCloudAgent):
+    def dispatch(self, msg):
+        return "云端建议：可将巡航目标调整到100km/h，请驾驶员确认后继续。"
+
+
+class FakeCloudResultReviewer:
+    provider_name = "edge_deepseek_sim"
+    model = "deepseek-edge-lite"
+
+    def __init__(self, response="CONFIRM: 需要驾驶员确认后再执行"):
+        self.response = response
+        self.calls = []
+
+    def generate(self, system_prompt: str, user_prompt: str, context: dict = None) -> str:
+        self.calls.append(
+            {
+                "system_prompt": system_prompt,
+                "user_prompt": user_prompt,
+                "context": context or {},
+            }
+        )
+        return self.response
 
 
 class FakeDestinationConfidenceAgent:
@@ -86,6 +111,29 @@ class TestVehicleCoreService(unittest.TestCase):
 
         self.assertEqual(result.status, ExecutionStatus.NEEDS_DRIVER_CONFIRMATION)
         self.assertIn("驾驶员确认", result.output)
+
+    def test_cloud_result_review_can_pause_for_driver_confirmation(self):
+        reviewer = FakeCloudResultReviewer()
+        safety_agent = GlobalSafetyDispatchAgent(
+            local_llm_provider=reviewer,
+            enable_cloud_result_llm_review=True,
+        )
+        service = VehicleCoreService(
+            cloud_agent=AmbiguousCloudAgent(),
+            safety_agent=safety_agent,
+        )
+
+        result = service.run("温度调到24度", network=NetworkStatus.ONLINE)
+
+        self.assertEqual(result.status, ExecutionStatus.NEEDS_DRIVER_CONFIRMATION)
+        self.assertIn("需要驾驶员确认", result.output)
+        self.assertIsNotNone(result.pending_action)
+        self.assertEqual(result.pending_action["type"], "driver_confirmation")
+        self.assertEqual(len(reviewer.calls), 1)
+        self.assertEqual(
+            reviewer.calls[0]["context"]["agent_id"],
+            "global_safety_dispatch",
+        )
 
     def test_online_navigation_candidate_confirmation_is_normal_status(self):
         service = VehicleCoreService(

@@ -267,17 +267,16 @@ class VehicleCoreService:
                     pending_action=pending_action,
                 )
             )
-        allowed, reason = self.safety_agent.verify_cloud_result(output)
-        if not allowed:
-            return self._complete_result(
-                ExecutionResult(
-                    status=ExecutionStatus.BLOCKED,
-                    output=reason,
-                    message=msg,
-                    trace=self.cloud_agent.get_last_trace(),
-                    graph=self._cloud_graph_snapshot(),
-                )
-            )
+        cloud_safety_result = self._review_cloud_output(
+            output,
+            msg,
+            command_type,
+            user_input,
+            user_id,
+            network,
+        )
+        if cloud_safety_result:
+            return cloud_safety_result
         output = self._append_energy_advisory(output, energy_decision)
         return self._complete_result(
             ExecutionResult(
@@ -384,17 +383,16 @@ class VehicleCoreService:
             )
 
         output = self.cloud_agent.dispatch(msg)
-        allowed, reason = self.safety_agent.verify_cloud_result(output)
-        if not allowed:
-            return self._complete_result(
-                ExecutionResult(
-                    status=ExecutionStatus.BLOCKED,
-                    output=reason,
-                    message=msg,
-                    trace=self.cloud_agent.get_last_trace(),
-                    graph=self._cloud_graph_snapshot(),
-                )
-            )
+        cloud_safety_result = self._review_cloud_output(
+            output,
+            msg,
+            command_type,
+            content,
+            user_id,
+            network,
+        )
+        if cloud_safety_result:
+            return cloud_safety_result
         return self._complete_result(
             ExecutionResult(
                 status=ExecutionStatus.EXECUTED,
@@ -418,6 +416,71 @@ class VehicleCoreService:
         if not advisory:
             return output
         return f"{output}\n\n{advisory}"
+
+    def _review_cloud_output(
+        self,
+        output: str,
+        msg: Message,
+        command_type: CommandType,
+        content: str,
+        user_id: str,
+        network: NetworkStatus,
+    ):
+        review = getattr(self.safety_agent, "verify_cloud_result_decision", None)
+        if callable(review):
+            decision = review(
+                output,
+                command_type=command_type,
+                vehicle_state=self._vehicle_state_payload(network),
+            )
+            if not decision.allowed:
+                return self._complete_result(
+                    ExecutionResult(
+                        status=ExecutionStatus.BLOCKED,
+                        output=decision.reason,
+                        message=msg,
+                        trace=self.cloud_agent.get_last_trace(),
+                        graph=self._cloud_graph_snapshot(),
+                    )
+                )
+            if decision.status == ExecutionStatus.NEEDS_DRIVER_CONFIRMATION:
+                pending_action = self._create_pending_action(
+                    "driver_confirmation",
+                    user_id,
+                    content,
+                    command_type,
+                    network,
+                    decision.reason,
+                    {
+                        "vehicle_state": self._vehicle_state_payload(network),
+                        "cloud_output": output,
+                        "safety_review_source": decision.source,
+                    },
+                )
+                return self._complete_result(
+                    ExecutionResult(
+                        status=ExecutionStatus.NEEDS_DRIVER_CONFIRMATION,
+                        output=decision.reason,
+                        message=msg,
+                        trace=self.cloud_agent.get_last_trace(),
+                        graph=self._cloud_graph_snapshot(),
+                        pending_action=pending_action,
+                    )
+                )
+            return None
+
+        allowed, reason = self.safety_agent.verify_cloud_result(output)
+        if not allowed:
+            return self._complete_result(
+                ExecutionResult(
+                    status=ExecutionStatus.BLOCKED,
+                    output=reason,
+                    message=msg,
+                    trace=self.cloud_agent.get_last_trace(),
+                    graph=self._cloud_graph_snapshot(),
+                )
+            )
+        return None
 
     def _destination_clarification(
         self,
