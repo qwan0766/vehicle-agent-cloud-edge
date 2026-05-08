@@ -3,6 +3,7 @@ import json
 import shutil
 import subprocess
 import tempfile
+import sys
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -10,9 +11,16 @@ from urllib import error, request
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 DEFAULT_REPORT = PROJECT_ROOT / "reports" / "web_qa_report.md"
 DEFAULT_JSON = PROJECT_ROOT / "reports" / "web_qa_report.json"
 DEFAULT_SCREENSHOT_DIR = PROJECT_ROOT / "reports" / "browser_qa"
+
+from scripts.run_delivery_check import DEMO_CASES
+
+
+DEFAULT_DEMO_VEHICLE_STATE = DEMO_CASES[0]["vehicle_state"]
 
 
 @dataclass
@@ -37,6 +45,7 @@ def main():
     results.extend(check_static_assets(base_url))
     results.extend(check_state(base_url))
     results.extend(check_command_matrix(base_url))
+    results.extend(check_demo_matrix(base_url))
 
     screenshots = []
     if args.screenshots:
@@ -69,7 +78,16 @@ def main():
 
 def check_static_assets(base_url):
     checks = []
-    for path, min_size in [("/", 1000), ("/app.js", 5000), ("/styles.css", 3000)]:
+    assets = [
+        ("/", 1000),
+        ("/app.js", 1000),
+        ("/styles.css", 3000),
+        ("/js/api.js", 500),
+        ("/js/events.js", 2000),
+        ("/js/renderers/demo.js", 1000),
+        ("/js/renderers/result.js", 3000),
+    ]
+    for path, min_size in assets:
         status, body, _ = http_get(base_url + path)
         if status == 200 and len(body) >= min_size:
             checks.append(CheckResult(f"asset {path}", "PASS", f"HTTP 200, {len(body)} bytes"))
@@ -90,9 +108,21 @@ def check_state(base_url):
     if missing:
         return [CheckResult("api state", "FAIL", f"missing providers: {', '.join(missing)}")]
 
+    expected_demo_ids = [case["id"] for case in DEMO_CASES]
+    actual_demo_ids = [item.get("id") for item in payload.get("demo_steps") or []]
+    if actual_demo_ids != expected_demo_ids:
+        return [
+            CheckResult(
+                "api state",
+                "FAIL",
+                f"demo steps mismatch: {actual_demo_ids} expected {expected_demo_ids}",
+            )
+        ]
+
     detail = (
         f"orchestrator={providers.get('orchestrator')}, "
-        f"acceptance={acceptance.get('overall_status')}"
+        f"acceptance={acceptance.get('overall_status')}, "
+        f"demo_steps={len(payload.get('demo_steps') or [])}"
     )
     return [CheckResult("api state", "PASS", detail)]
 
@@ -149,11 +179,69 @@ def check_command_matrix(base_url):
         },
     ]
     results = [check_command_case(base_url, case) for case in cases]
-    results.append(check_online_error_case(base_url))
+    results.append(check_clarification_case(base_url))
     return results
 
 
+def check_demo_matrix(base_url):
+    results = []
+    for case in DEMO_CASES:
+        results.append(check_demo_case(base_url, case))
+    reset_vehicle_state(base_url)
+    return results
+
+
+def check_demo_case(base_url, case):
+    state_status, state_body, state_payload = http_post_json(
+        base_url + "/api/vehicle-state",
+        case["vehicle_state"],
+    )
+    if state_status != 200:
+        return CheckResult(
+            f"demo {case['id']}",
+            "FAIL",
+            f"vehicle-state HTTP {state_status}: {state_body[:180]}",
+        )
+
+    status, body, payload = http_post_json(
+        base_url + "/api/run",
+        {
+            "content": case["content"],
+            "user_id": f"webqa_{case['id']}",
+            "network": case["network"],
+        },
+    )
+    if status != 200:
+        return CheckResult(f"demo {case['id']}", "FAIL", f"run HTTP {status}: {body[:240]}")
+
+    request_payload = payload.get("request", {})
+    result_payload = payload.get("result", {})
+    vehicle_payload = state_payload.get("vehicle_state", {})
+    failures = []
+    if request_payload.get("command_type") != case["expected_command_type"]:
+        failures.append(f"command={request_payload.get('command_type')}")
+    if result_payload.get("status") != case["expected_status"]:
+        failures.append(f"status={result_payload.get('status')}")
+    for key, expected in case["vehicle_state"].items():
+        if vehicle_payload.get(key) != expected:
+            failures.append(f"{key}={vehicle_payload.get(key)}")
+
+    if failures:
+        return CheckResult(f"demo {case['id']}", "FAIL", ", ".join(failures))
+
+    detail = (
+        f"{case['title']}: {request_payload.get('command_type')} / "
+        f"{result_payload.get('status')}"
+    )
+    return CheckResult(f"demo {case['id']}", "PASS", detail)
+
+
+def reset_vehicle_state(base_url):
+    return http_post_json(base_url + "/api/vehicle-state", DEFAULT_DEMO_VEHICLE_STATE)
+
+
 def check_command_case(base_url, case):
+    reset_vehicle_state(base_url)
     status, body, payload = http_post_json(base_url + "/api/run", case["payload"])
     if status != case["http"]:
         return CheckResult(case["name"], "FAIL", f"HTTP {status}, expected {case['http']}: {body[:160]}")
@@ -183,21 +271,30 @@ def check_command_case(base_url, case):
     return CheckResult(case["name"], "PASS", detail)
 
 
-def check_online_error_case(base_url):
+def check_clarification_case(base_url):
+    reset_vehicle_state(base_url)
     status, body, payload = http_post_json(
         base_url + "/api/run",
         {
-            "content": "\u5bfc\u822a\u53bb\u5df4\u9ece",
-            "user_id": "qa_error",
+            "content": "\u5bfc\u822a\u53bb\u5317\u4eac",
+            "user_id": "qa_clarification",
             "network": "ONLINE",
         },
     )
-    info = payload.get("error") or {}
-    title = info.get("user_title") or ""
-    suggestions = info.get("suggestions") or []
-    if status == 502 and title and suggestions and info.get("technical_message"):
-        return CheckResult("online friendly error", "PASS", f"HTTP 502, title={title}")
-    return CheckResult("online friendly error", "FAIL", f"HTTP {status}: {body[:240]}")
+    result = payload.get("result") or {}
+    clarification = result.get("clarification") or {}
+    if (
+        status == 200
+        and result.get("status") == "NEEDS_CLARIFICATION"
+        and clarification.get("query")
+        and clarification.get("question")
+    ):
+        return CheckResult(
+            "clarification normal state",
+            "PASS",
+            f"{clarification.get('query')} -> {result.get('status')}",
+        )
+    return CheckResult("clarification normal state", "FAIL", f"HTTP {status}: {body[:240]}")
 
 
 def capture_screenshots(base_url, screenshot_dir, screenshots):
@@ -247,6 +344,8 @@ def find_browser():
 
 
 def run_screenshot(browser, user_data_dir, url, target, width, height):
+    if target.exists():
+        target.unlink()
     base_flags = [
         browser,
         "--headless=new",
@@ -268,6 +367,10 @@ def run_screenshot(browser, user_data_dir, url, target, width, height):
             text=True,
             timeout=45,
         )
+    except subprocess.TimeoutExpired as exc:
+        if target.exists() and target.stat().st_size > 1000:
+            return True, f"{target} ({target.stat().st_size} bytes, browser timed out after capture)"
+        return False, str(exc)
     except Exception as exc:
         return False, str(exc)
 
@@ -340,6 +443,7 @@ def render_markdown(payload):
         for screenshot in payload["screenshots"]:
             path = Path(screenshot)
             lines.append(f"- {path.name}: `{path}`")
+            lines.append(f"  ![{path.stem}]({path.as_posix()})")
     lines.append("")
     return "\n".join(lines)
 

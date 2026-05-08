@@ -37,6 +37,15 @@ class TestWebDemoMarkup(unittest.TestCase):
         self.assertIn(".clarification-candidates", css)
         self.assertIn(".clarification-candidate", css)
 
+    def test_styles_include_mobile_overflow_guardrails(self):
+        css = Path("web_demo/static/styles.css").read_text(encoding="utf-8")
+
+        self.assertIn("@media (max-width: 520px)", css)
+        self.assertIn("grid-template-columns: minmax(0, 1fr);", css)
+        self.assertIn("padding: 14px 10px;", css)
+        self.assertIn("overflow-x: hidden;", css)
+        self.assertIn("max-width: 100%;", css)
+
 
 if __name__ == "__main__":
     unittest.main()

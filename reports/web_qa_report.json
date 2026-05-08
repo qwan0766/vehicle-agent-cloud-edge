@@ -1,27 +1,47 @@
 {
-  "generated_at": "2026-05-07T00:56:12.719338+08:00",
-  "base_url": "http://127.0.0.1:8032",
+  "generated_at": "2026-05-08T18:23:34.414427+08:00",
+  "base_url": "http://127.0.0.1:8031",
   "overall_status": "PASS",
   "checks": [
     {
       "name": "asset /",
       "status": "PASS",
-      "detail": "HTTP 200, 8843 bytes"
+      "detail": "HTTP 200, 10484 bytes"
     },
     {
       "name": "asset /app.js",
       "status": "PASS",
-      "detail": "HTTP 200, 24271 bytes"
+      "detail": "HTTP 200, 2867 bytes"
     },
     {
       "name": "asset /styles.css",
       "status": "PASS",
-      "detail": "HTTP 200, 12652 bytes"
+      "detail": "HTTP 200, 16263 bytes"
+    },
+    {
+      "name": "asset /js/api.js",
+      "status": "PASS",
+      "detail": "HTTP 200, 1449 bytes"
+    },
+    {
+      "name": "asset /js/events.js",
+      "status": "PASS",
+      "detail": "HTTP 200, 5708 bytes"
+    },
+    {
+      "name": "asset /js/renderers/demo.js",
+      "status": "PASS",
+      "detail": "HTTP 200, 2957 bytes"
+    },
+    {
+      "name": "asset /js/renderers/result.js",
+      "status": "PASS",
+      "detail": "HTTP 200, 7183 bytes"
     },
     {
       "name": "api state",
       "status": "PASS",
-      "detail": "orchestrator=langgraph_default, acceptance=PASS"
+      "detail": "orchestrator=langgraph_default, acceptance=PASS, demo_steps=5"
     },
     {
       "name": "online navigation",
@@ -44,19 +64,44 @@
       "detail": "CAR_CONTROL / FALLBACK / graph=- / trip_plan=False"
     },
     {
-      "name": "online friendly error",
+      "name": "clarification normal state",
       "status": "PASS",
-      "detail": "HTTP 502, title=没有找到这个目的地"
+      "detail": "北京 -> NEEDS_CLARIFICATION"
+    },
+    {
+      "name": "demo online_navigation",
+      "status": "PASS",
+      "detail": "正常导航端云协同: NAVIGATION / EXECUTED"
+    },
+    {
+      "name": "demo fuzzy_destination_clarification",
+      "status": "PASS",
+      "detail": "模糊目的地澄清: NAVIGATION / NEEDS_CLARIFICATION"
+    },
+    {
+      "name": "demo highway_speed_confirmation",
+      "status": "PASS",
+      "detail": "高速速度请求确认: CAR_CONTROL / NEEDS_DRIVER_CONFIRMATION"
+    },
+    {
+      "name": "demo urban_speed_block",
+      "status": "PASS",
+      "detail": "城市超限危险拦截: CAR_CONTROL / BLOCKED"
+    },
+    {
+      "name": "demo low_battery_energy_policy",
+      "status": "PASS",
+      "detail": "低电量状态与能源策略: NAVIGATION / NEEDS_CHARGE_CONFIRMATION"
     },
     {
       "name": "screenshot desktop",
       "status": "PASS",
-      "detail": "E:\\claudeCode\\weilaiAgent\\reports\\browser_qa\\desktop.png (84138 bytes)"
+      "detail": "E:\\claudeCode\\weilaiAgent\\reports\\browser_qa\\desktop.png (96421 bytes)"
     },
     {
       "name": "screenshot mobile",
       "status": "PASS",
-      "detail": "E:\\claudeCode\\weilaiAgent\\reports\\browser_qa\\mobile.png (29120 bytes)"
+      "detail": "E:\\claudeCode\\weilaiAgent\\reports\\browser_qa\\mobile.png (26607 bytes)"
     }
   ],
   "screenshots": [

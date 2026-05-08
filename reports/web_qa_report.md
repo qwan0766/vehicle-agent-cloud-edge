@@ -1,26 +1,37 @@
 # Web QA Report
 
-- Generated at: 2026-05-07T00:56:12.719338+08:00
-- Base URL: http://127.0.0.1:8032
+- Generated at: 2026-05-08T18:23:34.414427+08:00
+- Base URL: http://127.0.0.1:8031
 - Overall status: PASS
 
 ## Checks
 
 | Check | Status | Detail |
 | --- | --- | --- |
-| asset / | PASS | HTTP 200, 8843 bytes |
-| asset /app.js | PASS | HTTP 200, 24271 bytes |
-| asset /styles.css | PASS | HTTP 200, 12652 bytes |
-| api state | PASS | orchestrator=langgraph_default, acceptance=PASS |
+| asset / | PASS | HTTP 200, 10484 bytes |
+| asset /app.js | PASS | HTTP 200, 2867 bytes |
+| asset /styles.css | PASS | HTTP 200, 16263 bytes |
+| asset /js/api.js | PASS | HTTP 200, 1449 bytes |
+| asset /js/events.js | PASS | HTTP 200, 5708 bytes |
+| asset /js/renderers/demo.js | PASS | HTTP 200, 2957 bytes |
+| asset /js/renderers/result.js | PASS | HTTP 200, 7183 bytes |
+| api state | PASS | orchestrator=langgraph_default, acceptance=PASS, demo_steps=5 |
 | online navigation | PASS | NAVIGATION / EXECUTED / graph=langgraph / trip_plan=True |
 | online car control | PASS | CAR_CONTROL / EXECUTED / graph=langgraph / trip_plan=False |
 | dangerous block | PASS | CAR_CONTROL / BLOCKED / graph=- / trip_plan=False |
 | offline fallback | PASS | CAR_CONTROL / FALLBACK / graph=- / trip_plan=False |
-| online friendly error | PASS | HTTP 502, title=没有找到这个目的地 |
-| screenshot desktop | PASS | E:\claudeCode\weilaiAgent\reports\browser_qa\desktop.png (84138 bytes) |
-| screenshot mobile | PASS | E:\claudeCode\weilaiAgent\reports\browser_qa\mobile.png (29120 bytes) |
+| clarification normal state | PASS | 北京 -> NEEDS_CLARIFICATION |
+| demo online_navigation | PASS | 正常导航端云协同: NAVIGATION / EXECUTED |
+| demo fuzzy_destination_clarification | PASS | 模糊目的地澄清: NAVIGATION / NEEDS_CLARIFICATION |
+| demo highway_speed_confirmation | PASS | 高速速度请求确认: CAR_CONTROL / NEEDS_DRIVER_CONFIRMATION |
+| demo urban_speed_block | PASS | 城市超限危险拦截: CAR_CONTROL / BLOCKED |
+| demo low_battery_energy_policy | PASS | 低电量状态与能源策略: NAVIGATION / NEEDS_CHARGE_CONFIRMATION |
+| screenshot desktop | PASS | E:\claudeCode\weilaiAgent\reports\browser_qa\desktop.png (96421 bytes) |
+| screenshot mobile | PASS | E:\claudeCode\weilaiAgent\reports\browser_qa\mobile.png (26607 bytes) |
 
 ## Screenshots
 
 - desktop.png: `E:\claudeCode\weilaiAgent\reports\browser_qa\desktop.png`
+  ![desktop](E:/claudeCode/weilaiAgent/reports/browser_qa/desktop.png)
 - mobile.png: `E:\claudeCode\weilaiAgent\reports\browser_qa\mobile.png`
+  ![mobile](E:/claudeCode/weilaiAgent/reports/browser_qa/mobile.png)
