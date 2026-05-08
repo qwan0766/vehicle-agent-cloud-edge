@@ -61,6 +61,19 @@ class TestCourseAlignedAgentArchitecture(unittest.TestCase):
         self.assertTrue(results)
         self.assertFalse(any(item.document.doc_id.startswith("intent_") for item in results))
 
+    def test_vector_knowledge_agent_filters_weak_navigation_keyword_matches(self):
+        agent = VectorKnowledgeAgent()
+
+        results = agent.retrieve(
+            "导航去蔚来中心",
+            user_id="user_001",
+            command_type=CommandType.NAVIGATION,
+        )
+
+        doc_ids = [item.document.doc_id for item in results]
+        self.assertIn("route_highway_preference", doc_ids)
+        self.assertNotIn("route_offline_navigation", doc_ids)
+
     def test_local_context_is_scoped_by_agent_id(self):
         path = Path(".test_runtime") / f"agent_context_{uuid.uuid4().hex}.json"
         manager = LocalAgentContextManager(path=path, max_recent_turns=3)

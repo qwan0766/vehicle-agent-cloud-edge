@@ -30,7 +30,11 @@ class VectorKnowledgeAgent:
             )
 
         if command_type in {CommandType.NAVIGATION, CommandType.CHARGE_PLAN}:
-            results.extend(self.route_retriever.search(query, top_k=2))
+            results.extend(
+                item
+                for item in self.route_retriever.search(query, top_k=2)
+                if self._is_high_signal_route_match(item)
+            )
 
         return self._dedupe(results)[: max(1, int(top_k))]
 
@@ -68,3 +72,6 @@ class VectorKnowledgeAgent:
             seen.add(doc_id)
             unique.append(result)
         return unique
+
+    def _is_high_signal_route_match(self, result):
+        return result.score >= 6

@@ -10,7 +10,9 @@ from web_demo.app_model import get_demo_steps
 from web_demo.app_model import get_vehicle_events_payload
 from web_demo.app_model import reset_vehicle_state
 from web_demo.app_model import update_vehicle_state
+from web_demo.app_model import _rag_context
 from web_demo.server import build_error_response
+from core.constants import CommandType, NetworkStatus
 
 
 class TestWebDemoAppModel(unittest.TestCase):
@@ -149,6 +151,24 @@ class TestWebDemoAppModel(unittest.TestCase):
                 "decision.summarize",
             ],
         )
+
+    def test_online_navigation_rag_context_shows_only_high_signal_knowledge(self):
+        rag_context = _rag_context(
+            "导航去蔚来中心",
+            "user_001",
+            CommandType.NAVIGATION,
+            NetworkStatus.ONLINE,
+        )
+
+        stages = {item["stage"] for item in rag_context}
+        doc_ids = {item["doc_id"] for item in rag_context}
+
+        self.assertLessEqual(len(rag_context), 3)
+        self.assertNotIn("本地意图识别", stages)
+        self.assertNotIn("云端路线规划", stages)
+        self.assertNotIn("intent_nav_nio_center", doc_ids)
+        self.assertNotIn("intent_nav_home", doc_ids)
+        self.assertNotIn("route_offline_navigation", doc_ids)
 
     def test_user_two_payload_contains_user_two_profile_context(self):
         payload = run_command("我的偏好", user_id="user_002", network="ONLINE")

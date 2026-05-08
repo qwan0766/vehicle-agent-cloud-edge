@@ -1,10 +1,7 @@
 from pathlib import Path
 
-from agents.cloud.global_trip_planning_agent import GlobalTripPlanningAgent
-from agents.cloud.user_profile_agent import UserProfileAgent
 from agents.cloud.vector_knowledge_agent import VectorKnowledgeAgent
 from agents.orchestrator.global_dispatch_agent import GlobalDispatchAgent
-from agents.vehicle.local_intent_agent import LocalIntentAgent
 from config.env_loader import load_env_file
 from core.constants import CommandType, ExecutionStatus, NetworkStatus, SafetyLevel
 from core.vehicle_core_service import VehicleCoreService
@@ -405,10 +402,6 @@ def _rag_context(
 ):
     context = []
 
-    intent_agent = LocalIntentAgent()
-    for result in intent_agent.retrieve_context(content):
-        context.append(_context_payload("本地意图识别", result))
-
     if network == NetworkStatus.ONLINE and command_type in {
         CommandType.NAVIGATION,
         CommandType.CHARGE_PLAN,
@@ -416,23 +409,23 @@ def _rag_context(
         CommandType.PERSONALIZE,
         CommandType.INFO_QUERY,
     }:
-        profile_agent = UserProfileAgent()
-        for result in profile_agent.retrieve_context(user_id, content):
-            context.append(_context_payload("用户画像召回", result))
-
         knowledge_agent = VectorKnowledgeAgent()
-        for result in knowledge_agent.retrieve(content, user_id=user_id, command_type=command_type):
-            context.append(_context_payload("向量知识库召回", result))
-
-    if include_route_context and network == NetworkStatus.ONLINE and command_type in {
-        CommandType.NAVIGATION,
-        CommandType.CHARGE_PLAN,
-    }:
-        route_agent = GlobalTripPlanningAgent()
-        for result in route_agent.retrieve_context(content):
-            context.append(_context_payload("云端路线规划", result))
+        for result in knowledge_agent.retrieve(
+            content,
+            user_id=user_id,
+            command_type=command_type,
+            top_k=3,
+        ):
+            context.append(_context_payload(_rag_stage(result), result))
 
     return context
+
+
+def _rag_stage(result):
+    doc_id = result.document.doc_id
+    if doc_id.startswith("profile_"):
+        return "用户画像召回"
+    return "向量知识库召回"
 
 
 def _context_payload(stage: str, result):
