@@ -85,6 +85,32 @@ class TestInputRewriteAgent(unittest.TestCase):
         self.assertIn("recent_turns", result.memory_used)
         self.assertEqual(result.source, "rule")
 
+    def test_rule_fallback_treats_old_place_as_memory_reference(self):
+        path = Path(".test_runtime") / f"rewrite_context_{uuid.uuid4().hex}.json"
+        manager = LocalAgentContextManager(path=path, max_recent_turns=4)
+        previous = SimpleNamespace(
+            status=ExecutionStatus.EXECUTED,
+            output="已规划前往蔚来中心的路线",
+            message=Message.create(
+                user_id="user_001",
+                command_type=CommandType.NAVIGATION,
+                safety=SafetyLevel.SAFE,
+                content="导航去蔚来中心",
+                network=NetworkStatus.ONLINE,
+            ),
+        )
+        manager.record_result(previous, agent_id="local_intent")
+        agent = InputRewriteAgent(
+            context_manager=manager,
+            enable_llm_rewrite=False,
+        )
+
+        result = agent.rewrite("去老地方", user_id="user_001")
+
+        self.assertEqual(result.rewritten_input, "导航去蔚来中心")
+        self.assertEqual(result.intent_hint, CommandType.NAVIGATION)
+        self.assertIn("recent_turns", result.memory_used)
+
 
 if __name__ == "__main__":
     unittest.main()

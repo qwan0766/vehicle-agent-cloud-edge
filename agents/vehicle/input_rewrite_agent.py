@@ -244,7 +244,20 @@ def _extract_destination(content: str) -> str:
 
 
 def _is_deictic_destination_reference(text: str) -> bool:
-    return any(marker in text for marker in ("刚才", "上次", "那个地方", "那里", "那边"))
+    return any(
+        marker in text
+        for marker in (
+            "刚才",
+            "上次",
+            "之前",
+            "上一个",
+            "那个地方",
+            "那里",
+            "那边",
+            "老地方",
+            "常去的地方",
+        )
+    )
 
 
 def _looks_like_navigation_without_prefix(text: str) -> bool:
