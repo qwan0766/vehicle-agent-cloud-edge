@@ -21,8 +21,6 @@ class VectorKnowledgeAgent:
         command_type = command_type or CommandType.UNKNOWN
         results = []
 
-        results.extend(self.intent_retriever.search(query, top_k=1))
-
         if user_id:
             profile_query = f"{user_id} {query}".strip()
             results.extend(

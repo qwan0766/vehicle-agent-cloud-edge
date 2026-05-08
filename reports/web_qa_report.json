@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-08T19:04:23.981119+08:00",
+  "generated_at": "2026-05-08T19:20:29.007124+08:00",
   "base_url": "http://127.0.0.1:8031",
   "overall_status": "PASS",
   "checks": [
@@ -16,7 +16,7 @@
     {
       "name": "asset /styles.css",
       "status": "PASS",
-      "detail": "HTTP 200, 16753 bytes"
+      "detail": "HTTP 200, 17053 bytes"
     },
     {
       "name": "asset /js/api.js",
@@ -101,7 +101,7 @@
     {
       "name": "screenshot desktop",
       "status": "PASS",
-      "detail": "E:\\claudeCode\\weilaiAgent\\reports\\browser_qa\\desktop.png (96421 bytes)"
+      "detail": "E:\\claudeCode\\weilaiAgent\\reports\\browser_qa\\desktop.png (89492 bytes)"
     },
     {
       "name": "screenshot mobile",

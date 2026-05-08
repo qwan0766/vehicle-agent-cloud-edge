@@ -112,6 +112,39 @@ h2 {
   align-items: stretch;
 }
 
+.vehicle-panel {
+  order: 1;
+}
+
+.command-panel {
+  order: 2;
+}
+
+.result-panel {
+  order: 3;
+}
+
+.demo-panel {
+  order: 4;
+}
+
+.trace-panel {
+  order: 5;
+}
+
+.rag-panel {
+  order: 6;
+}
+
+.feedback-panel,
+.local-context-panel,
+.eval-panel,
+.acceptance-panel,
+.provider-panel,
+.route-panel {
+  order: 7;
+}
+
 .panel {
   background: var(--surface);
   border: 1px solid var(--line);

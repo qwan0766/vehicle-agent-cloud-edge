@@ -49,6 +49,18 @@ class TestCourseAlignedAgentArchitecture(unittest.TestCase):
         self.assertTrue(any("电量低于20%" in text for text in texts))
         self.assertTrue(any("user_002" in text for text in texts))
 
+    def test_vector_knowledge_agent_does_not_mix_intent_examples_into_cloud_rag(self):
+        agent = VectorKnowledgeAgent()
+
+        results = agent.retrieve(
+            "导航去121.486754,31.186881",
+            user_id="user_001",
+            command_type=CommandType.NAVIGATION,
+        )
+
+        self.assertTrue(results)
+        self.assertFalse(any(item.document.doc_id.startswith("intent_") for item in results))
+
     def test_local_context_is_scoped_by_agent_id(self):
         path = Path(".test_runtime") / f"agent_context_{uuid.uuid4().hex}.json"
         manager = LocalAgentContextManager(path=path, max_recent_turns=3)

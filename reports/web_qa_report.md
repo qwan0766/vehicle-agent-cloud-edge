@@ -1,6 +1,6 @@
 # Web QA Report
 
-- Generated at: 2026-05-08T19:04:23.981119+08:00
+- Generated at: 2026-05-08T19:20:29.007124+08:00
 - Base URL: http://127.0.0.1:8031
 - Overall status: PASS
 
@@ -10,7 +10,7 @@
 | --- | --- | --- |
 | asset / | PASS | HTTP 200, 10484 bytes |
 | asset /app.js | PASS | HTTP 200, 2915 bytes |
-| asset /styles.css | PASS | HTTP 200, 16753 bytes |
+| asset /styles.css | PASS | HTTP 200, 17053 bytes |
 | asset /js/api.js | PASS | HTTP 200, 1707 bytes |
 | asset /js/events.js | PASS | HTTP 200, 7008 bytes |
 | asset /js/renderers/demo.js | PASS | HTTP 200, 2957 bytes |
@@ -27,7 +27,7 @@
 | demo urban_speed_block | PASS | 城市超限危险拦截: CAR_CONTROL / BLOCKED |
 | demo low_battery_energy_policy | PASS | 低电量状态与能源策略: NAVIGATION / NEEDS_CHARGE_CONFIRMATION |
 | confirm destination pending | PASS | destination_clarification -> EXECUTED |
-| screenshot desktop | PASS | E:\claudeCode\weilaiAgent\reports\browser_qa\desktop.png (96421 bytes) |
+| screenshot desktop | PASS | E:\claudeCode\weilaiAgent\reports\browser_qa\desktop.png (89492 bytes) |
 | screenshot mobile | PASS | E:\claudeCode\weilaiAgent\reports\browser_qa\mobile.png (26607 bytes) |
 
 ## Screenshots

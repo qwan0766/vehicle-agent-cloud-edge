@@ -46,6 +46,14 @@ class TestWebDemoMarkup(unittest.TestCase):
         self.assertIn("overflow-x: hidden;", css)
         self.assertIn("max-width: 100%;", css)
 
+    def test_styles_place_result_panel_before_secondary_panels(self):
+        css = Path("web_demo/static/styles.css").read_text(encoding="utf-8")
+
+        self.assertIn(".result-panel", css)
+        self.assertIn("order: 3;", css)
+        self.assertIn(".demo-panel", css)
+        self.assertIn("order: 4;", css)
+
 
 if __name__ == "__main__":
     unittest.main()
