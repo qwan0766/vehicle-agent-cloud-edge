@@ -240,6 +240,25 @@ class TestWebDemoAppModel(unittest.TestCase):
         self.assertEqual(payload["events"][0]["severity"], "CRITICAL")
         self.assertEqual(payload["events"][0]["trigger"], "AUTO")
 
+    def test_critical_battery_navigation_payload_requires_charge_confirmation(self):
+        update_vehicle_state({"battery_percent": 8})
+
+        payload = run_command("导航去蔚来中心", network="ONLINE")
+
+        self.assertEqual(payload["result"]["status"], "NEEDS_CHARGE_CONFIRMATION")
+        self.assertEqual(payload["route_summary"], {})
+        self.assertFalse(payload["charge_stations"])
+        self.assertIn("EnergyPolicyAgent", payload["agent_trace"])
+
+    def test_critical_battery_comfort_control_trace_points_to_energy_policy(self):
+        update_vehicle_state({"battery_percent": 4})
+
+        payload = run_command("\u6253\u5f00\u5ea7\u6905\u52a0\u70ed", network="OFFLINE")
+
+        self.assertEqual(payload["result"]["status"], "BLOCKED")
+        self.assertIn("EnergyPolicyAgent", payload["agent_trace"])
+        self.assertNotIn("SafetyBlock", payload["agent_trace"])
+
     def test_info_query_payload_is_normal_non_route_result(self):
         payload = run_command("AEB是什么", network="ONLINE")
 

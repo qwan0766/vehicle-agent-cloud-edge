@@ -519,6 +519,7 @@ function renderResult(payload) {
   nodes.executionValue.textContent = result.status;
   const needsClarification = result.status === "NEEDS_CLARIFICATION";
   const needsDriverConfirmation = result.status === "NEEDS_DRIVER_CONFIRMATION";
+  const needsChargeConfirmation = result.status === "NEEDS_CHARGE_CONFIRMATION";
   if (needsClarification) {
     renderClarification(result.clarification || {}, result.output);
   } else {
@@ -529,6 +530,8 @@ function renderResult(payload) {
       ? "需要确认"
       : needsDriverConfirmation
       ? "驾驶员确认"
+      : needsChargeConfirmation
+      ? "补能确认"
       : result.status === "BLOCKED"
       ? "安全拦截"
       : request.network === "ONLINE"
@@ -539,6 +542,8 @@ function renderResult(payload) {
     nodes.safetyBadge.textContent = "需要确认";
   } else if (needsDriverConfirmation) {
     nodes.safetyBadge.textContent = "待驾驶员确认";
+  } else if (needsChargeConfirmation) {
+    nodes.safetyBadge.textContent = "需要补能确认";
   } else if (result.status === "BLOCKED") {
     nodes.safetyBadge.textContent =
       request.safety === "DANGEROUS" ? "危险拦截" : "策略拦截";
@@ -548,11 +553,14 @@ function renderResult(payload) {
   nodes.safetyBadge.classList.toggle("badge-danger", result.status === "BLOCKED");
   nodes.safetyBadge.classList.toggle(
     "badge-clarification",
-    needsClarification || needsDriverConfirmation
+    needsClarification || needsDriverConfirmation || needsChargeConfirmation
   );
   nodes.safetyBadge.classList.toggle(
     "badge-safe",
-    result.status !== "BLOCKED" && !needsClarification && !needsDriverConfirmation
+    result.status !== "BLOCKED" &&
+      !needsClarification &&
+      !needsDriverConfirmation &&
+      !needsChargeConfirmation
   );
 
   nodes.agentTrace.innerHTML = "";
@@ -899,7 +907,8 @@ function agentClass(agent) {
     agent.includes("Fallback") ||
     agent.includes("CabinVehicleControl") ||
     agent.includes("DataUpload") ||
-    agent.includes("Clarification")
+    agent.includes("Clarification") ||
+    agent.includes("EnergyPolicy")
   ) {
     return "local";
   }

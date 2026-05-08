@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from agents.orchestrator.global_dispatch_agent import GlobalDispatchAgent
 from agents.vehicle.cabin_vehicle_control_agent import CabinVehicleControlAgent
 from agents.vehicle.data_upload_agent import DataUploadAgent
+from agents.vehicle.energy_policy_agent import EnergyPolicyAgent
 from agents.vehicle.global_safety_dispatch_agent import GlobalSafetyDispatchAgent
 from agents.vehicle.local_intent_agent import LocalIntentAgent
 from agents.cloud.destination_confidence_agent import DestinationConfidenceAgent
@@ -50,6 +51,7 @@ class VehicleCoreService:
         destination_confidence_agent=None,
         vehicle_state=None,
         state_monitor_agent=None,
+        energy_policy_agent=None,
     ):
         self.context_manager = context_manager or LocalAgentContextManager()
         self.intent_agent = intent_agent or LocalIntentAgent(
@@ -70,6 +72,7 @@ class VehicleCoreService:
         )
         self.vehicle_state = vehicle_state or DEFAULT_VEHICLE_STATE
         self.state_monitor_agent = state_monitor_agent or VehicleStateMonitorAgent()
+        self.energy_policy_agent = energy_policy_agent or EnergyPolicyAgent()
 
     def run(
         self,
@@ -142,6 +145,20 @@ class VehicleCoreService:
                 )
             )
 
+        energy_decision = self.energy_policy_agent.evaluate(
+            command_type=command_type,
+            content=user_input,
+            vehicle_state=self.vehicle_state,
+        )
+        if not energy_decision.allowed:
+            return self._complete_result(
+                ExecutionResult(
+                    status=energy_decision.status,
+                    output=energy_decision.reason,
+                    message=msg,
+                )
+            )
+
         clarification = self._destination_clarification(
             user_input,
             command_type,
@@ -172,6 +189,7 @@ class VehicleCoreService:
                 vehicle_state=self._vehicle_state_payload(network),
             )
             output = self._run_local(command_type, user_input, local_context)
+            output = self._append_energy_advisory(output, energy_decision)
             return self._complete_result(
                 ExecutionResult(
                     status=ExecutionStatus.FALLBACK,
@@ -214,6 +232,7 @@ class VehicleCoreService:
                     graph=self._cloud_graph_snapshot(),
                 )
             )
+        output = self._append_energy_advisory(output, energy_decision)
         return self._complete_result(
             ExecutionResult(
                 status=ExecutionStatus.EXECUTED,
@@ -231,6 +250,12 @@ class VehicleCoreService:
         local_context=None,
     ) -> str:
         return self.control_agent.execute(command_type, user_input, local_context)
+
+    def _append_energy_advisory(self, output: str, energy_decision) -> str:
+        advisory = getattr(energy_decision, "advisory", "")
+        if not advisory:
+            return output
+        return f"{output}\n\n{advisory}"
 
     def _destination_clarification(
         self,

@@ -100,6 +100,61 @@ class TestVehicleCoreService(unittest.TestCase):
         self.assertEqual(result.clarification["reason"], "destination_candidate_confirmation")
         self.assertEqual(result.clarification["candidates"][0]["name"], "上海世博园")
 
+    def test_low_battery_navigation_appends_energy_advisory(self):
+        service = VehicleCoreService(
+            cloud_agent=FakeCloudAgent(),
+            vehicle_state=VehicleState(
+                speed_kmh=60,
+                battery_percent=18,
+                network=NetworkStatus.ONLINE,
+                gps="121.48, 31.23",
+                road_type=RoadType.HIGHWAY,
+                speed_limit_kmh=120,
+            ),
+        )
+
+        result = service.run("导航去蔚来中心", network=NetworkStatus.ONLINE)
+
+        self.assertEqual(result.status, ExecutionStatus.EXECUTED)
+        self.assertIn("能源提示", result.output)
+        self.assertIn("建议规划补能点", result.output)
+
+    def test_critical_battery_navigation_requires_charge_confirmation_before_cloud(self):
+        service = VehicleCoreService(
+            cloud_agent=FakeCloudAgent(),
+            vehicle_state=VehicleState(
+                speed_kmh=60,
+                battery_percent=8,
+                network=NetworkStatus.ONLINE,
+                gps="121.48, 31.23",
+                road_type=RoadType.HIGHWAY,
+                speed_limit_kmh=120,
+            ),
+        )
+
+        result = service.run("导航去蔚来中心", network=NetworkStatus.ONLINE)
+
+        self.assertEqual(result.status, ExecutionStatus.NEEDS_CHARGE_CONFIRMATION)
+        self.assertIn("电量严重不足", result.output)
+
+    def test_critical_battery_blocks_seat_heat_control(self):
+        service = VehicleCoreService(
+            cloud_agent=FakeCloudAgent(),
+            vehicle_state=VehicleState(
+                speed_kmh=60,
+                battery_percent=4,
+                network=NetworkStatus.ONLINE,
+                gps="121.48, 31.23",
+                road_type=RoadType.HIGHWAY,
+                speed_limit_kmh=120,
+            ),
+        )
+
+        result = service.run("打开座椅加热", network=NetworkStatus.ONLINE)
+
+        self.assertEqual(result.status, ExecutionStatus.BLOCKED)
+        self.assertIn("低电量", result.output)
+
 
 if __name__ == "__main__":
     unittest.main()

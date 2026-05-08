@@ -129,7 +129,10 @@ def run_command(content: str, user_id: str = "user_001", network: str = "ONLINE"
     network_status = _parse_network(network)
     service = _build_vehicle_service()
     result = service.run(content, user_id=user_id, network=network_status)
-    should_show_route = result.status != ExecutionStatus.NEEDS_CLARIFICATION
+    should_show_route = result.status not in {
+        ExecutionStatus.NEEDS_CLARIFICATION,
+        ExecutionStatus.NEEDS_CHARGE_CONFIRMATION,
+    }
 
     return {
         "vehicle_state": _vehicle_state_payload(network_status),
@@ -167,7 +170,12 @@ def run_command(content: str, user_id: str = "user_001", network: str = "ONLINE"
             result.message.network,
             include_route_context=should_show_route,
         ),
-        "agent_trace": _agent_trace(result.message.command_type, result.message.safety, result.status),
+        "agent_trace": _agent_trace(
+            result.message.command_type,
+            result.message.safety,
+            result.status,
+            result.output,
+        ),
     }
 
 
@@ -269,7 +277,12 @@ def _vehicle_state_payload(network: NetworkStatus):
     return VEHICLE_STATE_SERVICE.to_payload(network)
 
 
-def _agent_trace(command_type: CommandType, safety: SafetyLevel, status: ExecutionStatus):
+def _agent_trace(
+    command_type: CommandType,
+    safety: SafetyLevel,
+    status: ExecutionStatus,
+    output: str = "",
+):
     trace = ["LocalIntentAgent", "GlobalSafetyDispatchAgent"]
 
     if status == ExecutionStatus.NEEDS_DRIVER_CONFIRMATION:
@@ -277,8 +290,18 @@ def _agent_trace(command_type: CommandType, safety: SafetyLevel, status: Executi
         trace.append("DataUploadAgent")
         return trace
 
+    if status == ExecutionStatus.NEEDS_CHARGE_CONFIRMATION:
+        trace.append("EnergyPolicyAgent")
+        trace.append("DataUploadAgent")
+        return trace
+
     if status == ExecutionStatus.NEEDS_CLARIFICATION:
         trace.append("DestinationClarification")
+        trace.append("DataUploadAgent")
+        return trace
+
+    if status == ExecutionStatus.BLOCKED and _looks_like_energy_policy_output(output):
+        trace.append("EnergyPolicyAgent")
         trace.append("DataUploadAgent")
         return trace
 
@@ -308,6 +331,11 @@ def _agent_trace(command_type: CommandType, safety: SafetyLevel, status: Executi
         trace.append("GlobalTripPlanningAgent")
     trace.append("DataUploadAgent")
     return trace
+
+
+def _looks_like_energy_policy_output(output: str) -> bool:
+    text = output or ""
+    return "电量" in text or "低电量" in text or "补能" in text
 
 
 def _rag_context(

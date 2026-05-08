@@ -37,6 +37,15 @@ class PreferenceUpdater:
                 timestamp=event.timestamp,
             )
 
+        if event.execution_status == "NEEDS_CHARGE_CONFIRMATION":
+            return PreferenceUpdate(
+                user_id=event.user_id,
+                preference_key="charge_confirmation_pending",
+                delta=0,
+                description="等待补能确认，不更新偏好",
+                timestamp=event.timestamp,
+            )
+
         if event.execution_status == "NEEDS_DRIVER_CONFIRMATION":
             return PreferenceUpdate(
                 user_id=event.user_id,
