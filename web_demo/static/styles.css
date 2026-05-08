@@ -112,37 +112,26 @@ h2 {
   align-items: stretch;
 }
 
-.vehicle-panel {
-  order: 1;
+.dashboard-section-title {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 4px;
+  color: var(--muted);
 }
 
-.command-panel {
-  order: 2;
+.dashboard-section-title span {
+  color: var(--teal);
+  font-size: 13px;
+  font-weight: 800;
 }
 
-.result-panel {
-  order: 3;
-}
-
-.demo-panel {
-  order: 4;
-}
-
-.trace-panel {
-  order: 5;
-}
-
-.rag-panel {
-  order: 6;
-}
-
-.feedback-panel,
-.local-context-panel,
-.eval-panel,
-.acceptance-panel,
-.provider-panel,
-.route-panel {
-  order: 7;
+.dashboard-section-title strong {
+  font-size: 13px;
+  font-weight: 600;
+  text-align: right;
 }
 
 .panel {

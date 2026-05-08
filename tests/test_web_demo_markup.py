@@ -46,13 +46,23 @@ class TestWebDemoMarkup(unittest.TestCase):
         self.assertIn("overflow-x: hidden;", css)
         self.assertIn("max-width: 100%;", css)
 
-    def test_styles_place_result_panel_before_secondary_panels(self):
-        css = Path("web_demo/static/styles.css").read_text(encoding="utf-8")
+    def test_result_panel_is_in_primary_workflow_before_secondary_panels(self):
+        html = Path("web_demo/static/index.html").read_text(encoding="utf-8")
 
-        self.assertIn(".result-panel", css)
-        self.assertIn("order: 3;", css)
-        self.assertIn(".demo-panel", css)
-        self.assertIn("order: 4;", css)
+        result_index = html.index('class="panel result-panel"')
+        demo_index = html.index('class="panel demo-panel"')
+        trace_index = html.index('class="panel trace-panel"')
+        rag_index = html.index('class="panel rag-panel"')
+
+        self.assertLess(result_index, demo_index)
+        self.assertLess(result_index, trace_index)
+        self.assertLess(result_index, rag_index)
+
+    def test_dashboard_has_primary_and_observability_sections(self):
+        html = Path("web_demo/static/index.html").read_text(encoding="utf-8")
+
+        self.assertIn('class="dashboard-section-title primary-section-title"', html)
+        self.assertIn('class="dashboard-section-title observability-section-title"', html)
 
 
 if __name__ == "__main__":

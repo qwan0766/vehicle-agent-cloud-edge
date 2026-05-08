@@ -20,6 +20,11 @@
       </section>
 
       <section class="dashboard-grid">
+        <div class="dashboard-section-title primary-section-title">
+          <span>主流程</span>
+          <strong>车辆状态、指令输入与执行结果</strong>
+        </div>
+
         <aside class="panel vehicle-panel" aria-label="车辆状态">
           <div class="panel-heading">
             <h2>车辆状态</h2>
@@ -101,18 +106,32 @@
           <div id="commandError" class="inline-error" hidden></div>
         </section>
 
-        <section class="panel demo-panel" aria-label="面试演示模式">
+        <section class="panel result-panel" aria-label="执行结果">
           <div class="panel-heading">
-            <h2>面试演示模式</h2>
-            <span id="demoStepCount">0 steps</span>
+            <h2>执行结果</h2>
+            <span id="requestIdValue">-</span>
           </div>
-          <div id="demoSteps" class="demo-steps">等待演示脚本</div>
-          <div class="demo-notes">
-            <strong id="demoFocus">选择一个演示步骤</strong>
-            <p id="demoTalkTrack">点击步骤后会自动填入指令并运行。</p>
-            <div id="demoExpectedPanels" class="demo-expected"></div>
+          <div class="result-grid">
+            <div>
+              <span>解析意图</span>
+              <strong id="commandTypeValue">-</strong>
+            </div>
+            <div>
+              <span>安全等级</span>
+              <strong id="safetyValue">-</strong>
+            </div>
+            <div>
+              <span>执行状态</span>
+              <strong id="executionValue">-</strong>
+            </div>
           </div>
+          <div id="resultOutput" class="result-output">等待执行结果</div>
         </section>
+
+        <div class="dashboard-section-title observability-section-title">
+          <span>工程观测</span>
+          <strong>Agent、RAG、路线补能、上下文与验收</strong>
+        </div>
 
         <section class="panel trace-panel" aria-label="Agent 调用链">
           <div class="panel-heading">
@@ -255,27 +274,19 @@
           <div id="chargeStations" class="charge-stations">等待充电站结果</div>
         </section>
 
-        <section class="panel result-panel" aria-label="执行结果">
+        <section class="panel demo-panel" aria-label="面试演示模式">
           <div class="panel-heading">
-            <h2>执行结果</h2>
-            <span id="requestIdValue">-</span>
+            <h2>面试演示模式</h2>
+            <span id="demoStepCount">0 steps</span>
           </div>
-          <div class="result-grid">
-            <div>
-              <span>解析意图</span>
-              <strong id="commandTypeValue">-</strong>
-            </div>
-            <div>
-              <span>安全等级</span>
-              <strong id="safetyValue">-</strong>
-            </div>
-            <div>
-              <span>执行状态</span>
-              <strong id="executionValue">-</strong>
-            </div>
+          <div id="demoSteps" class="demo-steps">等待演示脚本</div>
+          <div class="demo-notes">
+            <strong id="demoFocus">选择一个演示步骤</strong>
+            <p id="demoTalkTrack">点击步骤后会自动填入指令并运行。</p>
+            <div id="demoExpectedPanels" class="demo-expected"></div>
           </div>
-          <div id="resultOutput" class="result-output">等待执行结果</div>
         </section>
+
       </section>
     </main>
 
