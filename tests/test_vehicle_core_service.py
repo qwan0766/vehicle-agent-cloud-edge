@@ -43,6 +43,35 @@ class FakeCloudResultReviewer:
         return self.response
 
 
+class CaptureCloudAgent(FakeCloudAgent):
+    def __init__(self):
+        self.messages = []
+
+    def dispatch(self, msg):
+        self.messages.append(msg)
+        return "RAG路线结果：已按重写后的目的地规划"
+
+
+class StaticInputRewriteAgent:
+    def __init__(self, rewritten_input):
+        self.rewritten_input = rewritten_input
+        self.calls = []
+
+    def rewrite(self, raw_input, **kwargs):
+        self.calls.append({"raw_input": raw_input, **kwargs})
+        return {
+            "raw_input": raw_input,
+            "rewritten_input": self.rewritten_input,
+            "intent_hint": "NAVIGATION",
+            "slots": {"destination": "北京蔚来中心"},
+            "confidence": 0.9,
+            "needs_clarification": False,
+            "reason": "测试重写",
+            "source": "test",
+            "memory_used": ["recent_turns"],
+        }
+
+
 class FakeDestinationConfidenceAgent:
     def ensure_executable(self, content, **kwargs):
         raise DestinationClarificationRequired(
@@ -133,6 +162,25 @@ class TestVehicleCoreService(unittest.TestCase):
         self.assertEqual(
             reviewer.calls[0]["context"]["agent_id"],
             "global_safety_dispatch",
+        )
+
+    def test_input_rewrite_feeds_downstream_agents_but_keeps_raw_input(self):
+        cloud = CaptureCloudAgent()
+        rewrite_agent = StaticInputRewriteAgent("导航去116.397128,39.916527")
+        service = VehicleCoreService(
+            cloud_agent=cloud,
+            input_rewrite_agent=rewrite_agent,
+        )
+
+        result = service.run("去北京的蔚来中心", network=NetworkStatus.ONLINE)
+
+        self.assertEqual(result.status, ExecutionStatus.EXECUTED)
+        self.assertEqual(result.message.content, "导航去116.397128,39.916527")
+        self.assertEqual(cloud.messages[0].content, "导航去116.397128,39.916527")
+        self.assertEqual(result.input_rewrite["raw_input"], "去北京的蔚来中心")
+        self.assertEqual(
+            result.input_rewrite["rewritten_input"],
+            "导航去116.397128,39.916527",
         )
 
     def test_online_navigation_candidate_confirmation_is_normal_status(self):

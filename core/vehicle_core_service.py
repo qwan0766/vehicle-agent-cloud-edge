@@ -5,6 +5,7 @@ from agents.vehicle.cabin_vehicle_control_agent import CabinVehicleControlAgent
 from agents.vehicle.data_upload_agent import DataUploadAgent
 from agents.vehicle.energy_policy_agent import EnergyPolicyAgent
 from agents.vehicle.global_safety_dispatch_agent import GlobalSafetyDispatchAgent
+from agents.vehicle.input_rewrite_agent import InputRewriteAgent, normalize_rewrite_result
 from agents.vehicle.local_intent_agent import LocalIntentAgent
 from agents.cloud.destination_confidence_agent import DestinationConfidenceAgent
 from agents.vehicle.vehicle_state_monitor_agent import VehicleStateMonitorAgent
@@ -37,6 +38,7 @@ class ExecutionResult:
     graph: dict = None
     clarification: dict = None
     pending_action: dict = None
+    input_rewrite: dict = None
 
 
 class VehicleCoreService:
@@ -55,6 +57,7 @@ class VehicleCoreService:
         vehicle_state=None,
         state_monitor_agent=None,
         energy_policy_agent=None,
+        input_rewrite_agent=None,
     ):
         self.context_manager = context_manager or LocalAgentContextManager()
         self.intent_agent = intent_agent or LocalIntentAgent(
@@ -77,6 +80,9 @@ class VehicleCoreService:
         self.vehicle_state = vehicle_state or DEFAULT_VEHICLE_STATE
         self.state_monitor_agent = state_monitor_agent or VehicleStateMonitorAgent()
         self.energy_policy_agent = energy_policy_agent or EnergyPolicyAgent()
+        self.input_rewrite_agent = input_rewrite_agent or InputRewriteAgent(
+            context_manager=self.context_manager
+        )
 
     def run(
         self,
@@ -84,6 +90,7 @@ class VehicleCoreService:
         user_id: str = "user_001",
         network: NetworkStatus = NetworkStatus.ONLINE,
     ) -> ExecutionResult:
+        raw_input = user_input
         pending_clarification = self.pending_clarification_store.get(
             user_id,
             DEFAULT_SESSION_ID,
@@ -96,13 +103,57 @@ class VehicleCoreService:
                 )
             self.pending_clarification_store.clear(user_id, DEFAULT_SESSION_ID)
 
-        command_type = self.intent_agent.recognize(
-            user_input,
+        rewrite_result = self._rewrite_input(
+            raw_input=raw_input,
+            current_input=user_input,
             user_id=user_id,
-            preference_state=self._local_preference_state(user_id),
-            vehicle_state=self._vehicle_state_payload(network),
+            network=network,
         )
-        safety = self.safety_agent.check(user_input)
+        user_input = rewrite_result.rewritten_input or user_input
+        input_rewrite = rewrite_result.to_dict()
+
+        command_type = (
+            rewrite_result.intent_hint
+            if rewrite_result.intent_hint != CommandType.UNKNOWN
+            else self.intent_agent.recognize(
+                user_input,
+                user_id=user_id,
+                preference_state=self._local_preference_state(user_id),
+                vehicle_state=self._vehicle_state_payload(network),
+            )
+        )
+        raw_safety = self.safety_agent.check(raw_input)
+        rewritten_safety = self.safety_agent.check(user_input)
+        safety = (
+            raw_safety
+            if raw_safety.value == "DANGEROUS"
+            else rewritten_safety
+        )
+        if rewrite_result.needs_clarification:
+            msg = Message.create(
+                user_id=user_id,
+                command_type=command_type,
+                safety=safety,
+                content=user_input,
+                network=network,
+            )
+            clarification = {
+                "type": "input_rewrite",
+                "reason": "input_rewrite_clarification",
+                "question": rewrite_result.reason or "我需要你补充一下指令细节。",
+                "raw_input": raw_input,
+                "rewritten_input": user_input,
+                "slots": rewrite_result.slots or {},
+            }
+            return self._complete_result(
+                ExecutionResult(
+                    status=ExecutionStatus.NEEDS_CLARIFICATION,
+                    output=clarification["question"],
+                    message=msg,
+                    clarification=clarification,
+                    input_rewrite=input_rewrite,
+                )
+            )
         msg = Message.create(
             user_id=user_id,
             command_type=command_type,
@@ -115,7 +166,7 @@ class VehicleCoreService:
             command_type=command_type,
             safety=safety,
             network=network,
-            content=user_input,
+            content=self._safety_evaluation_content(raw_input, user_input),
             vehicle_state=self._vehicle_state_payload(network),
         )
         if not safety_decision.allowed:
@@ -138,6 +189,7 @@ class VehicleCoreService:
                     status=ExecutionStatus.BLOCKED,
                     output=output,
                     message=msg,
+                    input_rewrite=input_rewrite,
                 )
             )
         if safety_decision.status == ExecutionStatus.NEEDS_DRIVER_CONFIRMATION:
@@ -156,6 +208,7 @@ class VehicleCoreService:
                     output=safety_decision.reason,
                     message=msg,
                     pending_action=pending_action,
+                    input_rewrite=input_rewrite,
                 )
             )
 
@@ -182,6 +235,7 @@ class VehicleCoreService:
                     output=energy_decision.reason,
                     message=msg,
                     pending_action=pending_action,
+                    input_rewrite=input_rewrite,
                 )
             )
 
@@ -214,6 +268,7 @@ class VehicleCoreService:
                     trace=self._destination_confidence_trace(),
                     clarification=clarification,
                     pending_action=pending_action,
+                    input_rewrite=input_rewrite,
                 )
             )
 
@@ -232,6 +287,7 @@ class VehicleCoreService:
                     output=output,
                     message=msg,
                     local_context=local_context,
+                    input_rewrite=input_rewrite,
                 )
             )
 
@@ -265,6 +321,7 @@ class VehicleCoreService:
                     trace=self._destination_confidence_trace(),
                     graph=self._cloud_graph_snapshot(),
                     pending_action=pending_action,
+                    input_rewrite=input_rewrite,
                 )
             )
         cloud_safety_result = self._review_cloud_output(
@@ -276,7 +333,7 @@ class VehicleCoreService:
             network,
         )
         if cloud_safety_result:
-            return cloud_safety_result
+            return self._with_input_rewrite(cloud_safety_result, input_rewrite)
         output = self._append_energy_advisory(output, energy_decision)
         return self._complete_result(
             ExecutionResult(
@@ -285,6 +342,7 @@ class VehicleCoreService:
                 message=msg,
                 trace=self.cloud_agent.get_last_trace(),
                 graph=self._cloud_graph_snapshot(),
+                input_rewrite=input_rewrite,
             )
         )
 
@@ -417,6 +475,46 @@ class VehicleCoreService:
             return output
         return f"{output}\n\n{advisory}"
 
+    def _rewrite_input(
+        self,
+        raw_input: str,
+        current_input: str,
+        user_id: str,
+        network: NetworkStatus,
+    ):
+        rewrite = self.input_rewrite_agent.rewrite(
+            current_input,
+            user_id=user_id,
+            preference_state=self._local_preference_state(user_id),
+            vehicle_state=self._vehicle_state_payload(network),
+        )
+        result = normalize_rewrite_result(rewrite, raw_input=current_input)
+        if raw_input != current_input:
+            payload = result.to_dict()
+            payload["raw_input"] = raw_input
+            payload["post_clarification_input"] = current_input
+            return normalize_rewrite_result(payload, raw_input=raw_input)
+        return result
+
+    def _safety_evaluation_content(self, raw_input: str, rewritten_input: str) -> str:
+        if raw_input == rewritten_input:
+            return rewritten_input
+        return f"原始输入：{raw_input}\n重写输入：{rewritten_input}"
+
+    def _with_input_rewrite(self, result: ExecutionResult, input_rewrite: dict):
+        return ExecutionResult(
+            status=result.status,
+            output=result.output,
+            message=result.message,
+            feedback=result.feedback,
+            trace=result.trace,
+            local_context=result.local_context,
+            graph=result.graph,
+            clarification=result.clarification,
+            pending_action=result.pending_action,
+            input_rewrite=input_rewrite,
+        )
+
     def _review_cloud_output(
         self,
         output: str,
@@ -530,6 +628,7 @@ class VehicleCoreService:
                 graph=result.graph,
                 clarification=result.clarification,
                 pending_action=result.pending_action,
+                input_rewrite=result.input_rewrite,
             )
         return self._with_feedback(result)
 
@@ -547,6 +646,7 @@ class VehicleCoreService:
             graph=result.graph,
             clarification=result.clarification,
             pending_action=result.pending_action,
+            input_rewrite=result.input_rewrite,
         )
 
     def _cloud_graph_snapshot(self):

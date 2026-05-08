@@ -40,6 +40,13 @@ class TestWebDemoFrontendLogic(unittest.TestCase):
         self.assertIn("renderLocalContext", script)
         self.assertIn("payload.local_context", script)
 
+    def test_result_rendering_exposes_input_rewrite(self):
+        script = self.read_frontend_scripts()
+
+        self.assertIn("renderInputRewrite", script)
+        self.assertIn("payload.input_rewrite", script)
+        self.assertIn("input-rewrite-card", script)
+
     def test_result_rendering_updates_graph_path(self):
         script = self.read_frontend_scripts()
 

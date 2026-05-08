@@ -198,6 +198,7 @@ def _command_payload(result, network_status: NetworkStatus):
             "content": result.message.content,
             "network": result.message.network.value,
         },
+        "input_rewrite": result.input_rewrite or {},
         "result": {
             "status": result.status.value,
             "output": result.output,

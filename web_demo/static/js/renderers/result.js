@@ -25,6 +25,7 @@ export function renderResult(nodes, payload, helpers) {
   } else {
     renderMarkdown(nodes.resultOutput, result.output);
   }
+  renderInputRewrite(nodes.resultOutput, payload.input_rewrite || {});
   nodes.traceMode.textContent =
     needsClarification
       ? "需要确认"
@@ -77,6 +78,34 @@ export function renderResult(nodes, payload, helpers) {
   helpers.renderRagContext(nodes, payload.rag_context || []);
   helpers.renderFeedback(nodes, payload.feedback || {});
   helpers.renderLocalContext(nodes, payload.local_context || {});
+}
+
+export function renderInputRewrite(container, rewrite) {
+  const payload = rewrite || {};
+  const raw = payload.raw_input || "";
+  const rewritten = payload.rewritten_input || "";
+  if (!raw || !rewritten || (raw === rewritten && payload.source === "rule")) {
+    return;
+  }
+
+  const card = document.createElement("aside");
+  card.className = "input-rewrite-card";
+
+  const title = document.createElement("strong");
+  title.textContent = "输入重写";
+
+  const body = document.createElement("span");
+  body.textContent = `${raw} -> ${rewritten}`;
+
+  const meta = document.createElement("small");
+  const confidence =
+    typeof payload.confidence === "number"
+      ? `${Math.round(payload.confidence * 100)}%`
+      : "-";
+  meta.textContent = `${payload.source || "unknown"} · confidence ${confidence}`;
+
+  card.append(title, body, meta);
+  container.prepend(card);
 }
 
 export function renderClarification(
