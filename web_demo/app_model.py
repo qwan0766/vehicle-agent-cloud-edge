@@ -164,6 +164,28 @@ def run_command(content: str, user_id: str = "user_001", network: str = "ONLINE"
     network_status = _parse_network(network)
     service = _build_vehicle_service()
     result = service.run(content, user_id=user_id, network=network_status)
+    return _command_payload(result, network_status)
+
+
+def confirm_pending_action(
+    action_id: str,
+    user_id: str = "user_001",
+    confirmed: bool = True,
+    selection: dict = None,
+):
+    load_env_file()
+    service = _build_vehicle_service()
+    result = service.confirm_pending_action(
+        action_id,
+        user_id=user_id,
+        confirmed=confirmed,
+        selection=selection or {},
+    )
+    return _command_payload(result, result.message.network)
+
+
+def _command_payload(result, network_status: NetworkStatus):
+    content = result.message.content
     should_show_route = result.status not in {
         ExecutionStatus.NEEDS_CLARIFICATION,
         ExecutionStatus.NEEDS_CHARGE_CONFIRMATION,
@@ -183,6 +205,7 @@ def run_command(content: str, user_id: str = "user_001", network: str = "ONLINE"
             "status": result.status.value,
             "output": result.output,
             "clarification": result.clarification or {},
+            "pending_action": result.pending_action or {},
         },
         "feedback": result.feedback or {},
         "local_context": result.local_context or {},

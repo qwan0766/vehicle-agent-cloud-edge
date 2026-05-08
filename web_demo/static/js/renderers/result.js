@@ -3,6 +3,7 @@ import { renderRuntimeTrace, renderGraphPath, agentClass } from "./trace.js";
 
 export function renderResult(nodes, payload, helpers) {
   const { request, result, agent_trace: agentTrace } = payload;
+  const pendingAction = result.pending_action || {};
   nodes.requestIdValue.textContent = request.request_id;
   nodes.commandTypeValue.textContent = request.command_type;
   nodes.safetyValue.textContent = request.safety;
@@ -11,7 +12,16 @@ export function renderResult(nodes, payload, helpers) {
   const needsDriverConfirmation = result.status === "NEEDS_DRIVER_CONFIRMATION";
   const needsChargeConfirmation = result.status === "NEEDS_CHARGE_CONFIRMATION";
   if (needsClarification) {
-    renderClarification(nodes, result.clarification || {}, result.output, helpers.runCommand);
+    renderClarification(
+      nodes,
+      result.clarification || {},
+      result.output,
+      pendingAction,
+      helpers.confirmPendingAction,
+      helpers.runCommand
+    );
+  } else if (needsDriverConfirmation || needsChargeConfirmation) {
+    renderPendingConfirmation(nodes, result.output, pendingAction, helpers.confirmPendingAction);
   } else {
     renderMarkdown(nodes.resultOutput, result.output);
   }
@@ -69,7 +79,14 @@ export function renderResult(nodes, payload, helpers) {
   helpers.renderLocalContext(nodes, payload.local_context || {});
 }
 
-export function renderClarification(nodes, clarification, fallbackOutput, runCommand) {
+export function renderClarification(
+  nodes,
+  clarification,
+  fallbackOutput,
+  pendingAction,
+  confirmPendingAction,
+  runCommand
+) {
   const payload = clarification || {};
   const suggestions = Array.isArray(payload.suggestions) ? payload.suggestions : [];
   const candidates = Array.isArray(payload.candidates) ? payload.candidates : [];
@@ -121,9 +138,16 @@ export function renderClarification(nodes, clarification, fallbackOutput, runCom
         `<span>${escapeHtml(candidate.address || candidate.gps || "无地址")}</span>` +
         `<small>置信度 ${escapeHtml(confidence)} · ${escapeHtml(candidate.source || "provider")}</small>`;
       button.addEventListener("click", () => {
+        if (pendingAction && pendingAction.id) {
+          confirmPendingAction(pendingAction, {
+            confirmed: true,
+            selection: candidate,
+          });
+          return;
+        }
         const confirmedTarget = candidate.gps || candidate.name || payload.query || "";
         nodes.commandInput.value = confirmedTarget ? `导航去${confirmedTarget}` : "";
-        if (confirmedTarget) {
+        if (confirmedTarget && runCommand) {
           runCommand();
         } else {
           nodes.commandInput.focus();
@@ -134,6 +158,44 @@ export function renderClarification(nodes, clarification, fallbackOutput, runCom
     card.appendChild(candidateBox);
   }
 
+  nodes.resultOutput.appendChild(card);
+}
+
+export function renderPendingConfirmation(nodes, output, pendingAction, confirmPendingAction) {
+  nodes.resultOutput.innerHTML = "";
+  const card = document.createElement("article");
+  card.className = "clarification-card";
+
+  const title = document.createElement("strong");
+  title.textContent =
+    pendingAction.type === "charge_confirmation" ? "需要确认补能策略" : "需要驾驶员确认";
+  const message = document.createElement("p");
+  message.textContent = output || "该操作需要确认后才能继续。";
+  const meta = document.createElement("small");
+  meta.textContent = pendingAction.id
+    ? `pendingAction.id: ${pendingAction.id}`
+    : "当前没有可恢复的待确认任务";
+
+  const actions = document.createElement("div");
+  actions.className = "confirmation-actions";
+  const confirmButton = document.createElement("button");
+  confirmButton.type = "button";
+  confirmButton.textContent = "确认继续";
+  confirmButton.disabled = !pendingAction.id;
+  confirmButton.addEventListener("click", () => {
+    confirmPendingAction(pendingAction, { confirmed: true });
+  });
+
+  const cancelButton = document.createElement("button");
+  cancelButton.type = "button";
+  cancelButton.textContent = "取消";
+  cancelButton.disabled = !pendingAction.id;
+  cancelButton.addEventListener("click", () => {
+    confirmPendingAction(pendingAction, { confirmed: false });
+  });
+
+  actions.append(confirmButton, cancelButton);
+  card.append(title, message, meta, actions);
   nodes.resultOutput.appendChild(card);
 }
 

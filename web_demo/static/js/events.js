@@ -154,6 +154,45 @@ export async function runCommand(deps) {
   }
 }
 
+export async function confirmPendingAction(deps, pendingAction, options = {}) {
+  const { nodes, state, api, renderers } = deps;
+  if (!pendingAction || !pendingAction.id) {
+    return;
+  }
+
+  const requestId = state.requestSeq + 1;
+  state.requestSeq = requestId;
+  state.activeRequestId = requestId;
+  nodes.runBtn.disabled = true;
+  nodes.runBtn.textContent = "确认中";
+  nodes.resultOutput.textContent = "正在继续待确认任务";
+  renderers.clearCommandError(nodes);
+
+  try {
+    const payload = await api.confirmActionRequest({
+      action_id: pendingAction.id,
+      user_id: state.userId,
+      confirmed: options.confirmed !== false,
+      selection: options.selection || {},
+    });
+    if (requestId !== state.activeRequestId) {
+      return;
+    }
+    renderers.renderVehicle(nodes, payload.vehicle_state, {}, state);
+    renderers.renderResult(nodes, payload, resultHelpers(deps));
+  } catch (error) {
+    if (requestId !== state.activeRequestId) {
+      return;
+    }
+    renderers.renderCommandError(nodes, error, resultHelpers(deps));
+  } finally {
+    if (requestId === state.activeRequestId) {
+      nodes.runBtn.disabled = false;
+      nodes.runBtn.textContent = "运行指令";
+    }
+  }
+}
+
 function resultHelpers(deps) {
   const { renderers } = deps;
   return {
@@ -162,5 +201,7 @@ function resultHelpers(deps) {
     renderFeedback: renderers.renderFeedback,
     renderLocalContext: renderers.renderLocalContext,
     runCommand: () => runCommand(deps),
+    confirmPendingAction: (pendingAction, options) =>
+      confirmPendingAction(deps, pendingAction, options),
   };
 }

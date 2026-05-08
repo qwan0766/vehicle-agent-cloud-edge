@@ -46,6 +46,7 @@ def main():
     results.extend(check_state(base_url))
     results.extend(check_command_matrix(base_url))
     results.extend(check_demo_matrix(base_url))
+    results.extend(check_confirmation_matrix(base_url))
 
     screenshots = []
     if args.screenshots:
@@ -189,6 +190,62 @@ def check_demo_matrix(base_url):
         results.append(check_demo_case(base_url, case))
     reset_vehicle_state(base_url)
     return results
+
+
+def check_confirmation_matrix(base_url):
+    reset_vehicle_state(base_url)
+    first_status, first_body, first_payload = http_post_json(
+        base_url + "/api/run",
+        {
+            "content": "\u5bfc\u822a\u53bb\u5317\u4eac",
+            "user_id": "webqa_confirm_destination",
+            "network": "ONLINE",
+        },
+    )
+    pending_action = (
+        first_payload.get("result", {}).get("pending_action", {})
+        if first_status == 200
+        else {}
+    )
+    if first_status != 200 or not pending_action.get("id"):
+        return [
+            CheckResult(
+                "confirm destination pending",
+                "FAIL",
+                f"HTTP {first_status}: {first_body[:240]}",
+            )
+        ]
+
+    confirm_status, confirm_body, confirm_payload = http_post_json(
+        base_url + "/api/confirm",
+        {
+            "action_id": pending_action["id"],
+            "user_id": "webqa_confirm_destination",
+            "confirmed": True,
+            "selection": {"gps": "121.497253,31.238235", "name": "\u4e0a\u6d77\u5916\u6ee9"},
+        },
+    )
+    result = confirm_payload.get("result", {})
+    request_payload = confirm_payload.get("request", {})
+    if (
+        confirm_status == 200
+        and result.get("status") == "EXECUTED"
+        and request_payload.get("content") == "\u5bfc\u822a\u53bb121.497253,31.238235"
+    ):
+        return [
+            CheckResult(
+                "confirm destination pending",
+                "PASS",
+                f"{pending_action['type']} -> {result.get('status')}",
+            )
+        ]
+    return [
+        CheckResult(
+            "confirm destination pending",
+            "FAIL",
+            f"HTTP {confirm_status}: {confirm_body[:240]}",
+        )
+    ]
 
 
 def check_demo_case(base_url, case):

@@ -17,6 +17,7 @@ from core.constants import CommandType, ExecutionStatus, NetworkStatus
 from core.message import Message
 from data.vehicle_state import DEFAULT_VEHICLE_STATE
 from memory.local_agent_context_manager import DEFAULT_SESSION_ID, LocalAgentContextManager
+from memory.pending_action_store import PendingActionStore
 from memory.pending_clarification_store import PendingClarificationStore
 from providers.destination_resolver import (
     DestinationClarificationRequired,
@@ -35,6 +36,7 @@ class ExecutionResult:
     local_context: dict = None
     graph: dict = None
     clarification: dict = None
+    pending_action: dict = None
 
 
 class VehicleCoreService:
@@ -48,6 +50,7 @@ class VehicleCoreService:
         control_agent=None,
         data_upload_agent=None,
         pending_clarification_store=None,
+        pending_action_store=None,
         destination_confidence_agent=None,
         vehicle_state=None,
         state_monitor_agent=None,
@@ -67,6 +70,7 @@ class VehicleCoreService:
         self.pending_clarification_store = (
             pending_clarification_store or PendingClarificationStore()
         )
+        self.pending_action_store = pending_action_store or PendingActionStore()
         self.destination_confidence_agent = (
             destination_confidence_agent or DestinationConfidenceAgent()
         )
@@ -137,11 +141,21 @@ class VehicleCoreService:
                 )
             )
         if safety_decision.status == ExecutionStatus.NEEDS_DRIVER_CONFIRMATION:
+            pending_action = self._create_pending_action(
+                "driver_confirmation",
+                user_id,
+                user_input,
+                command_type,
+                network,
+                safety_decision.reason,
+                {"vehicle_state": self._vehicle_state_payload(network)},
+            )
             return self._complete_result(
                 ExecutionResult(
                     status=ExecutionStatus.NEEDS_DRIVER_CONFIRMATION,
                     output=safety_decision.reason,
                     message=msg,
+                    pending_action=pending_action,
                 )
             )
 
@@ -151,11 +165,23 @@ class VehicleCoreService:
             vehicle_state=self.vehicle_state,
         )
         if not energy_decision.allowed:
+            pending_action = None
+            if energy_decision.status == ExecutionStatus.NEEDS_CHARGE_CONFIRMATION:
+                pending_action = self._create_pending_action(
+                    "charge_confirmation",
+                    user_id,
+                    user_input,
+                    command_type,
+                    network,
+                    energy_decision.reason,
+                    {"vehicle_state": self._vehicle_state_payload(network)},
+                )
             return self._complete_result(
                 ExecutionResult(
                     status=energy_decision.status,
                     output=energy_decision.reason,
                     message=msg,
+                    pending_action=pending_action,
                 )
             )
 
@@ -171,6 +197,15 @@ class VehicleCoreService:
                 DEFAULT_SESSION_ID,
                 clarification,
             )
+            pending_action = self._create_pending_action(
+                "destination_clarification",
+                user_id,
+                user_input,
+                command_type,
+                network,
+                clarification["question"],
+                {"clarification": clarification},
+            )
             return self._complete_result(
                 ExecutionResult(
                     status=ExecutionStatus.NEEDS_CLARIFICATION,
@@ -178,6 +213,7 @@ class VehicleCoreService:
                     message=msg,
                     trace=self._destination_confidence_trace(),
                     clarification=clarification,
+                    pending_action=pending_action,
                 )
             )
 
@@ -211,6 +247,15 @@ class VehicleCoreService:
                 DEFAULT_SESSION_ID,
                 clarification,
             )
+            pending_action = self._create_pending_action(
+                "destination_clarification",
+                user_id,
+                user_input,
+                command_type,
+                network,
+                clarification["question"],
+                {"clarification": clarification},
+            )
             return self._complete_result(
                 ExecutionResult(
                     status=ExecutionStatus.NEEDS_CLARIFICATION,
@@ -219,6 +264,7 @@ class VehicleCoreService:
                     clarification=clarification,
                     trace=self._destination_confidence_trace(),
                     graph=self._cloud_graph_snapshot(),
+                    pending_action=pending_action,
                 )
             )
         allowed, reason = self.safety_agent.verify_cloud_result(output)
@@ -237,6 +283,122 @@ class VehicleCoreService:
             ExecutionResult(
                 status=ExecutionStatus.EXECUTED,
                 output=output,
+                message=msg,
+                trace=self.cloud_agent.get_last_trace(),
+                graph=self._cloud_graph_snapshot(),
+            )
+        )
+
+    def confirm_pending_action(
+        self,
+        action_id: str,
+        user_id: str = "user_001",
+        confirmed: bool = True,
+        selection: dict = None,
+    ) -> ExecutionResult:
+        action = self.pending_action_store.get(action_id)
+        if not action or action.get("user_id") != user_id:
+            raise ValueError("Pending action not found or expired")
+
+        self.pending_action_store.clear(action_id)
+        self.pending_clarification_store.clear(user_id, action.get("session_id") or DEFAULT_SESSION_ID)
+
+        command_type = CommandType(action.get("command_type"))
+        network = NetworkStatus(action.get("network"))
+        content = action.get("content") or ""
+        if not confirmed:
+            msg = Message.create(
+                user_id=user_id,
+                command_type=command_type,
+                safety=self.safety_agent.check(content),
+                content=content,
+                network=network,
+            )
+            return self._complete_result(
+                ExecutionResult(
+                    status=ExecutionStatus.BLOCKED,
+                    output="已取消待确认操作，系统不会继续执行该指令。",
+                    message=msg,
+                )
+            )
+
+        action_type = action.get("type")
+        if action_type == "destination_clarification":
+            confirmed_content = self._confirmed_destination_content(action, selection or {})
+            return self.run(confirmed_content, user_id=user_id, network=network)
+
+        if action_type == "driver_confirmation":
+            msg = Message.create(
+                user_id=user_id,
+                command_type=command_type,
+                safety=self.safety_agent.check(content),
+                content=content,
+                network=network,
+            )
+            output = f"驾驶员确认后执行：{content}"
+            if command_type == CommandType.CAR_CONTROL:
+                output = f"驾驶员确认后执行。\n{self.control_agent.execute(command_type, content)}"
+            return self._complete_result(
+                ExecutionResult(
+                    status=ExecutionStatus.EXECUTED,
+                    output=output,
+                    message=msg,
+                )
+            )
+
+        if action_type == "charge_confirmation":
+            return self._execute_after_charge_confirmation(content, user_id, command_type, network)
+
+        raise ValueError(f"Unsupported pending action type: {action_type}")
+
+    def _execute_after_charge_confirmation(
+        self,
+        content: str,
+        user_id: str,
+        command_type: CommandType,
+        network: NetworkStatus,
+    ) -> ExecutionResult:
+        safety = self.safety_agent.check(content)
+        msg = Message.create(
+            user_id=user_id,
+            command_type=command_type,
+            safety=safety,
+            content=content,
+            network=network,
+        )
+        if network == NetworkStatus.OFFLINE:
+            local_context = self.intent_agent.build_local_llm_context(
+                user_id=user_id,
+                preference_state=self._local_preference_state(user_id),
+                current_input=content,
+                vehicle_state=self._vehicle_state_payload(network),
+            )
+            output = self._run_local(command_type, content, local_context)
+            return self._complete_result(
+                ExecutionResult(
+                    status=ExecutionStatus.FALLBACK,
+                    output=f"已确认低电量补能风险。\n{output}",
+                    message=msg,
+                    local_context=local_context,
+                )
+            )
+
+        output = self.cloud_agent.dispatch(msg)
+        allowed, reason = self.safety_agent.verify_cloud_result(output)
+        if not allowed:
+            return self._complete_result(
+                ExecutionResult(
+                    status=ExecutionStatus.BLOCKED,
+                    output=reason,
+                    message=msg,
+                    trace=self.cloud_agent.get_last_trace(),
+                    graph=self._cloud_graph_snapshot(),
+                )
+            )
+        return self._complete_result(
+            ExecutionResult(
+                status=ExecutionStatus.EXECUTED,
+                output=f"已确认低电量补能风险。\n{output}",
                 message=msg,
                 trace=self.cloud_agent.get_last_trace(),
                 graph=self._cloud_graph_snapshot(),
@@ -304,6 +466,7 @@ class VehicleCoreService:
                 local_context=context_snapshot,
                 graph=result.graph,
                 clarification=result.clarification,
+                pending_action=result.pending_action,
             )
         return self._with_feedback(result)
 
@@ -320,6 +483,7 @@ class VehicleCoreService:
             local_context=result.local_context,
             graph=result.graph,
             clarification=result.clarification,
+            pending_action=result.pending_action,
         )
 
     def _cloud_graph_snapshot(self):
@@ -369,3 +533,44 @@ class VehicleCoreService:
         if not callable(trace_getter):
             return []
         return trace_getter()
+
+    def _create_pending_action(
+        self,
+        action_type: str,
+        user_id: str,
+        content: str,
+        command_type: CommandType,
+        network: NetworkStatus,
+        reason: str,
+        payload: dict = None,
+    ) -> dict:
+        return self.pending_action_store.create(
+            action_type=action_type,
+            user_id=user_id,
+            session_id=DEFAULT_SESSION_ID,
+            content=content,
+            command_type=command_type.value,
+            network=network.value,
+            reason=reason,
+            payload=payload or {},
+        )
+
+    def _confirmed_destination_content(self, action: dict, selection: dict) -> str:
+        payload = action.get("payload") or {}
+        clarification = payload.get("clarification") or {}
+        gps = (selection.get("gps") or "").strip()
+        if gps:
+            return f"导航去{gps}"
+        selected = (
+            selection.get("content")
+            or selection.get("name")
+            or selection.get("query")
+            or ""
+        ).strip()
+        if not selected:
+            selected = clarification.get("query", "")
+        if selected.startswith(("导航去", "导航到", "去", "到")):
+            return selected
+        if is_destination_refinement(selected, clarification):
+            return reconstruct_destination_command(selected, clarification)
+        return f"导航去{selected}"

@@ -1,5 +1,6 @@
 import {
   getInitialState,
+  confirmActionRequest,
   runCommandRequest,
   updateVehicleStateRequest,
   getVehicleEvents,
@@ -39,6 +40,7 @@ import { renderLocalContext } from "./js/renderers/local-context.js";
 
 const api = {
   getInitialState,
+  confirmActionRequest,
   runCommandRequest,
   updateVehicleStateRequest,
   getVehicleEvents,

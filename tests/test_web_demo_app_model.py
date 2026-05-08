@@ -2,6 +2,7 @@ import unittest
 import uuid
 from pathlib import Path
 
+from web_demo.app_model import confirm_pending_action
 from web_demo.app_model import run_command
 from web_demo.app_model import get_initial_payload
 from web_demo.app_model import get_acceptance_payload
@@ -308,6 +309,23 @@ class TestWebDemoAppModel(unittest.TestCase):
             any(item["stage"] == "云端路线规划" for item in payload["rag_context"])
         )
         self.assertEqual(payload["runtime_trace"], [])
+
+    def test_pending_destination_confirmation_continues_original_task(self):
+        user_id = f"user_{uuid.uuid4().hex}"
+        first = run_command("导航去北京", user_id=user_id, network="ONLINE")
+
+        self.assertEqual(first["result"]["status"], "NEEDS_CLARIFICATION")
+        self.assertEqual(first["result"]["pending_action"]["type"], "destination_clarification")
+
+        second = confirm_pending_action(
+            first["result"]["pending_action"]["id"],
+            user_id=user_id,
+            selection={"gps": "121.497253,31.238235", "name": "上海外滩"},
+        )
+
+        self.assertEqual(second["result"]["status"], "EXECUTED")
+        self.assertEqual(second["request"]["content"], "导航去121.497253,31.238235")
+        self.assertEqual(second["result"]["pending_action"], {})
 
 
 if __name__ == "__main__":

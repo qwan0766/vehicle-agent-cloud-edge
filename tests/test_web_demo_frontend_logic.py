@@ -63,8 +63,18 @@ class TestWebDemoFrontendLogic(unittest.TestCase):
         self.assertIn("clarification-candidates", script)
         self.assertIn("candidate.confidence", script)
         self.assertIn("candidate.source", script)
-        self.assertIn("const confirmedTarget = candidate.gps || candidate.name", script)
-        self.assertIn("runCommand();", script)
+        self.assertIn("confirmPendingAction", script)
+        self.assertIn("pendingAction.id", script)
+        self.assertIn("/api/confirm", script)
+
+    def test_confirmation_states_render_action_buttons(self):
+        script = self.read_frontend_scripts()
+
+        self.assertIn("renderPendingConfirmation", script)
+        self.assertIn('result.status === "NEEDS_DRIVER_CONFIRMATION"', script)
+        self.assertIn('result.status === "NEEDS_CHARGE_CONFIRMATION"', script)
+        self.assertIn("confirmation-actions", script)
+        self.assertIn("confirmed: true", script)
 
     def test_scenario_buttons_mark_manual_trigger_and_auto_events_render_separately(self):
         script = self.read_frontend_scripts()

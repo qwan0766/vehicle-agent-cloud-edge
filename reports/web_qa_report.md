@@ -1,6 +1,6 @@
 # Web QA Report
 
-- Generated at: 2026-05-08T18:23:34.414427+08:00
+- Generated at: 2026-05-08T19:04:23.981119+08:00
 - Base URL: http://127.0.0.1:8031
 - Overall status: PASS
 
@@ -9,12 +9,12 @@
 | Check | Status | Detail |
 | --- | --- | --- |
 | asset / | PASS | HTTP 200, 10484 bytes |
-| asset /app.js | PASS | HTTP 200, 2867 bytes |
-| asset /styles.css | PASS | HTTP 200, 16263 bytes |
-| asset /js/api.js | PASS | HTTP 200, 1449 bytes |
-| asset /js/events.js | PASS | HTTP 200, 5708 bytes |
+| asset /app.js | PASS | HTTP 200, 2915 bytes |
+| asset /styles.css | PASS | HTTP 200, 16753 bytes |
+| asset /js/api.js | PASS | HTTP 200, 1707 bytes |
+| asset /js/events.js | PASS | HTTP 200, 7008 bytes |
 | asset /js/renderers/demo.js | PASS | HTTP 200, 2957 bytes |
-| asset /js/renderers/result.js | PASS | HTTP 200, 7183 bytes |
+| asset /js/renderers/result.js | PASS | HTTP 200, 9194 bytes |
 | api state | PASS | orchestrator=langgraph_default, acceptance=PASS, demo_steps=5 |
 | online navigation | PASS | NAVIGATION / EXECUTED / graph=langgraph / trip_plan=True |
 | online car control | PASS | CAR_CONTROL / EXECUTED / graph=langgraph / trip_plan=False |
@@ -26,6 +26,7 @@
 | demo highway_speed_confirmation | PASS | 高速速度请求确认: CAR_CONTROL / NEEDS_DRIVER_CONFIRMATION |
 | demo urban_speed_block | PASS | 城市超限危险拦截: CAR_CONTROL / BLOCKED |
 | demo low_battery_energy_policy | PASS | 低电量状态与能源策略: NAVIGATION / NEEDS_CHARGE_CONFIRMATION |
+| confirm destination pending | PASS | destination_clarification -> EXECUTED |
 | screenshot desktop | PASS | E:\claudeCode\weilaiAgent\reports\browser_qa\desktop.png (96421 bytes) |
 | screenshot mobile | PASS | E:\claudeCode\weilaiAgent\reports\browser_qa\mobile.png (26607 bytes) |
 

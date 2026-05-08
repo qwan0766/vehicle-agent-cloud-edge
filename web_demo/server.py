@@ -12,6 +12,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from web_demo.app_model import (
+    confirm_pending_action,
     get_acceptance_payload,
     get_initial_payload,
     get_vehicle_events_payload,
@@ -24,7 +25,7 @@ from providers.destination_resolver import extract_destination_query
 
 class WebDemoHandler(SimpleHTTPRequestHandler):
     GET_ROUTES = {"/api/state", "/api/acceptance", "/api/vehicle-events"}
-    POST_ROUTES = {"/api/run", "/api/provider-smoke", "/api/vehicle-state"}
+    POST_ROUTES = {"/api/run", "/api/confirm", "/api/provider-smoke", "/api/vehicle-state"}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(STATIC_ROOT), **kwargs)
@@ -61,6 +62,28 @@ class WebDemoHandler(SimpleHTTPRequestHandler):
 
         if self.path == "/api/vehicle-state":
             self._send_json(update_vehicle_state(payload))
+            return
+        if self.path == "/api/confirm":
+            try:
+                self._send_json(
+                    confirm_pending_action(
+                        payload.get("action_id", ""),
+                        user_id=payload.get("user_id", "user_001"),
+                        confirmed=payload.get("confirmed", True),
+                        selection=payload.get("selection") or {},
+                    )
+                )
+            except Exception as exc:
+                self._send_json(
+                    {
+                        "error": build_error_response(
+                            exc,
+                            content="pending action confirmation",
+                            network="ONLINE",
+                        )
+                    },
+                    status=404,
+                )
             return
 
         content = payload.get("content", "")

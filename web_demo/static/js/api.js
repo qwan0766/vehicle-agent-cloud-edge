@@ -12,6 +12,15 @@ export async function runCommandRequest(payload) {
   return parseJsonResponse(response);
 }
 
+export async function confirmActionRequest(payload) {
+  const response = await fetch("/api/confirm", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  return parseJsonResponse(response);
+}
+
 export async function updateVehicleStateRequest(payload) {
   const response = await fetch("/api/vehicle-state", {
     method: "POST",
