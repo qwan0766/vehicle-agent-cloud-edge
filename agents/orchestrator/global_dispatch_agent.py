@@ -187,6 +187,8 @@ class GlobalDispatchAgent:
 
     def _graph_assemble(self, state: dict) -> dict:
         updated = self._copy_state(state)
+        updated["result"] = self._assemble_result(updated)
+        return self._mark_path(updated, "assemble")
         updated["result"] = (
             f"{updated.get('user_profile', '')} | "
             f"{updated.get('knowledge_context', '')} | "
@@ -200,6 +202,23 @@ class GlobalDispatchAgent:
         updated = dict(state)
         updated["path"] = list(state.get("path", []))
         return updated
+
+    def _assemble_result(self, state: dict) -> str:
+        if self._requires_trip_planning(state["message"].command_type):
+            return _dedupe_decision_text(
+                state.get("decision", ""),
+                state.get("task_context", ""),
+            )
+        return " | ".join(
+            item
+            for item in [
+                state.get("user_profile", ""),
+                state.get("knowledge_context", ""),
+                state.get("ecology", ""),
+                state.get("decision", ""),
+            ]
+            if item
+        )
 
     def _mark_path(self, state: dict, node_name: str) -> dict:
         updated = self._copy_state(state)
@@ -326,3 +345,18 @@ class GlobalDispatchAgent:
             ),
         )
         return registry
+
+
+def _dedupe_decision_text(decision: str, task_context: str) -> str:
+    normalized_decision = (decision or "").strip()
+    normalized_task = (task_context or "").strip()
+    if not normalized_decision:
+        return normalized_task
+    prefixed_task = f"LLM决策：{normalized_task}"
+    if normalized_task and normalized_decision.startswith(prefixed_task):
+        suffix = normalized_decision[len(prefixed_task) :].strip()
+        return f"{normalized_task}{suffix}" if suffix else normalized_task
+    if normalized_task and normalized_decision.startswith(normalized_task):
+        suffix = normalized_decision[len(normalized_task) :].strip()
+        return f"{normalized_task}{suffix}" if suffix else normalized_task
+    return normalized_decision

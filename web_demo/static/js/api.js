@@ -35,6 +35,11 @@ export async function getVehicleEvents() {
   return parseJsonResponse(response);
 }
 
+export async function getOfflineEvaluation() {
+  const response = await fetch("/api/offline-evaluation");
+  return parseJsonResponse(response);
+}
+
 export async function runProviderSmokeTestRequest() {
   const response = await fetch("/api/provider-smoke", { method: "POST" });
   return parseJsonResponse(response);

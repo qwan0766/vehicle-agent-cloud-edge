@@ -1,4 +1,4 @@
-import { escapeHtml } from "../markdown.js";
+﻿import { escapeHtml } from "../markdown.js?v=agent-trace-aligned-20260510";
 
 export function renderUsers(nodes, state) {
   nodes.userSelect.innerHTML = "";
@@ -12,7 +12,7 @@ export function renderUsers(nodes, state) {
   nodes.userIdValue.textContent = state.userId;
 }
 
-export function renderScenarioButtons(nodes, state, setNetwork, runCommand) {
+export function renderScenarioButtons(nodes, state, setNetwork) {
   nodes.scenarioButtons.innerHTML = "";
   state.scenarios.forEach((scenario) => {
     const button = document.createElement("button");
@@ -23,7 +23,7 @@ export function renderScenarioButtons(nodes, state, setNetwork, runCommand) {
     button.addEventListener("click", () => {
       nodes.commandInput.value = scenario.content;
       setNetwork(scenario.network);
-      runCommand();
+      nodes.commandInput.focus();
     });
     nodes.scenarioButtons.appendChild(button);
   });

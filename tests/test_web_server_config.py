@@ -1,4 +1,5 @@
 import unittest
+import inspect
 
 from web_demo.server import WebDemoHandler, parse_server_args
 
@@ -21,6 +22,16 @@ class TestWebServerConfig(unittest.TestCase):
 
     def test_vehicle_events_path_is_registered(self):
         self.assertIn("/api/vehicle-events", WebDemoHandler.GET_ROUTES)
+
+    def test_offline_evaluation_path_is_registered(self):
+        self.assertIn("/api/offline-evaluation", WebDemoHandler.GET_ROUTES)
+
+    def test_static_responses_disable_browser_cache(self):
+        source = inspect.getsource(WebDemoHandler.end_headers)
+
+        self.assertIn("Cache-Control", source)
+        self.assertIn("no-store", source)
+        self.assertIn("Pragma", source)
 
 
 if __name__ == "__main__":

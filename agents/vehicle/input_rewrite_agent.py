@@ -2,7 +2,7 @@ import json
 import os
 from dataclasses import asdict, dataclass
 
-from core.constants import CommandType
+from core.constants import CommandType, ExecutionStatus
 from llm.local_provider import create_local_llm_provider
 from memory.local_agent_context_manager import DEFAULT_SESSION_ID, LocalAgentContextManager
 
@@ -226,11 +226,17 @@ def _extract_json(raw_output: str) -> dict:
 
 
 def _last_navigation_destination(turns) -> str:
+    successful_statuses = {
+        ExecutionStatus.EXECUTED.value,
+        ExecutionStatus.FALLBACK.value,
+    }
     for turn in reversed(list(turns or [])):
         if turn.get("command_type") != CommandType.NAVIGATION.value:
             continue
+        if turn.get("execution_status") not in successful_statuses:
+            continue
         destination = _extract_destination(turn.get("user_input", ""))
-        if destination:
+        if destination and not _is_deictic_destination_reference(destination):
             return destination
     return ""
 

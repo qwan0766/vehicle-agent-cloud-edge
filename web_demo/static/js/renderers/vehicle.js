@@ -1,4 +1,4 @@
-import { escapeHtml } from "../markdown.js";
+﻿import { escapeHtml } from "../markdown.js?v=agent-trace-aligned-20260510";
 
 export function renderVehicle(nodes, vehicle, options = {}, state = null) {
   const syncControls = options.syncControls !== false;
@@ -65,6 +65,20 @@ export function renderAutoEvents(nodes, events, rules) {
 }
 
 export function renderOfflineEvaluation(nodes, report) {
+  if (!report || report.status === "PENDING") {
+    nodes.evalTotal.textContent = "pending";
+    nodes.evalIntent.textContent = "-";
+    nodes.evalSafety.textContent = "-";
+    nodes.evalRag.textContent = "-";
+    return;
+  }
+  if (report.status === "ERROR") {
+    nodes.evalTotal.textContent = "error";
+    nodes.evalIntent.textContent = "-";
+    nodes.evalSafety.textContent = "-";
+    nodes.evalRag.textContent = "-";
+    return;
+  }
   nodes.evalTotal.textContent = `${report.total} cases`;
   nodes.evalIntent.textContent = formatPercent(report.intent_accuracy);
   nodes.evalSafety.textContent = formatPercent(report.safety_block_recall);

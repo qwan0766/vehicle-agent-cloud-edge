@@ -111,6 +111,43 @@ class TestInputRewriteAgent(unittest.TestCase):
         self.assertEqual(result.intent_hint, CommandType.NAVIGATION)
         self.assertIn("recent_turns", result.memory_used)
 
+    def test_rule_fallback_ignores_failed_navigation_memory_for_old_place(self):
+        path = Path(".test_runtime") / f"rewrite_context_{uuid.uuid4().hex}.json"
+        manager = LocalAgentContextManager(path=path, max_recent_turns=4)
+        successful = SimpleNamespace(
+            status=ExecutionStatus.EXECUTED,
+            output="已规划前往蔚来中心的路线",
+            message=Message.create(
+                user_id="user_001",
+                command_type=CommandType.NAVIGATION,
+                safety=SafetyLevel.SAFE,
+                content="导航去蔚来中心",
+                network=NetworkStatus.ONLINE,
+            ),
+        )
+        failed = SimpleNamespace(
+            status=ExecutionStatus.NEEDS_CLARIFICATION,
+            output="这个目的地信息还不够具体。",
+            message=Message.create(
+                user_id="user_001",
+                command_type=CommandType.NAVIGATION,
+                safety=SafetyLevel.SAFE,
+                content="导航去老地方",
+                network=NetworkStatus.ONLINE,
+            ),
+        )
+        manager.record_result(successful, agent_id="local_intent")
+        manager.record_result(failed, agent_id="local_intent")
+        agent = InputRewriteAgent(
+            context_manager=manager,
+            enable_llm_rewrite=False,
+        )
+
+        result = agent.rewrite("去老地方", user_id="user_001")
+
+        self.assertEqual(result.rewritten_input, "导航去蔚来中心")
+        self.assertEqual(result.intent_hint, CommandType.NAVIGATION)
+
 
 if __name__ == "__main__":
     unittest.main()

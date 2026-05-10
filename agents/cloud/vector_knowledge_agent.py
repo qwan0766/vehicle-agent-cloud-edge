@@ -33,7 +33,7 @@ class VectorKnowledgeAgent:
             results.extend(
                 item
                 for item in self.route_retriever.search(query, top_k=2)
-                if self._is_high_signal_route_match(item)
+                if self._is_high_signal_route_match(item, query)
             )
 
         return self._dedupe(results)[: max(1, int(top_k))]
@@ -73,5 +73,12 @@ class VectorKnowledgeAgent:
             unique.append(result)
         return unique
 
-    def _is_high_signal_route_match(self, result):
+    def _is_high_signal_route_match(self, result, query: str = ""):
+        if result.document.doc_id == "route_highway_preference":
+            text = query or ""
+            matched = set(result.matched_keywords)
+            high_signal_terms = {"长途", "高速", "跨城", "远途"}
+            return bool(matched & high_signal_terms) or any(
+                term in text for term in high_signal_terms
+            )
         return result.score >= 6

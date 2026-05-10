@@ -15,7 +15,7 @@ export function renderLocalContext(nodes, context) {
     : "等待本地记忆";
   nodes.localContextProvider.textContent = localLlm.provider || "-";
   nodes.localContextModel.textContent = localLlm.model || "-";
-  nodes.localContextSummary.textContent = payload.summary || "暂无压缩摘要";
+  renderSummarySegments(nodes.localContextSummary, payload.summary || "");
   nodes.localContextPrompt.textContent = localLlm.prompt_preview || "暂无 prompt 预览";
   nodes.localContextRecent.innerHTML = "";
 
@@ -36,4 +36,95 @@ export function renderLocalContext(nodes, context) {
     row.append(input, meta);
     nodes.localContextRecent.appendChild(row);
   });
+}
+
+export function renderSummarySegments(container, summary) {
+  container.innerHTML = "";
+  const segments = formatSummarySegments(summary);
+
+  if (!segments.length) {
+    container.textContent = "暂无压缩摘要";
+    return;
+  }
+
+  const list = document.createElement("ol");
+  list.className = "local-context-summary-list";
+
+  segments.forEach((segment) => {
+    const item = document.createElement("li");
+    item.className = "summary-segment";
+
+    const meta = document.createElement("span");
+    meta.className = "summary-status";
+    meta.textContent = segment.status
+      ? `${segment.kind} · ${segment.status}`
+      : segment.kind;
+
+    const title = document.createElement("strong");
+    title.className = "summary-user";
+    title.textContent = segment.user || segment.title;
+
+    const body = document.createElement("small");
+    body.textContent = segment.body;
+
+    item.append(meta, title, body);
+    list.appendChild(item);
+  });
+
+  container.appendChild(list);
+}
+
+export function formatSummarySegments(summary) {
+  const text = String(summary || "").trim();
+  if (!text) {
+    return [];
+  }
+
+  return text
+    .split(/\s+\|\s+/)
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .slice(-8)
+    .map(parseSummarySegment);
+}
+
+function parseSummarySegment(segment) {
+  const turnMatch = segment.match(
+    /^([A-Z_]+):([A-Z_]+)\s+user=(.*?)\s*->\s*(.*)$/
+  );
+  if (turnMatch) {
+    return {
+      kind: turnMatch[1],
+      status: turnMatch[2],
+      user: compactText(turnMatch[3], 80),
+      title: "本地记忆",
+      body: compactText(turnMatch[4], 180),
+    };
+  }
+
+  if (/^\{/.test(segment) || /^\[/.test(segment)) {
+    return {
+      kind: "STRUCTURED",
+      status: "",
+      user: "",
+      title: "结构化摘要片段",
+      body: compactText(segment, 180),
+    };
+  }
+
+  return {
+    kind: "SUMMARY",
+    status: "",
+    user: "",
+    title: "摘要片段",
+    body: compactText(segment, 180),
+  };
+}
+
+function compactText(value, maxLength) {
+  const text = String(value || "").replace(/\s+/g, " ").trim();
+  if (text.length <= maxLength) {
+    return text;
+  }
+  return `${text.slice(0, Math.max(0, maxLength - 1))}…`;
 }

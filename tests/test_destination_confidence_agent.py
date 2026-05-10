@@ -73,6 +73,26 @@ def test_generic_destination_requires_candidate_confirmation_even_with_map_candi
     assert llm.calls
 
 
+def test_vague_subjective_destination_without_candidates_does_not_claim_candidates_exist():
+    llm = FakeLLMClient(
+        '{"decision":"NEEDS_CLARIFICATION","confidence":0.1,'
+        '"reason":"用户输入是主观描述，不是可检索 POI"}'
+    )
+    agent = DestinationConfidenceAgent(llm_client=llm)
+
+    with pytest.raises(DestinationClarificationRequired) as context:
+        agent.ensure_executable(
+            "导航去上海最漂亮的地方",
+            candidate_provider=FakeCandidateProvider([]),
+        )
+
+    assert context.value.reason == "no_destination_candidates"
+    assert context.value.query == "上海最漂亮的地方"
+    assert context.value.candidates == []
+    assert "候选列表为空" in context.value.suggestions[0]
+    assert llm.calls
+
+
 def test_frequent_destination_can_be_executed_without_confirmation():
     llm = FakeLLMClient('{"decision":"NEEDS_CLARIFICATION","confidence":0.2}')
     agent = DestinationConfidenceAgent(llm_client=llm)

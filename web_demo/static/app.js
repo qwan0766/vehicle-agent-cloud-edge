@@ -1,42 +1,43 @@
-import {
+﻿import {
   getInitialState,
   confirmActionRequest,
   runCommandRequest,
   updateVehicleStateRequest,
   getVehicleEvents,
+  getOfflineEvaluation,
   runProviderSmokeTestRequest,
   getAcceptance,
-} from "./js/api.js";
-import { nodes } from "./js/dom.js";
-import { state } from "./js/state.js";
+} from "./js/api.js?v=agent-trace-aligned-20260510";
+import { nodes } from "./js/dom.js?v=agent-trace-aligned-20260510";
+import { state } from "./js/state.js?v=agent-trace-aligned-20260510";
 import {
   applyVehicleState,
   bindEvents,
   runCommand,
   setNetwork,
   startVehicleEventPolling,
-} from "./js/events.js";
+} from "./js/events.js?v=agent-trace-aligned-20260510";
 import {
   renderVehicle,
   renderAutoEvents,
   renderOfflineEvaluation,
-} from "./js/renderers/vehicle.js";
+} from "./js/renderers/vehicle.js?v=agent-trace-aligned-20260510";
 import {
   renderUsers,
   renderScenarioButtons,
   renderDemoSteps,
-} from "./js/renderers/demo.js";
+} from "./js/renderers/demo.js?v=agent-trace-aligned-20260510";
 import {
   clearCommandError,
   renderCommandError,
   renderResult,
-} from "./js/renderers/result.js";
-import { renderAcceptance } from "./js/renderers/acceptance.js";
-import { renderProviders, renderSmokeResults } from "./js/renderers/providers.js";
-import { renderRouteSummary } from "./js/renderers/route.js";
-import { renderRagContext } from "./js/renderers/rag.js";
-import { renderFeedback } from "./js/renderers/feedback.js";
-import { renderLocalContext } from "./js/renderers/local-context.js";
+} from "./js/renderers/result.js?v=agent-trace-aligned-20260510";
+import { renderAcceptance } from "./js/renderers/acceptance.js?v=agent-trace-aligned-20260510";
+import { renderProviders, renderSmokeResults } from "./js/renderers/providers.js?v=agent-trace-aligned-20260510";
+import { renderRouteSummary } from "./js/renderers/route.js?v=agent-trace-aligned-20260510";
+import { renderRagContext } from "./js/renderers/rag.js?v=agent-trace-aligned-20260510";
+import { renderFeedback } from "./js/renderers/feedback.js?v=agent-trace-aligned-20260510";
+import { renderLocalContext } from "./js/renderers/local-context.js?v=agent-trace-aligned-20260510";
 
 const api = {
   getInitialState,
@@ -44,6 +45,7 @@ const api = {
   runCommandRequest,
   updateVehicleStateRequest,
   getVehicleEvents,
+  getOfflineEvaluation,
   runProviderSmokeTestRequest,
   getAcceptance,
 };
@@ -82,7 +84,6 @@ async function init() {
     state.users = payload.users;
 
     const setNetworkForRenderers = (network) => setNetwork(nodes, state, network);
-    const runCommandForRenderers = () => runCommand(deps);
     const applyVehicleStateForRenderers = (updates) => applyVehicleState(deps, updates);
 
     renderVehicle(nodes, payload.vehicle_state, {}, state);
@@ -91,21 +92,38 @@ async function init() {
     renderAcceptance(nodes, payload.acceptance);
     renderProviders(nodes, payload.providers);
     renderUsers(nodes, state);
-    renderScenarioButtons(nodes, state, setNetworkForRenderers, runCommandForRenderers);
+    renderScenarioButtons(nodes, state, setNetworkForRenderers);
     renderDemoSteps(
       nodes,
       state,
       setNetworkForRenderers,
       applyVehicleStateForRenderers,
-      runCommandForRenderers
+      () => runCommand(deps)
     );
     bindEvents(deps);
     startVehicleEventPolling(deps);
+    loadOfflineEvaluation(deps);
   } catch (error) {
     renderCommandError(nodes, error, {
       renderRouteSummary,
       renderFeedback,
       renderLocalContext,
+    });
+  }
+}
+
+async function loadOfflineEvaluation(deps) {
+  const { nodes, api, renderers } = deps;
+  try {
+    const payload = await api.getOfflineEvaluation();
+    renderers.renderOfflineEvaluation(nodes, payload);
+  } catch (error) {
+    renderers.renderOfflineEvaluation(nodes, {
+      status: "ERROR",
+      total: 0,
+      intent_accuracy: 0,
+      safety_block_recall: 0,
+      rag_hit_rate: 0,
     });
   }
 }

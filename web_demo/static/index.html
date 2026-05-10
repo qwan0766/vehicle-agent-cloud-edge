@@ -1,10 +1,10 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="zh-CN">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>车载 Multi-Agent 端云协同展示</title>
-    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/styles.css?v=agent-trace-aligned-20260510" />
   </head>
   <body>
     <main class="app-shell">
@@ -148,8 +148,12 @@
               <strong id="graphPath">等待图执行</strong>
             </div>
           </div>
-          <ol id="agentTrace" class="agent-trace"></ol>
-          <div id="runtimeTrace" class="runtime-trace">等待工具调用</div>
+          <div class="trace-workbench">
+            <span class="trace-heading agent-column">Agent 链路</span>
+            <span class="trace-heading runtime-column">对应输出</span>
+            <ol id="agentTrace" class="agent-trace aligned-agent-trace"></ol>
+            <div id="runtimeTrace" class="runtime-trace legacy-runtime-trace" hidden>等待工具调用</div>
+          </div>
         </section>
 
         <section class="panel rag-panel" aria-label="RAG 召回知识">
@@ -193,7 +197,7 @@
             </div>
             <div>
               <span>压缩摘要</span>
-              <strong id="localContextSummary">等待本地记忆</strong>
+              <section id="localContextSummary" class="local-context-summary">等待本地记忆</section>
             </div>
             <div>
               <span>最近窗口</span>
@@ -251,12 +255,42 @@
             <button id="smokeBtn" class="small-action" type="button">Smoke Test</button>
           </div>
           <div class="provider-grid">
-            <div><span>LLM</span><strong id="providerLlm">-</strong></div>
-            <div><span>本地 LLM</span><strong id="providerLocalLlm">-</strong></div>
-            <div><span>编排器</span><strong id="providerOrchestrator">-</strong></div>
-            <div><span>地图</span><strong id="providerMap">-</strong></div>
-            <div><span>天气</span><strong id="providerWeather">-</strong></div>
-            <div><span>充电站</span><strong id="providerCharge">-</strong></div>
+            <div class="provider-card" data-smoke-name="DeepSeek LLM">
+              <span>DeepSeek LLM</span>
+              <strong id="providerLlm">-</strong>
+              <small class="provider-smoke-name">DeepSeek LLM</small>
+              <small>接口：DeepSeek /chat/completions</small>
+            </div>
+            <div class="provider-card" data-smoke-name="端侧模拟">
+              <span>本地 LLM 模拟</span>
+              <strong id="providerLocalLlm">-</strong>
+              <small class="provider-smoke-name">内部链路：本地 LLM 模拟</small>
+              <small>接口：车端 LocalIntentAgent</small>
+            </div>
+            <div class="provider-card" data-smoke-name="LangGraph">
+              <span>LangGraph 编排</span>
+              <strong id="providerOrchestrator">-</strong>
+              <small class="provider-smoke-name">内部链路：LangGraph</small>
+              <small>接口：云端 Agent Graph</small>
+            </div>
+            <div class="provider-card" data-smoke-name="AMap Route">
+              <span>AMap Route</span>
+              <strong id="providerMap">-</strong>
+              <small class="provider-smoke-name">AMap Route</small>
+              <small>接口：高德 /v3/direction/driving</small>
+            </div>
+            <div class="provider-card" data-smoke-name="Open-Meteo Weather">
+              <span>Open-Meteo Weather</span>
+              <strong id="providerWeather">-</strong>
+              <small class="provider-smoke-name">Open-Meteo Weather</small>
+              <small>接口：Open-Meteo /v1/forecast</small>
+            </div>
+            <div class="provider-card" data-smoke-name="AMap POI">
+              <span>AMap POI</span>
+              <strong id="providerCharge">-</strong>
+              <small class="provider-smoke-name">AMap POI</small>
+              <small>接口：高德 /v3/place/around</small>
+            </div>
           </div>
           <div id="smokeResults" class="smoke-results">等待真实接口检测</div>
         </section>
@@ -290,6 +324,6 @@
       </section>
     </main>
 
-    <script type="module" src="/app.js"></script>
+    <script type="module" src="/app.js?v=agent-trace-aligned-20260510"></script>
   </body>
 </html>

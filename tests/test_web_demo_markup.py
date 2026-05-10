@@ -1,4 +1,4 @@
-import unittest
+﻿import unittest
 from pathlib import Path
 
 
@@ -19,6 +19,9 @@ class TestWebDemoMarkup(unittest.TestCase):
         self.assertIn('id="localContextProvider"', html)
         self.assertIn('id="localContextModel"', html)
         self.assertIn('id="localContextSummary"', html)
+        self.assertIn('class="local-context-summary"', html)
+        self.assertNotIn('<strong id="localContextSummary"', html)
+        self.assertNotIn('<div id="localContextSummary"', html)
         self.assertIn('id="localContextRecent"', html)
         self.assertIn('id="localContextPrompt"', html)
 
@@ -28,12 +31,22 @@ class TestWebDemoMarkup(unittest.TestCase):
         self.assertIn('aria-label="Agent 调用链"', html)
         self.assertIn('id="graphMode"', html)
         self.assertIn('id="graphPath"', html)
+        self.assertIn('class="trace-workbench"', html)
+        self.assertIn('class="trace-heading agent-column"', html)
+        self.assertIn('class="trace-heading runtime-column"', html)
+        self.assertIn('class="agent-trace aligned-agent-trace"', html)
+
+    def test_static_assets_are_versioned_for_browser_cache_busting(self):
+        html = Path("web_demo/static/index.html").read_text(encoding="utf-8")
+
+        self.assertIn("/styles.css?v=agent-trace-aligned-20260510", html)
+        self.assertIn("/app.js?v=agent-trace-aligned-20260510", html)
 
     def test_styles_include_clarification_card_targets(self):
         css = Path("web_demo/static/styles.css").read_text(encoding="utf-8")
 
         self.assertIn(".clarification-card", css)
-        self.assertIn(".clarification-suggestions", css)
+        self.assertIn(".clarification-tips", css)
         self.assertIn(".clarification-candidates", css)
         self.assertIn(".clarification-candidate", css)
 
@@ -63,6 +76,25 @@ class TestWebDemoMarkup(unittest.TestCase):
 
         self.assertIn('class="dashboard-section-title primary-section-title"', html)
         self.assertIn('class="dashboard-section-title observability-section-title"', html)
+
+    def test_provider_panel_maps_cards_to_real_interfaces(self):
+        html = Path("web_demo/static/index.html").read_text(encoding="utf-8")
+
+        self.assertIn('data-smoke-name="DeepSeek LLM"', html)
+        self.assertIn('class="provider-smoke-name">DeepSeek LLM</small>', html)
+        self.assertIn('接口：DeepSeek /chat/completions', html)
+        self.assertIn('data-smoke-name="Open-Meteo Weather"', html)
+        self.assertIn('class="provider-smoke-name">Open-Meteo Weather</small>', html)
+        self.assertIn('接口：Open-Meteo /v1/forecast', html)
+        self.assertIn('data-smoke-name="AMap Route"', html)
+        self.assertIn('class="provider-smoke-name">AMap Route</small>', html)
+        self.assertIn('接口：高德 /v3/direction/driving', html)
+        self.assertIn('data-smoke-name="AMap POI"', html)
+        self.assertIn('class="provider-smoke-name">AMap POI</small>', html)
+        self.assertIn('接口：高德 /v3/place/around', html)
+
+        self.assertNotIn("OpenChargeMap", html)
+        self.assertNotIn("Baidu Map", html)
 
 
 if __name__ == "__main__":

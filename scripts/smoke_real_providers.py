@@ -12,8 +12,6 @@ from config.env_loader import load_env_file
 from llm.deepseek_client import DeepSeekLLMClient
 from providers.amap_poi_provider import AmapPOIProvider
 from providers.amap_route_provider import AmapRouteProvider
-from providers.baidu_map_provider import BaiduMapProvider
-from providers.open_charge_map_provider import OpenChargeMapProvider
 from providers.open_meteo_weather_provider import OpenMeteoWeatherProvider
 
 
@@ -30,8 +28,6 @@ def run_smoke_checks():
         _smoke_open_meteo(),
         _smoke_amap_route(),
         _smoke_amap_poi(),
-        _smoke_open_charge_map(),
-        _smoke_baidu_map(),
     ]
 
 
@@ -74,20 +70,6 @@ def _smoke_amap_route():
         return _result("AMap Route", "FAIL", _error_detail(exc))
 
 
-def _smoke_open_charge_map():
-    if os.getenv("AMAP_API_KEY") and not os.getenv("OPENCHARGEMAP_API_KEY"):
-        return _result("OpenChargeMap", "SKIP", "已由 AMap POI 替代，未配置 OPENCHARGEMAP_API_KEY")
-    try:
-        provider = OpenChargeMapProvider(
-            api_key=os.getenv("OPENCHARGEMAP_API_KEY", ""),
-            timeout=20,
-        )
-        stations = provider.find_nearby("121.48, 31.23", limit=3)
-        return _result("OpenChargeMap", "OK", [station.__dict__ for station in stations])
-    except Exception as exc:
-        return _result("OpenChargeMap", "FAIL", _error_detail(exc))
-
-
 def _smoke_amap_poi():
     api_key = os.getenv("AMAP_API_KEY")
     if not api_key:
@@ -100,21 +82,6 @@ def _smoke_amap_poi():
         return _result("AMap POI", "OK", [station.__dict__ for station in stations])
     except Exception as exc:
         return _result("AMap POI", "FAIL", _error_detail(exc))
-
-
-def _smoke_baidu_map():
-    api_key = os.getenv("BAIDU_MAP_AK")
-    if not api_key:
-        return _result("Baidu Map", "SKIP", "BAIDU_MAP_AK 未配置")
-    try:
-        route = BaiduMapProvider(api_key=api_key, timeout=20).plan_route(
-            "31.23,121.48",
-            "31.25,121.50",
-        )
-        return _result("Baidu Map", "OK", route.__dict__)
-    except Exception as exc:
-        return _result("Baidu Map", "FAIL", _error_detail(exc))
-
 
 def _result(name: str, status: str, detail):
     return {"name": name, "status": status, "detail": detail}

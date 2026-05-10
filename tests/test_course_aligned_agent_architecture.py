@@ -71,8 +71,17 @@ class TestCourseAlignedAgentArchitecture(unittest.TestCase):
         )
 
         doc_ids = [item.document.doc_id for item in results]
-        self.assertIn("route_highway_preference", doc_ids)
+        self.assertIn("profile_user_001", doc_ids)
+        self.assertNotIn("route_highway_preference", doc_ids)
         self.assertNotIn("route_offline_navigation", doc_ids)
+
+        long_trip_results = agent.retrieve(
+            "长途走高速去蔚来中心",
+            user_id="user_001",
+            command_type=CommandType.NAVIGATION,
+        )
+        long_trip_doc_ids = [item.document.doc_id for item in long_trip_results]
+        self.assertIn("route_highway_preference", long_trip_doc_ids)
 
     def test_local_context_is_scoped_by_agent_id(self):
         path = Path(".test_runtime") / f"agent_context_{uuid.uuid4().hex}.json"

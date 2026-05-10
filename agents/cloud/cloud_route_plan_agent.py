@@ -1,6 +1,5 @@
 from time import perf_counter
 
-from data.knowledge_base import ROUTE_KNOWLEDGE
 from data.vehicle_state import DEFAULT_VEHICLE_STATE
 from llm.factory import create_llm_client
 from providers.destination_resolver import resolve_destination_detail
@@ -22,9 +21,7 @@ class CloudRoutePlanAgent:
         context = self.retrieve_context(content)
         route_hint = context[0].document.text if context else ""
         if not route_hint:
-            route_hint = "长途优先高速路线"
-        if route_hint not in ROUTE_KNOWLEDGE:
-            route_hint = ROUTE_KNOWLEDGE[0]
+            route_hint = "根据地图路线与用户偏好规划"
         if route_preference:
             route_hint = f"{route_hint}，结合用户路线偏好{route_preference}"
         started = perf_counter()
@@ -84,7 +81,15 @@ class CloudRoutePlanAgent:
         )
 
     def retrieve_context(self, content: str):
-        return self.retriever.search(content, top_k=2)
+        results = self.retriever.search(content, top_k=2)
+        high_signal_terms = {"长途", "高速", "跨城", "远途"}
+        return [
+            item
+            for item in results
+            if item.document.doc_id != "route_highway_preference"
+            or bool(set(item.matched_keywords) & high_signal_terms)
+            or any(term in (content or "") for term in high_signal_terms)
+        ]
 
     def get_last_provider_trace(self):
         return [dict(item) for item in self._provider_trace]

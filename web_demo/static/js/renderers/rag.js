@@ -1,4 +1,4 @@
-import { escapeHtml } from "../markdown.js";
+﻿import { escapeHtml } from "../markdown.js?v=agent-trace-aligned-20260510";
 
 export function renderRagContext(nodes, items) {
   nodes.ragCount.textContent = `${items.length} 条`;

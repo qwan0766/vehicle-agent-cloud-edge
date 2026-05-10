@@ -88,7 +88,8 @@ class TestLangGraphWorkflow(unittest.TestCase):
                 "assemble",
             ],
         )
-        self.assertIn("云端决策", result)
+        self.assertNotIn("用户偏好", result)
+        self.assertTrue(result)
 
     def test_langgraph_can_be_disabled_by_env(self):
         with patch.dict("os.environ", {"ENABLE_LANGGRAPH": "0"}, clear=True):

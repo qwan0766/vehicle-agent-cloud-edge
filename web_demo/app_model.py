@@ -150,9 +150,25 @@ def get_initial_payload():
         "scenarios": SCENARIOS,
         "demo_steps": get_demo_steps(),
         "cloud_tools": GlobalDispatchAgent().tool_registry.list_names(),
-        "offline_evaluation": OfflineEvaluator().run(),
+        "offline_evaluation": _pending_offline_evaluation_payload(),
         "providers": _provider_status(),
         "acceptance": get_acceptance_payload(),
+    }
+
+
+def get_offline_evaluation_payload():
+    report = dict(OfflineEvaluator().run())
+    report["status"] = "READY"
+    return report
+
+
+def _pending_offline_evaluation_payload():
+    return {
+        "status": "PENDING",
+        "total": 0,
+        "intent_accuracy": 0,
+        "safety_block_recall": 0,
+        "rag_hit_rate": 0,
     }
 
 

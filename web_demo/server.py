@@ -15,6 +15,7 @@ from web_demo.app_model import (
     confirm_pending_action,
     get_acceptance_payload,
     get_initial_payload,
+    get_offline_evaluation_payload,
     get_vehicle_events_payload,
     run_command,
     run_provider_smoke_test,
@@ -24,11 +25,22 @@ from providers.destination_resolver import extract_destination_query
 
 
 class WebDemoHandler(SimpleHTTPRequestHandler):
-    GET_ROUTES = {"/api/state", "/api/acceptance", "/api/vehicle-events"}
+    GET_ROUTES = {
+        "/api/state",
+        "/api/acceptance",
+        "/api/vehicle-events",
+        "/api/offline-evaluation",
+    }
     POST_ROUTES = {"/api/run", "/api/confirm", "/api/provider-smoke", "/api/vehicle-state"}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(STATIC_ROOT), **kwargs)
+
+    def end_headers(self):
+        self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+        self.send_header("Pragma", "no-cache")
+        self.send_header("Expires", "0")
+        super().end_headers()
 
     def do_GET(self):
         if self.path == "/api/state":
@@ -39,6 +51,9 @@ class WebDemoHandler(SimpleHTTPRequestHandler):
             return
         if self.path == "/api/vehicle-events":
             self._send_json(get_vehicle_events_payload())
+            return
+        if self.path == "/api/offline-evaluation":
+            self._send_json(get_offline_evaluation_payload())
             return
         if self.path == "/":
             self.path = "/index.html"

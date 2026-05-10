@@ -1,4 +1,4 @@
-import unittest
+﻿import unittest
 from pathlib import Path
 
 
@@ -31,6 +31,11 @@ class TestWebDemoFrontendLogic(unittest.TestCase):
         script = self.read_frontend_scripts()
 
         self.assertIn("localContextSummary", script)
+        self.assertIn("renderSummarySegments", script)
+        self.assertIn("formatSummarySegments", script)
+        self.assertIn("local-context-summary-list", script)
+        self.assertIn("summary-status", script)
+        self.assertNotIn("nodes.localContextSummary.textContent = payload.summary", script)
         self.assertIn("localContextProvider", script)
         self.assertIn("localContextModel", script)
         self.assertIn("localContextPrompt", script)
@@ -60,14 +65,16 @@ class TestWebDemoFrontendLogic(unittest.TestCase):
 
         self.assertIn("renderClarification", script)
         self.assertIn('result.status === "NEEDS_CLARIFICATION"', script)
-        self.assertIn("clarification-suggestions", script)
-        self.assertIn("nodes.commandInput.value = suggestion", script)
-        self.assertIn("nodes.commandInput.focus()", script)
+        self.assertIn("clarification-tips", script)
+        self.assertNotIn("nodes.commandInput.value = suggestion", script)
+        self.assertNotIn("suggestionBox", script)
 
     def test_clarification_rendering_supports_destination_candidates(self):
         script = self.read_frontend_scripts()
 
         self.assertIn("clarification-candidates", script)
+        self.assertIn("clarification-tips", script)
+        self.assertIn('button.className = "clarification-candidate"', script)
         self.assertIn("candidate.confidence", script)
         self.assertIn("candidate.source", script)
         self.assertIn("confirmPendingAction", script)
@@ -90,6 +97,12 @@ class TestWebDemoFrontendLogic(unittest.TestCase):
         self.assertIn("手动演示", script)
         self.assertIn("renderAutoEvents", script)
         self.assertIn("自动触发", script)
+        self.assertIn("renderScenarioButtons(nodes, state, setNetworkForRenderers)", script)
+        self.assertIn("nodes.commandInput.focus()", script)
+        self.assertNotIn(
+            "renderScenarioButtons(nodes, state, setNetworkForRenderers, runCommandForRenderers)",
+            script,
+        )
 
     def test_frontend_updates_vehicle_state_through_api(self):
         markup = Path("web_demo/static/index.html").read_text(encoding="utf-8")
@@ -136,15 +149,33 @@ class TestWebDemoFrontendLogic(unittest.TestCase):
         self.assertIn("activateDemoStep", script)
         self.assertIn("async", script)
 
+    def test_agent_trace_renders_descriptions_and_full_width_layout(self):
+        script = self.read_frontend_scripts()
+        css = Path("web_demo/static/styles.css").read_text(encoding="utf-8")
+
+        self.assertIn("agentDescription", script)
+        self.assertIn("renderAlignedTrace", script)
+        self.assertIn("toolBelongsToAgent", script)
+        self.assertIn("LocalIntentAgent", script)
+        self.assertIn("解析用户指令意图", script)
+        self.assertIn('description.className = "agent-description"', script)
+        self.assertIn("trace-pair", script)
+        self.assertIn("agent-output-card", script)
+        self.assertIn('toolName.startsWith("user_profile.")', script)
+        self.assertIn('toolName.startsWith("knowledge.")', script)
+        self.assertIn(".trace-workbench", css)
+        self.assertIn("grid-template-columns: minmax(260px, 0.9fr) minmax(320px, 1.1fr);", css)
+
     def test_frontend_uses_native_es_modules(self):
         markup = Path("web_demo/static/index.html").read_text(encoding="utf-8")
         script = Path("web_demo/static/app.js").read_text(encoding="utf-8")
 
         self.assertIn('type="module"', markup)
-        self.assertIn('src="/app.js"', markup)
+        self.assertIn('src="/app.js?v=agent-trace-aligned-20260510"', markup)
         self.assertIn("import", script)
-        self.assertIn("./js/api.js", script)
-        self.assertIn("./js/events.js", script)
+        self.assertIn("./js/api.js?v=agent-trace-aligned-20260510", script)
+        self.assertIn("./js/events.js?v=agent-trace-aligned-20260510", script)
+        self.assertIn("./js/renderers/result.js?v=agent-trace-aligned-20260510", script)
 
     def test_frontend_modules_exist_with_expected_responsibilities(self):
         module_paths = [
@@ -179,10 +210,19 @@ class TestWebDemoFrontendLogic(unittest.TestCase):
         self.assertIn('fetch("/api/run"', api_script)
         self.assertIn('fetch("/api/vehicle-state"', api_script)
         self.assertIn('fetch("/api/vehicle-events")', api_script)
+        self.assertIn('fetch("/api/offline-evaluation")', api_script)
         self.assertIn("requestId !== state.activeRequestId", events_script)
         self.assertIn("renderVehicle", events_script)
         self.assertIn("syncControls: false", events_script)
         self.assertIn("syncNetwork: false", events_script)
+
+    def test_frontend_loads_offline_evaluation_after_initial_state(self):
+        script = self.read_frontend_scripts()
+
+        self.assertIn("getOfflineEvaluation", script)
+        self.assertIn("loadOfflineEvaluation", script)
+        self.assertIn("renderOfflineEvaluation(nodes, payload.offline_evaluation)", script)
+        self.assertIn("renderOfflineEvaluation(nodes, payload)", script)
 
 
 if __name__ == "__main__":

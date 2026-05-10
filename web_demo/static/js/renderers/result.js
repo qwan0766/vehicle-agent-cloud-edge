@@ -1,5 +1,5 @@
-import { renderMarkdown, escapeHtml } from "../markdown.js";
-import { renderRuntimeTrace, renderGraphPath, agentClass } from "./trace.js";
+﻿import { renderMarkdown, escapeHtml } from "../markdown.js?v=agent-trace-aligned-20260510";
+import { renderAlignedTrace, renderGraphPath } from "./trace.js?v=agent-trace-aligned-20260510";
 
 export function renderResult(nodes, payload, helpers) {
   const { request, result, agent_trace: agentTrace } = payload;
@@ -64,15 +64,7 @@ export function renderResult(nodes, payload, helpers) {
       !needsChargeConfirmation
   );
 
-  nodes.agentTrace.innerHTML = "";
-  agentTrace.forEach((agent) => {
-    const item = document.createElement("li");
-    item.textContent = agent;
-    item.className = agentClass(agent);
-    nodes.agentTrace.appendChild(item);
-  });
-
-  renderRuntimeTrace(nodes, payload.runtime_trace || [], result.status);
+  renderAlignedTrace(nodes, agentTrace, payload.runtime_trace || [], { request, result });
   renderGraphPath(nodes, payload.graph || {});
   helpers.renderRouteSummary(nodes, payload.route_summary || {}, payload.charge_stations || []);
   helpers.renderRagContext(nodes, payload.rag_context || []);
@@ -136,19 +128,14 @@ export function renderClarification(
   card.append(title, question, meta);
 
   if (suggestions.length) {
-    const suggestionBox = document.createElement("div");
-    suggestionBox.className = "clarification-suggestions";
+    const tipList = document.createElement("ul");
+    tipList.className = "clarification-tips";
     suggestions.forEach((suggestion) => {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.textContent = suggestion;
-      button.addEventListener("click", () => {
-        nodes.commandInput.value = suggestion;
-        nodes.commandInput.focus();
-      });
-      suggestionBox.appendChild(button);
+      const item = document.createElement("li");
+      item.textContent = suggestion;
+      tipList.appendChild(item);
     });
-    card.appendChild(suggestionBox);
+    card.appendChild(tipList);
   }
 
   if (candidates.length) {
@@ -240,14 +227,12 @@ export function renderCommandError(nodes, error, helpers) {
   nodes.safetyBadge.textContent = "调用失败";
   nodes.safetyBadge.classList.remove("badge-safe");
   nodes.safetyBadge.classList.add("badge-danger");
-  nodes.agentTrace.innerHTML = "";
-  ["LocalIntentAgent", "GlobalSafetyDispatchAgent", "ProviderError"].forEach((agent) => {
-    const item = document.createElement("li");
-    item.textContent = agent;
-    item.className = agent === "ProviderError" ? "blocked" : "";
-    nodes.agentTrace.appendChild(item);
-  });
-  nodes.runtimeTrace.innerHTML = html;
+  renderAlignedTrace(
+    nodes,
+    ["LocalIntentAgent", "GlobalSafetyDispatchAgent", "ProviderError"],
+    [{ tool_name: "provider.error", duration_ms: "-", output: `${title}：${message}` }],
+    { request: { safety: "UNKNOWN", network: "ONLINE" }, result: { status: "ERROR", output: message } }
+  );
   nodes.ragCount.textContent = "0 条";
   nodes.ragContext.textContent = "本次在线调用失败，没有可展示的新召回结果";
   renderGraphPath(nodes, {});

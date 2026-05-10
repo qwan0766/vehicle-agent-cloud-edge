@@ -1,10 +1,13 @@
 import unittest
 import uuid
 from pathlib import Path
+from unittest.mock import patch
 
+import web_demo.app_model as app_model
 from web_demo.app_model import confirm_pending_action
 from web_demo.app_model import run_command
 from web_demo.app_model import get_initial_payload
+from web_demo.app_model import get_offline_evaluation_payload
 from web_demo.app_model import get_acceptance_payload
 from web_demo.app_model import get_demo_steps
 from web_demo.app_model import get_vehicle_events_payload
@@ -24,7 +27,8 @@ class TestWebDemoAppModel(unittest.TestCase):
 
         self.assertIn("users", payload)
         self.assertEqual(payload["users"][0]["user_id"], "user_001")
-        self.assertGreaterEqual(payload["offline_evaluation"]["total"], 20)
+        self.assertEqual(payload["offline_evaluation"]["status"], "PENDING")
+        self.assertEqual(payload["offline_evaluation"]["total"], 0)
         self.assertIn("trip.plan", payload["cloud_tools"])
         self.assertIn("knowledge.retrieve", payload["cloud_tools"])
         self.assertIn("providers", payload)
@@ -37,6 +41,26 @@ class TestWebDemoAppModel(unittest.TestCase):
         self.assertIn("auto_events", payload)
         self.assertEqual(payload["vehicle_state"]["road_type"], "HIGHWAY")
         self.assertEqual(payload["vehicle_state"]["speed_limit_kmh"], 120)
+
+    def test_initial_payload_does_not_block_on_offline_evaluator(self):
+        with patch.object(app_model.OfflineEvaluator, "run") as run:
+            payload = get_initial_payload()
+
+        run.assert_not_called()
+        self.assertEqual(payload["offline_evaluation"]["status"], "PENDING")
+
+    def test_offline_evaluation_payload_runs_evaluator_on_demand(self):
+        expected = {
+            "total": 21,
+            "intent_accuracy": 1.0,
+            "safety_block_recall": 1.0,
+            "rag_hit_rate": 1.0,
+        }
+        with patch.object(app_model.OfflineEvaluator, "run", return_value=expected) as run:
+            payload = get_offline_evaluation_payload()
+
+        run.assert_called_once_with()
+        self.assertEqual(payload, {**expected, "status": "READY"})
 
     def test_demo_steps_cover_interview_storyline(self):
         steps = get_demo_steps()
@@ -115,7 +139,8 @@ class TestWebDemoAppModel(unittest.TestCase):
 
         self.assertEqual(payload["request"]["command_type"], "NAVIGATION")
         self.assertEqual(payload["result"]["status"], "EXECUTED")
-        self.assertIn("RAG路线结果", payload["result"]["output"])
+        self.assertNotIn("向量知识库召回", payload["result"]["output"])
+        self.assertTrue(payload["result"]["output"])
         self.assertIn("GlobalDispatchAgent", payload["agent_trace"])
         self.assertIn("VectorKnowledgeAgent", payload["agent_trace"])
         self.assertIn("GlobalTripPlanningAgent", payload["agent_trace"])

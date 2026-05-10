@@ -56,6 +56,10 @@ DEFAULT_SUGGESTIONS = {
         "地图返回了多个可能地点，请先确认唯一目的地。",
         "也可以补充城市、商圈、完整门店名称或完整地址。",
     ],
+    "no_destination_candidates": [
+        "没有找到可直接选择的候选地点，请补充更具体的目的地信息。",
+        "如果这是主观描述，请改成具体 POI 名称，例如外滩、上海迪士尼、东方明珠。",
+    ],
 }
 
 QUESTIONS = {
@@ -64,6 +68,7 @@ QUESTIONS = {
     "unclear_destination": "这个目的地信息还不够具体。请补充城市、区县、商圈或完整 POI 名称。",
     "low_confidence_provider_result": "地图返回了低置信度候选地点。为了避免导航到错误位置，请先确认目的地。",
     "destination_candidate_confirmation": "我找到了可能的目的地，但还不能确定哪一个就是你想去的地方。请先选择候选地点或补充更完整的信息。",
+    "no_destination_candidates": "我还没有找到可直接导航的候选地点。请补充城市、商圈、门店名或完整地址；如果这是主观描述，请改成具体地点名称。",
 }
 
 

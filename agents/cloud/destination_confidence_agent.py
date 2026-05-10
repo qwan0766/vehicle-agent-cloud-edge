@@ -146,6 +146,16 @@ class DestinationConfidenceAgent:
         )
 
     def _clarification(self, query: str, candidates: list, reason: str):
+        if not candidates:
+            return DestinationClarificationRequired(
+                query,
+                "no_destination_candidates",
+                suggestions=(
+                    f"候选列表为空：地图没有找到与“{query}”匹配的可导航 POI。",
+                    "请补充城市、商圈、门店名或完整地址；如果是主观描述，请改成具体地点名称。",
+                ),
+                candidates=[],
+            )
         return DestinationClarificationRequired(
             query,
             "destination_candidate_confirmation",
