@@ -85,7 +85,7 @@ class GlobalSafetyDispatchAgent:
         command_type=None,
         vehicle_state=None,
     ) -> CloudResultSafetyDecision:
-        if self._contains_actionable_dangerous_command(result_text):
+        if self._contains_actionable_dangerous_command(result_text, command_type=command_type):
             return CloudResultSafetyDecision(
                 allowed=False,
                 reason="云端结果包含危险控制词，已由车端安全调度 Agent 拦截",
@@ -132,15 +132,25 @@ class GlobalSafetyDispatchAgent:
             return policy_reason
         return explanation.strip() or policy_reason
 
-    def _contains_actionable_dangerous_command(self, content: str) -> bool:
+    def _contains_actionable_dangerous_command(self, content: str, command_type=None) -> bool:
         normalized = (content or "").replace(" ", "")
+        if _is_info_query_command(command_type):
+            return any(
+                pattern in normalized
+                and _has_direct_execution_marker(normalized, pattern)
+                and not _is_policy_guarded_pattern(normalized, pattern)
+                for pattern in ACTIONABLE_DANGEROUS_PATTERNS
+            )
         if _looks_like_non_actionable_explanation(normalized):
             explicit_actions = tuple(
                 pattern
                 for pattern in ACTIONABLE_DANGEROUS_PATTERNS
                 if pattern not in {"紧急制动"}
             )
-            return any(pattern in normalized for pattern in explicit_actions)
+            return any(
+                pattern in normalized and not _is_policy_guarded_pattern(normalized, pattern)
+                for pattern in explicit_actions
+            )
         return any(pattern in normalized for pattern in ACTIONABLE_DANGEROUS_PATTERNS)
 
     def _needs_local_llm_review(self, content: str) -> bool:
@@ -256,3 +266,58 @@ def _looks_like_non_actionable_explanation(normalized: str) -> bool:
         "含义",
     )
     return any(marker in normalized for marker in explanation_markers)
+
+
+def _is_info_query_command(command_type) -> bool:
+    return getattr(command_type, "value", command_type) == "INFO_QUERY"
+
+
+def _has_direct_execution_marker(normalized: str, pattern: str) -> bool:
+    start = normalized.find(pattern)
+    if start == -1:
+        return False
+    if normalized == pattern:
+        return True
+    window_start = max(0, start - 12)
+    window_end = min(len(normalized), start + len(pattern) + 12)
+    window = normalized[window_start:window_end]
+    direct_markers = (
+        "执行",
+        "已执行",
+        "正在执行",
+        "立即",
+        "现在为你",
+        "为你关闭",
+        "将为你",
+        "已关闭",
+        "开始",
+    )
+    return any(marker in window for marker in direct_markers)
+
+
+def _is_policy_guarded_pattern(normalized: str, pattern: str) -> bool:
+    guard_markers = (
+        "不能",
+        "不得",
+        "不会",
+        "不要",
+        "禁止",
+        "不应",
+        "不建议",
+        "不可",
+        "拦截",
+        "人工确认",
+        "不得直接执行",
+        "不能直接执行",
+        "不会执行",
+        "不执行",
+    )
+    start = normalized.find(pattern)
+    while start != -1:
+        window_start = max(0, start - 30)
+        window_end = min(len(normalized), start + len(pattern) + 40)
+        window = normalized[window_start:window_end]
+        if not any(marker in window for marker in guard_markers):
+            return False
+        start = normalized.find(pattern, start + len(pattern))
+    return True

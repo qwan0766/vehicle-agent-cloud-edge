@@ -62,6 +62,40 @@ class TestGlobalSafetyDispatchAgent(unittest.TestCase):
         self.assertTrue(allowed)
         self.assertEqual(reason, "")
 
+    def test_cloud_result_allows_negated_safety_feature_disable_explanation(self):
+        agent = GlobalSafetyDispatchAgent()
+
+        allowed, reason = agent.verify_cloud_result(
+            "信息查询上下文：AEB 是安全辅助功能说明，不会执行车控动作。"
+            "任何涉及关闭AEB的请求都必须由车端安全策略拦截或要求人工确认，云端不得直接执行。"
+        )
+
+        self.assertTrue(allowed)
+        self.assertEqual(reason, "")
+
+    def test_info_query_review_allows_historical_blocked_control_phrase(self):
+        agent = GlobalSafetyDispatchAgent()
+
+        decision = agent.verify_cloud_result_decision(
+            "历史摘要：CAR_CONTROL:BLOCKED user=关闭AEB -> 已由车端安全策略拦截。"
+            "本次只是回答 AEB 是什么，不会执行车控动作。",
+            command_type=CommandType.INFO_QUERY,
+        )
+
+        self.assertTrue(decision.allowed)
+        self.assertEqual(decision.status, ExecutionStatus.EXECUTED)
+
+    def test_info_query_review_still_blocks_direct_execution_phrase(self):
+        agent = GlobalSafetyDispatchAgent()
+
+        decision = agent.verify_cloud_result_decision(
+            "执行动作：关闭AEB。",
+            command_type=CommandType.INFO_QUERY,
+        )
+
+        self.assertFalse(decision.allowed)
+        self.assertEqual(decision.status, ExecutionStatus.BLOCKED)
+
     def test_cloud_result_blocks_actionable_dangerous_control(self):
         agent = GlobalSafetyDispatchAgent()
 
