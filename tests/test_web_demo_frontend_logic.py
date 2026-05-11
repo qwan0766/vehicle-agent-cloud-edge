@@ -81,6 +81,25 @@ class TestWebDemoFrontendLogic(unittest.TestCase):
         self.assertIn("pendingAction.id", script)
         self.assertIn("/api/confirm", script)
 
+    def test_destination_clarification_result_is_aligned_in_agent_trace(self):
+        script = self.read_frontend_scripts()
+
+        self.assertIn("DestinationClarification", script)
+        self.assertIn("clarification.result", script)
+        self.assertIn("目的地信息不足", script)
+        self.assertIn("未继续调用云端规划链路", script)
+
+    def test_ecology_snapshot_renders_structured_weather_and_charging_data(self):
+        script = self.read_frontend_scripts()
+        css = Path("web_demo/static/styles.css").read_text(encoding="utf-8")
+
+        self.assertIn('item.tool_name === "ecology.snapshot"', script)
+        self.assertIn("renderEcologySnapshot", script)
+        self.assertIn("precipitation_mm", script)
+        self.assertIn("charge_source", script)
+        self.assertIn(".ecology-snapshot", css)
+        self.assertIn(".ecology-metric", css)
+
     def test_confirmation_states_render_action_buttons(self):
         script = self.read_frontend_scripts()
 
@@ -90,15 +109,18 @@ class TestWebDemoFrontendLogic(unittest.TestCase):
         self.assertIn("confirmation-actions", script)
         self.assertIn("confirmed: true", script)
 
-    def test_scenario_buttons_mark_manual_trigger_and_auto_events_render_separately(self):
+    def test_demo_buttons_live_inside_command_panel_and_do_not_auto_run(self):
+        markup = Path("web_demo/static/index.html").read_text(encoding="utf-8")
         script = self.read_frontend_scripts()
 
-        self.assertIn("scenario.trigger", script)
-        self.assertIn("手动演示", script)
+        self.assertIn("演示按钮", markup)
+        self.assertIn('id="demoSteps"', markup)
+        self.assertNotIn('id="scenarioButtons"', markup)
         self.assertIn("renderAutoEvents", script)
         self.assertIn("自动触发", script)
-        self.assertIn("renderScenarioButtons(nodes, state, setNetworkForRenderers)", script)
-        self.assertIn("nodes.commandInput.focus()", script)
+        self.assertIn("renderDemoSteps(", script)
+        self.assertIn("activateDemoStep(nodes, state, step, false", script)
+        self.assertIn("step.display_mode || step.network", script)
         self.assertNotIn(
             "renderScenarioButtons(nodes, state, setNetworkForRenderers, runCommandForRenderers)",
             script,
@@ -138,6 +160,12 @@ class TestWebDemoFrontendLogic(unittest.TestCase):
         self.assertIn("syncNetwork", script)
         self.assertIn("renderVehicle", script)
         self.assertIn("syncControls: false", script)
+
+    def test_vehicle_state_apply_does_not_overwrite_network_selection(self):
+        script = self.read_frontend_scripts()
+
+        self.assertIn("applyVehicleState(deps, updates)", script)
+        self.assertIn("syncNetwork: false", script)
         self.assertIn("syncNetwork: false", script)
 
     def test_demo_mode_applies_vehicle_state_before_running_command(self):
@@ -149,11 +177,34 @@ class TestWebDemoFrontendLogic(unittest.TestCase):
         self.assertIn("activateDemoStep", script)
         self.assertIn("async", script)
 
+    def test_provider_smoke_results_update_matching_provider_cards(self):
+        markup = Path("web_demo/static/index.html").read_text(encoding="utf-8")
+        script = self.read_frontend_scripts()
+
+        self.assertIn("providerCards", script)
+        self.assertIn("[data-provider-health]", script)
+        self.assertIn("providerCard.dataset.smokeName === item.name", script)
+        self.assertIn("provider-health", script)
+        self.assertIn("已更新", script)
+        self.assertIn("smoke-summary", markup)
+        self.assertNotIn("smoke-row", script)
+
     def test_agent_trace_renders_descriptions_and_full_width_layout(self):
         script = self.read_frontend_scripts()
         css = Path("web_demo/static/styles.css").read_text(encoding="utf-8")
 
         self.assertIn("agentDescription", script)
+        self.assertIn("agentScope", script)
+        self.assertIn("agent-scope", script)
+        self.assertIn("parallelAgentSet", script)
+        self.assertIn("并行收集", script)
+        self.assertIn("CloudDecisionAgent", script)
+        self.assertIn("RouteProviderAgent", script)
+        self.assertIn("route_provider", script)
+        self.assertIn("provider_parallel", script)
+        self.assertIn("车端本地", script)
+        self.assertIn("云端调度", script)
+        self.assertIn("数据闭环", script)
         self.assertIn("renderAlignedTrace", script)
         self.assertIn("toolBelongsToAgent", script)
         self.assertIn("LocalIntentAgent", script)
@@ -161,8 +212,16 @@ class TestWebDemoFrontendLogic(unittest.TestCase):
         self.assertIn('description.className = "agent-description"', script)
         self.assertIn("trace-pair", script)
         self.assertIn("agent-output-card", script)
+        self.assertIn(".agent-card-header", css)
+        self.assertIn(".agent-scope.scope-edge", css)
+        self.assertIn(".agent-scope.scope-cloud", css)
+        self.assertIn(".trace-pair.parallel-group", css)
+        self.assertIn(".agent-parallel-badge", css)
         self.assertIn('toolName.startsWith("user_profile.")', script)
         self.assertIn('toolName.startsWith("knowledge.")', script)
+        self.assertIn('toolName.startsWith("provider.geocode")', script)
+        self.assertIn('toolName.startsWith("provider.map")', script)
+        self.assertIn('toolName.startsWith("decision.")', script)
         self.assertIn(".trace-workbench", css)
         self.assertIn("grid-template-columns: minmax(260px, 0.9fr) minmax(320px, 1.1fr);", css)
 
@@ -171,11 +230,11 @@ class TestWebDemoFrontendLogic(unittest.TestCase):
         script = Path("web_demo/static/app.js").read_text(encoding="utf-8")
 
         self.assertIn('type="module"', markup)
-        self.assertIn('src="/app.js?v=agent-trace-aligned-20260510"', markup)
+        self.assertIn('src="/app.js?v=knowledge-layer-v1-20260511"', markup)
         self.assertIn("import", script)
-        self.assertIn("./js/api.js?v=agent-trace-aligned-20260510", script)
-        self.assertIn("./js/events.js?v=agent-trace-aligned-20260510", script)
-        self.assertIn("./js/renderers/result.js?v=agent-trace-aligned-20260510", script)
+        self.assertIn("./js/api.js?v=knowledge-layer-v1-20260511", script)
+        self.assertIn("./js/events.js?v=knowledge-layer-v1-20260511", script)
+        self.assertIn("./js/renderers/result.js?v=knowledge-layer-v1-20260511", script)
 
     def test_frontend_modules_exist_with_expected_responsibilities(self):
         module_paths = [

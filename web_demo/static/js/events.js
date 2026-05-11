@@ -48,7 +48,7 @@ export async function updateVehicleState(deps) {
 export async function applyVehicleState(deps, updates) {
   const { nodes, state, api, renderers } = deps;
   const payload = await api.updateVehicleStateRequest(updates || {});
-  renderers.renderVehicle(nodes, payload.vehicle_state, {}, state);
+  renderers.renderVehicle(nodes, payload.vehicle_state, { syncNetwork: false }, state);
   renderers.renderAutoEvents(nodes, payload.auto_events || [], payload.auto_event_rules || []);
   return payload;
 }

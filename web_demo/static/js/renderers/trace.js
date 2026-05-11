@@ -32,6 +32,7 @@ export function renderAlignedTrace(nodes, agents, items, context = {}) {
 
   const agentList = Array.isArray(agents) ? agents : [];
   const toolItems = Array.isArray(items) ? items : [];
+  const parallelAgents = parallelAgentSet(context.graph || {});
 
   if (!agentList.length) {
     const item = document.createElement("li");
@@ -46,27 +47,67 @@ export function renderAlignedTrace(nodes, agents, items, context = {}) {
 
   agentList.forEach((agent) => {
     const pair = document.createElement("li");
-    pair.className = `trace-pair ${agentClass(agent)}`.trim();
+    const isParallel = parallelAgents.has(agent);
+    pair.className = `trace-pair ${agentClass(agent)} ${isParallel ? "parallel-group" : ""}`.trim();
     const matchedTools = toolItems.filter((tool) => toolBelongsToAgent(tool.tool_name || "", agent));
     pair.append(
-      renderAgentCard(agent),
+      renderAgentCard(agent, { isParallel }),
       renderOutputCard(matchedTools.length ? matchedTools : defaultAgentOutputs(agent, context))
     );
     nodes.agentTrace.appendChild(pair);
   });
 }
 
-function renderAgentCard(agent) {
+function renderAgentCard(agent, metadata = {}) {
   const card = document.createElement("section");
   card.className = "agent-card";
 
+  const header = document.createElement("div");
+  header.className = "agent-card-header";
   const name = document.createElement("strong");
   name.textContent = agent;
+  const scope = document.createElement("span");
+  scope.className = `agent-scope ${agentScopeClass(agent)}`.trim();
+  scope.textContent = agentScope(agent);
+  const badges = document.createElement("span");
+  badges.className = "agent-badges";
+  badges.append(scope);
+  if (metadata.isParallel) {
+    const parallelBadge = document.createElement("span");
+    parallelBadge.className = "agent-parallel-badge";
+    parallelBadge.textContent = "并行收集";
+    badges.append(parallelBadge);
+  }
+  header.append(name, badges);
+
   const description = document.createElement("span");
   description.className = "agent-description";
   description.textContent = agentDescription(agent);
-  card.append(name, description);
+  card.append(header, description);
   return card;
+}
+
+export function parallelAgentSet(graph) {
+  const groups = Array.isArray(graph.parallel_groups) ? graph.parallel_groups : [];
+  const agents = new Set();
+  groups.forEach((group) => {
+    const nodes = Array.isArray(group.nodes) ? group.nodes : [];
+    nodes.forEach((node) => {
+      graphNodeAgents(node).forEach((agent) => agents.add(agent));
+    });
+  });
+  return agents;
+}
+
+function graphNodeAgents(node) {
+  const mapping = {
+    profile: ["UserProfileAgent"],
+    route_preference: ["UserProfileAgent"],
+    knowledge: ["RuleKnowledgeAgent", "DocumentRAGAgent"],
+    ecology: ["ExternalEcologyAgent"],
+    route_provider: ["RouteProviderAgent"],
+  };
+  return mapping[node] || [];
 }
 
 function renderOutputCard(items) {
@@ -99,15 +140,82 @@ function renderToolCall(item) {
   header.append(name, duration);
 
   const output = document.createElement("small");
+  if (item.tool_name === "ecology.snapshot" && typeof item.output === "object") {
+    row.append(header, renderEcologySnapshot(item.output));
+    return row;
+  }
   output.textContent = typeof item.output === "string" ? item.output : JSON.stringify(item.output);
 
   row.append(header, output);
   return row;
 }
 
+function renderEcologySnapshot(snapshot) {
+  const container = document.createElement("div");
+  container.className = "ecology-snapshot";
+
+  const weather = snapshot.weather || {};
+  const station = (snapshot.charge_stations || [])[0] || {};
+  container.append(
+    ecologyMetric("天气", weather.summary || "-", [
+      `${weather.temperature_c ?? "-"}℃`,
+      `降水 ${weather.precipitation_mm ?? "-"}mm`,
+      `风 ${weather.wind_level || "-"}`,
+      `来源 ${weather.source || "-"}`,
+    ]),
+    ecologyMetric("补能站", station.name || "-", [
+      `${station.distance_km ?? "-"} km`,
+      station.status || "-",
+      `预计 ${station.estimated_minutes ?? "-"} 分钟`,
+      `来源 ${snapshot.charge_source || "-"}`,
+    ])
+  );
+  return container;
+}
+
+function ecologyMetric(label, title, details) {
+  const card = document.createElement("section");
+  card.className = "ecology-metric";
+  const caption = document.createElement("span");
+  caption.textContent = label;
+  const name = document.createElement("strong");
+  name.textContent = title;
+  const meta = document.createElement("small");
+  meta.textContent = details.filter(Boolean).join(" · ");
+  card.append(caption, name, meta);
+  return card;
+}
+
 function defaultAgentOutputs(agent, context) {
   const request = context.request || {};
   const result = context.result || {};
+  if (agent.includes("GlobalDispatchAgent")) {
+    return [
+      {
+        tool_name: "dispatch.route",
+        duration_ms: "-",
+        output: `网络：${request.network || "-"}；发起云端并行上下文收集，等待画像、知识库、生态数据汇聚后再进入规划。`,
+      },
+    ];
+  }
+  if (agent.includes("CloudDecisionAgent")) {
+    return [
+      {
+        tool_name: "decision.pending",
+        duration_ms: "-",
+        output: "等待路线规划和上下文汇聚后生成最终执行说明。",
+      },
+    ];
+  }
+  if (agent.includes("RouteProviderAgent")) {
+    return [
+      {
+        tool_name: "provider.pending",
+        duration_ms: "-",
+        output: "等待地理编码与地图路线工具返回。",
+      },
+    ];
+  }
   if (agent.includes("LocalIntentAgent")) {
     return [
       {
@@ -153,6 +261,17 @@ function defaultAgentOutputs(agent, context) {
       },
     ];
   }
+  if (agent.includes("DestinationClarification")) {
+    return [
+      {
+        tool_name: "clarification.result",
+        duration_ms: "-",
+        output:
+          result.output ||
+          "目的地信息不足，已进入用户澄清流程，未继续调用云端规划链路。",
+      },
+    ];
+  }
   if (agent.includes("Block")) {
     return [
       {
@@ -172,21 +291,23 @@ function toolBelongsToAgent(toolName, agent) {
   if (agent.includes("UserProfileAgent")) {
     return toolName.startsWith("user_profile.");
   }
-  if (agent.includes("VectorKnowledgeAgent")) {
+  if (agent.includes("RuleKnowledgeAgent") || agent.includes("DocumentRAGAgent")) {
     return toolName.startsWith("knowledge.");
   }
   if (agent.includes("ExternalEcologyAgent")) {
     return toolName.startsWith("ecology.");
   }
+  if (agent.includes("RouteProviderAgent")) {
+    return toolName.startsWith("provider.geocode") || toolName.startsWith("provider.map");
+  }
   if (agent.includes("GlobalTripPlanningAgent") || agent.includes("TripPlanning")) {
-    return (
-      toolName.startsWith("trip.") ||
-      toolName.startsWith("provider.geocode") ||
-      toolName.startsWith("provider.map")
-    );
+    return toolName.startsWith("trip.");
+  }
+  if (agent.includes("CloudDecisionAgent")) {
+    return toolName.startsWith("decision.");
   }
   if (agent.includes("GlobalDispatchAgent")) {
-    return toolName.startsWith("decision.");
+    return toolName.startsWith("dispatch.");
   }
   if (agent.includes("DataUploadAgent")) {
     return toolName.startsWith("data.");
@@ -203,7 +324,24 @@ export function renderGraphPath(nodes, graph) {
   const mode = payload.mode || "not_run";
   const fallbackText = payload.fallback ? " · fallback" : "";
   nodes.graphMode.textContent = `${mode}${fallbackText}`;
-  nodes.graphPath.textContent = path.length ? path.join(" -> ") : "未执行云端图";
+  nodes.graphPath.textContent = path.length ? formatGraphPath(path, payload) : "未执行云端图";
+}
+
+function formatGraphPath(path, graph) {
+  const groups = Array.isArray(graph.parallel_groups) ? graph.parallel_groups : [];
+  const contextGroup = groups.find((group) => group.id === "cloud_context");
+  const providerGroup = groups.find((group) => group.id === "route_provider_parallel");
+  return path
+    .map((node) => {
+      if (node === "context_parallel" && contextGroup) {
+        return `并行[${(contextGroup.nodes || []).join(" | ")}]`;
+      }
+      if (node === "provider_parallel" && providerGroup) {
+        return `并行[${(providerGroup.nodes || []).join(" | ")}]`;
+      }
+      return node;
+    })
+    .join(" -> ");
 }
 
 export function agentClass(agent) {
@@ -211,8 +349,10 @@ export function agentClass(agent) {
     agent.includes("Cloud") ||
     agent.includes("GlobalDispatch") ||
     agent.includes("TripPlanning") ||
+    agent.includes("RouteProvider") ||
     agent.includes("UserProfile") ||
-    agent.includes("VectorKnowledge") ||
+    agent.includes("RuleKnowledge") ||
+    agent.includes("DocumentRAG") ||
     agent.includes("ExternalEcology")
   ) {
     return "cloud";
@@ -232,7 +372,78 @@ export function agentClass(agent) {
   return "";
 }
 
+export function agentScope(agent) {
+  if (agent.includes("CloudDecisionAgent")) {
+    return "云端 Agent";
+  }
+  if (agent.includes("RouteProviderAgent")) {
+    return "云端工具";
+  }
+  if (agent.includes("LocalIntentAgent")) {
+    return "车端本地";
+  }
+  if (agent.includes("GlobalSafetyDispatchAgent") || agent.includes("Block")) {
+    return "车端安全";
+  }
+  if (agent.includes("EnergyPolicy")) {
+    return "车端状态";
+  }
+  if (agent.includes("DestinationClarification")) {
+    return "车端澄清";
+  }
+  if (agent.includes("CabinVehicleControl") || agent.includes("Fallback")) {
+    return "车端执行";
+  }
+  if (agent.includes("DataUploadAgent")) {
+    return "数据闭环";
+  }
+  if (agent.includes("ProviderError")) {
+    return "外部接口";
+  }
+  if (agent.includes("GlobalDispatchAgent")) {
+    return "云端调度";
+  }
+  if (
+    agent.includes("Cloud") ||
+    agent.includes("TripPlanning") ||
+    agent.includes("RouteProvider") ||
+    agent.includes("UserProfile") ||
+    agent.includes("RuleKnowledge") ||
+    agent.includes("DocumentRAG") ||
+    agent.includes("ExternalEcology")
+  ) {
+    return "云端 Agent";
+  }
+  return "子 Agent";
+}
+
+function agentScopeClass(agent) {
+  if (agent.includes("CloudDecisionAgent")) {
+    return "scope-cloud";
+  }
+  const scope = agentScope(agent);
+  if (scope.startsWith("云端")) {
+    return "scope-cloud";
+  }
+  if (scope.startsWith("云端")) {
+    return "scope-cloud";
+  }
+  if (scope.startsWith("车端")) {
+    return "scope-edge";
+  }
+  if (scope === "数据闭环") {
+    return "scope-data";
+  }
+  if (scope === "外部接口") {
+    return "scope-provider";
+  }
+  return "scope-neutral";
+}
+
 export function agentDescription(agent) {
+  if (agent.includes("CloudDecisionAgent")) {
+    return "汇聚画像、知识、生态和路线规划，生成最终执行说明。";
+  }
   if (agent.includes("LocalIntentAgent")) {
     return "解析用户指令意图，结合本地上下文做输入理解。";
   }
@@ -245,11 +456,17 @@ export function agentDescription(agent) {
   if (agent.includes("UserProfileAgent")) {
     return "读取用户画像和长期偏好，用于个性化决策。";
   }
-  if (agent.includes("VectorKnowledgeAgent")) {
-    return "召回本地和云端知识，为规划提供 RAG 依据。";
+  if (agent.includes("RuleKnowledgeAgent")) {
+    return "读取结构化规则库，用确定性策略提供安全、补能和路线规则。";
+  }
+  if (agent.includes("DocumentRAGAgent")) {
+    return "仅面向车主手册、服务政策等长文本问题做文档 RAG。";
   }
   if (agent.includes("ExternalEcologyAgent")) {
     return "聚合天气、补能站和地图生态数据。";
+  }
+  if (agent.includes("RouteProviderAgent")) {
+    return "并行调用地理编码和地图路线工具，产出距离与耗时。";
   }
   if (agent.includes("GlobalTripPlanningAgent") || agent.includes("TripPlanning")) {
     return "结合路线、补能和偏好生成出行方案。";

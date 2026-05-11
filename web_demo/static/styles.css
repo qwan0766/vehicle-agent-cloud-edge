@@ -327,6 +327,29 @@ h2 {
   gap: 8px;
 }
 
+.command-demo-block {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.command-demo-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.command-demo-heading span {
+  color: var(--text);
+  font-weight: 650;
+}
+
+.demo-buttons {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .scenario-grid button {
   display: grid;
   gap: 3px;
@@ -367,7 +390,7 @@ h2 {
 .demo-step {
   display: grid;
   gap: 4px;
-  min-height: 58px;
+  min-height: 54px;
   padding: 10px 12px;
   text-align: left;
 }
@@ -394,6 +417,11 @@ h2 {
   border-radius: 6px;
   background: #fbfcfb;
   padding: 12px;
+}
+
+.command-demo-notes {
+  margin-top: 0;
+  padding: 10px 12px;
 }
 
 .demo-notes strong {
@@ -620,9 +648,85 @@ h2 {
   background: var(--red);
 }
 
-.agent-card strong,
+.agent-card-header,
 .agent-card .agent-description {
   grid-column: 2;
+}
+
+.agent-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.agent-badges {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+}
+
+.agent-card-header strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.agent-scope {
+  flex: 0 0 auto;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--muted);
+  background: #fff;
+}
+
+.agent-scope.scope-edge {
+  border-color: rgba(35, 103, 171, 0.3);
+  color: #2367ab;
+  background: rgba(35, 103, 171, 0.08);
+}
+
+.agent-scope.scope-cloud {
+  border-color: rgba(0, 128, 128, 0.3);
+  color: var(--teal);
+  background: rgba(0, 128, 128, 0.08);
+}
+
+.agent-scope.scope-data {
+  border-color: rgba(176, 117, 0, 0.35);
+  color: #9b6500;
+  background: rgba(176, 117, 0, 0.08);
+}
+
+.agent-scope.scope-provider {
+  border-color: rgba(180, 52, 52, 0.35);
+  color: var(--danger);
+  background: rgba(180, 52, 52, 0.08);
+}
+
+.agent-parallel-badge {
+  border: 1px solid rgba(0, 128, 128, 0.28);
+  border-radius: 999px;
+  padding: 3px 8px;
+  color: var(--teal);
+  background: rgba(0, 128, 128, 0.08);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.trace-pair.parallel-group .agent-card,
+.trace-pair.parallel-group .agent-output-card {
+  border-color: rgba(0, 128, 128, 0.28);
+  background: rgba(0, 128, 128, 0.035);
+}
+
+.trace-pair.parallel-group .agent-card {
+  box-shadow: inset 3px 0 0 rgba(0, 128, 128, 0.5);
 }
 
 .agent-description {
@@ -688,12 +792,46 @@ h2 {
   overflow-wrap: anywhere;
 }
 
+.ecology-snapshot {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.ecology-metric {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface-muted);
+  padding: 10px;
+}
+
+.ecology-metric span,
+.ecology-metric small {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.ecology-metric strong {
+  display: block;
+  margin: 4px 0;
+  color: var(--text);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
 .result-panel {
   grid-column: span 2;
 }
 
 .rag-panel {
   min-height: 300px;
+}
+
+section.local-context-panel.panel {
+  grid-column: 1 / -1 !important;
 }
 
 .feedback-panel {
@@ -741,6 +879,14 @@ h2 {
   display: grid;
   grid-template-columns: 1fr;
   gap: 10px;
+}
+
+.local-context-panel .local-context-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.local-context-panel .local-context-grid > div:nth-child(n + 3) {
+  grid-column: 1 / -1;
 }
 
 .eval-grid {
@@ -811,6 +957,47 @@ h2 {
 
 .provider-smoke-name {
   color: var(--teal);
+}
+
+.provider-health {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  min-height: 24px;
+  margin-top: 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 2px 10px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.provider-health.ok {
+  border-color: rgba(38, 139, 72, 0.28);
+  color: var(--green);
+}
+
+.provider-health.fail {
+  border-color: rgba(184, 48, 48, 0.28);
+  color: var(--red);
+}
+
+.provider-health.skip {
+  border-color: rgba(181, 116, 12, 0.28);
+  color: var(--amber);
+}
+
+.provider-health.pending {
+  color: var(--muted);
+}
+
+.smoke-summary {
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 14px;
 }
 
 .local-context-recent {
@@ -917,7 +1104,6 @@ h2 {
   font-weight: 700;
 }
 
-.smoke-results,
 .acceptance-steps,
 .charge-stations {
   display: grid;
@@ -925,7 +1111,6 @@ h2 {
   margin-top: 12px;
 }
 
-.smoke-row,
 .acceptance-row,
 .station-row {
   display: flex;
@@ -1202,6 +1387,14 @@ h2 {
 
   .result-panel {
     grid-column: auto;
+  }
+
+  .local-context-panel {
+    grid-column: auto;
+  }
+
+  .local-context-panel .local-context-grid {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   h1 {

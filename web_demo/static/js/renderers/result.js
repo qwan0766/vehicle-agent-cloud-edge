@@ -1,5 +1,5 @@
-﻿import { renderMarkdown, escapeHtml } from "../markdown.js?v=agent-trace-aligned-20260510";
-import { renderAlignedTrace, renderGraphPath } from "./trace.js?v=agent-trace-aligned-20260510";
+import { renderMarkdown, escapeHtml } from "../markdown.js?v=knowledge-layer-v1-20260511";
+import { renderAlignedTrace, renderGraphPath } from "./trace.js?v=knowledge-layer-v1-20260511";
 
 export function renderResult(nodes, payload, helpers) {
   const { request, result, agent_trace: agentTrace } = payload;
@@ -64,14 +64,17 @@ export function renderResult(nodes, payload, helpers) {
       !needsChargeConfirmation
   );
 
-  renderAlignedTrace(nodes, agentTrace, payload.runtime_trace || [], { request, result });
+  renderAlignedTrace(nodes, agentTrace, payload.runtime_trace || [], {
+    request,
+    result,
+    graph: payload.graph || {},
+  });
   renderGraphPath(nodes, payload.graph || {});
   helpers.renderRouteSummary(nodes, payload.route_summary || {}, payload.charge_stations || []);
   helpers.renderRagContext(nodes, payload.rag_context || []);
   helpers.renderFeedback(nodes, payload.feedback || {});
   helpers.renderLocalContext(nodes, payload.local_context || {});
 }
-
 export function renderInputRewrite(container, rewrite) {
   const payload = rewrite || {};
   const raw = payload.raw_input || "";

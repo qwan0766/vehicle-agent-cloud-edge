@@ -79,9 +79,18 @@ class TestWebDemoAppModel(unittest.TestCase):
         self.assertEqual(steps[0]["id"], "online_navigation")
         self.assertEqual(steps[0]["content"], "导航去蔚来中心")
         self.assertEqual(steps[0]["network"], "ONLINE")
+        self.assertEqual(steps[0]["display_mode"], "端云协同")
         self.assertIn("端云协同", steps[0]["focus"])
         self.assertTrue(steps[0]["talk_track"])
         self.assertIn("expected_panels", steps[0])
+        self.assertTrue(all("display_mode" in step for step in steps))
+        self.assertIn("本地澄清", steps[1]["display_mode"])
+        self.assertIn("驾驶员确认", steps[2]["display_mode"])
+        self.assertIn("安全前置拦截", steps[3]["display_mode"])
+        self.assertIn("状态触发", steps[4]["display_mode"])
+        self.assertNotEqual({step["display_mode"] for step in steps}, {"ONLINE"})
+        self.assertFalse(any("ONLINE" in step["display_mode"] for step in steps))
+        self.assertEqual([step["network"] for step in steps[1:]], ["OFFLINE"] * 4)
         self.assertTrue(all("vehicle_state" in step for step in steps))
         self.assertEqual(steps[2]["vehicle_state"]["road_type"], "HIGHWAY")
         self.assertEqual(steps[2]["vehicle_state"]["speed_limit_kmh"], 120)
@@ -142,11 +151,13 @@ class TestWebDemoAppModel(unittest.TestCase):
         self.assertNotIn("向量知识库召回", payload["result"]["output"])
         self.assertTrue(payload["result"]["output"])
         self.assertIn("GlobalDispatchAgent", payload["agent_trace"])
-        self.assertIn("VectorKnowledgeAgent", payload["agent_trace"])
+        self.assertIn("RuleKnowledgeAgent", payload["agent_trace"])
+        self.assertNotIn("DocumentRAGAgent", payload["agent_trace"])
+        self.assertIn("RouteProviderAgent", payload["agent_trace"])
         self.assertIn("GlobalTripPlanningAgent", payload["agent_trace"])
         self.assertIn("rag_context", payload)
-        self.assertTrue(payload["rag_context"])
-        self.assertTrue(
+        self.assertEqual(payload["rag_context"], [])
+        self.assertFalse(
             any(item["stage"] == "用户画像召回" for item in payload["rag_context"])
         )
         self.assertEqual(payload["feedback"]["event_status"], "RECORDED")
@@ -173,9 +184,9 @@ class TestWebDemoAppModel(unittest.TestCase):
                 "knowledge.retrieve",
                 "user_profile.route_preference",
                 "ecology.snapshot",
-                "trip.plan",
                 "provider.geocode",
                 "provider.map.route",
+                "trip.plan",
                 "decision.summarize",
             ],
         )
@@ -194,6 +205,7 @@ class TestWebDemoAppModel(unittest.TestCase):
         self.assertLessEqual(len(rag_context), 3)
         self.assertNotIn("本地意图识别", stages)
         self.assertNotIn("云端路线规划", stages)
+        self.assertNotIn("用户画像召回", stages)
         self.assertNotIn("intent_nav_nio_center", doc_ids)
         self.assertNotIn("intent_nav_home", doc_ids)
         self.assertNotIn("route_offline_navigation", doc_ids)
@@ -202,7 +214,7 @@ class TestWebDemoAppModel(unittest.TestCase):
         payload = run_command("我的偏好", user_id="user_002", network="ONLINE")
 
         self.assertEqual(payload["request"]["user_id"], "user_002")
-        self.assertTrue(
+        self.assertFalse(
             any("user_002" in item["text"] for item in payload["rag_context"])
         )
 
@@ -339,6 +351,8 @@ class TestWebDemoAppModel(unittest.TestCase):
         self.assertEqual(payload["request"]["command_type"], "INFO_QUERY")
         self.assertEqual(payload["request"]["safety"], "SAFE")
         self.assertEqual(payload["result"]["status"], "EXECUTED")
+        self.assertIn("DocumentRAGAgent", payload["agent_trace"])
+        self.assertNotIn("RuleKnowledgeAgent", payload["agent_trace"])
         self.assertEqual(payload["route_summary"], {})
         self.assertFalse(payload["charge_stations"])
         self.assertNotIn("GlobalTripPlanningAgent", payload["agent_trace"])

@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>车载 Multi-Agent 端云协同展示</title>
-    <link rel="stylesheet" href="/styles.css?v=agent-trace-aligned-20260510" />
+    <link rel="stylesheet" href="/styles.css?v=knowledge-layer-v1-20260511" />
   </head>
   <body>
     <main class="app-shell">
@@ -97,7 +97,18 @@
             <span>用户画像</span>
             <select id="userSelect"></select>
           </label>
-          <div id="scenarioButtons" class="scenario-grid"></div>
+          <div class="command-demo-block">
+            <div class="command-demo-heading">
+              <span>演示按钮</span>
+              <small id="demoStepCount">0 steps</small>
+            </div>
+            <div id="demoSteps" class="scenario-grid demo-buttons">等待演示脚本</div>
+            <div class="demo-notes command-demo-notes">
+              <strong id="demoFocus">选择一个演示按钮</strong>
+              <p id="demoTalkTrack">选择后会填入指令与演示状态，仍需点击“运行指令”执行。</p>
+              <div id="demoExpectedPanels" class="demo-expected"></div>
+            </div>
+          </div>
           <label class="command-input">
             <span>用户指令</span>
             <input id="commandInput" value="导航去蔚来中心" />
@@ -181,7 +192,12 @@
           </div>
         </section>
 
-        <section class="panel local-context-panel" aria-label="本地意图Agent上下文管理">
+        <section
+          class="panel local-context-panel"
+          data-layout="full-width"
+          style="grid-column: 1 / -1"
+          aria-label="本地意图Agent上下文管理"
+        >
           <div class="panel-heading">
             <h2>本地意图Agent上下文</h2>
             <span id="localContextWindow">0 turns</span>
@@ -258,41 +274,47 @@
             <div class="provider-card" data-smoke-name="DeepSeek LLM">
               <span>DeepSeek LLM</span>
               <strong id="providerLlm">-</strong>
-              <small class="provider-smoke-name">DeepSeek LLM</small>
+              <small class="provider-smoke-name">对应检测：DeepSeek LLM</small>
               <small>接口：DeepSeek /chat/completions</small>
+              <div class="provider-health pending" data-provider-health>待检测</div>
             </div>
             <div class="provider-card" data-smoke-name="端侧模拟">
               <span>本地 LLM 模拟</span>
               <strong id="providerLocalLlm">-</strong>
-              <small class="provider-smoke-name">内部链路：本地 LLM 模拟</small>
+              <small class="provider-smoke-name">对应检测：内部链路，本地模拟</small>
               <small>接口：车端 LocalIntentAgent</small>
+              <div class="provider-health skip" data-provider-health>内部链路</div>
             </div>
             <div class="provider-card" data-smoke-name="LangGraph">
               <span>LangGraph 编排</span>
               <strong id="providerOrchestrator">-</strong>
-              <small class="provider-smoke-name">内部链路：LangGraph</small>
+              <small class="provider-smoke-name">对应检测：内部链路，LangGraph</small>
               <small>接口：云端 Agent Graph</small>
+              <div class="provider-health skip" data-provider-health>内部链路</div>
             </div>
             <div class="provider-card" data-smoke-name="AMap Route">
               <span>AMap Route</span>
               <strong id="providerMap">-</strong>
-              <small class="provider-smoke-name">AMap Route</small>
+              <small class="provider-smoke-name">对应检测：AMap Route</small>
               <small>接口：高德 /v3/direction/driving</small>
+              <div class="provider-health pending" data-provider-health>待检测</div>
             </div>
             <div class="provider-card" data-smoke-name="Open-Meteo Weather">
               <span>Open-Meteo Weather</span>
               <strong id="providerWeather">-</strong>
-              <small class="provider-smoke-name">Open-Meteo Weather</small>
+              <small class="provider-smoke-name">对应检测：Open-Meteo Weather</small>
               <small>接口：Open-Meteo /v1/forecast</small>
+              <div class="provider-health pending" data-provider-health>待检测</div>
             </div>
             <div class="provider-card" data-smoke-name="AMap POI">
               <span>AMap POI</span>
               <strong id="providerCharge">-</strong>
-              <small class="provider-smoke-name">AMap POI</small>
+              <small class="provider-smoke-name">对应检测：AMap POI</small>
               <small>接口：高德 /v3/place/around</small>
+              <div class="provider-health pending" data-provider-health>待检测</div>
             </div>
           </div>
-          <div id="smokeResults" class="smoke-results">等待真实接口检测</div>
+          <div id="smokeResults" class="smoke-summary">等待真实接口检测</div>
         </section>
 
         <section class="panel route-panel" aria-label="真实路线与补能">
@@ -308,22 +330,9 @@
           <div id="chargeStations" class="charge-stations">等待充电站结果</div>
         </section>
 
-        <section class="panel demo-panel" aria-label="面试演示模式">
-          <div class="panel-heading">
-            <h2>面试演示模式</h2>
-            <span id="demoStepCount">0 steps</span>
-          </div>
-          <div id="demoSteps" class="demo-steps">等待演示脚本</div>
-          <div class="demo-notes">
-            <strong id="demoFocus">选择一个演示步骤</strong>
-            <p id="demoTalkTrack">点击步骤后会自动填入指令并运行。</p>
-            <div id="demoExpectedPanels" class="demo-expected"></div>
-          </div>
-        </section>
-
       </section>
     </main>
 
-    <script type="module" src="/app.js?v=agent-trace-aligned-20260510"></script>
+    <script type="module" src="/app.js?v=knowledge-layer-v1-20260511"></script>
   </body>
 </html>

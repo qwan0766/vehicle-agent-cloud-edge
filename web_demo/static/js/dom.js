@@ -59,6 +59,7 @@ export const nodes = {
   providerMap: document.querySelector("#providerMap"),
   providerWeather: document.querySelector("#providerWeather"),
   providerCharge: document.querySelector("#providerCharge"),
+  providerCards: Array.from(document.querySelectorAll(".provider-card")),
   smokeResults: document.querySelector("#smokeResults"),
   routeProvider: document.querySelector("#routeProvider"),
   routeDistance: document.querySelector("#routeDistance"),

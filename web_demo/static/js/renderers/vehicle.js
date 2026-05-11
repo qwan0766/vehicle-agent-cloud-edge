@@ -1,4 +1,4 @@
-﻿import { escapeHtml } from "../markdown.js?v=agent-trace-aligned-20260510";
+import { escapeHtml } from "../markdown.js?v=knowledge-layer-v1-20260511";
 
 export function renderVehicle(nodes, vehicle, options = {}, state = null) {
   const syncControls = options.syncControls !== false;
@@ -29,7 +29,6 @@ export function renderVehicle(nodes, vehicle, options = {}, state = null) {
     nodes.offlineBtn.classList.toggle("active", vehicle.network === "OFFLINE");
   }
 }
-
 function renderSafetyBadge(nodes, safetyState) {
   nodes.safetyBadge.textContent = safetyState === "正常" ? "安全正常" : safetyState;
   nodes.safetyBadge.classList.toggle("badge-safe", safetyState === "正常");

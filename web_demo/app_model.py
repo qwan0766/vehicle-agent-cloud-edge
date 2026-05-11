@@ -46,6 +46,7 @@ DEMO_STEPS = [
         "title": "在线导航端云协同",
         "content": "导航去蔚来中心",
         "network": "ONLINE",
+        "display_mode": "端云协同",
         "vehicle_state": {
             "road_type": "HIGHWAY",
             "speed_limit_kmh": 120,
@@ -64,7 +65,8 @@ DEMO_STEPS = [
         "id": "fuzzy_destination_clarification",
         "title": "模糊目的地澄清",
         "content": "导航去北京",
-        "network": "ONLINE",
+        "network": "OFFLINE",
+        "display_mode": "本地澄清",
         "vehicle_state": {
             "road_type": "HIGHWAY",
             "speed_limit_kmh": 120,
@@ -83,7 +85,8 @@ DEMO_STEPS = [
         "id": "highway_speed_confirmation",
         "title": "高速速度请求确认",
         "content": "加速到100km/h",
-        "network": "ONLINE",
+        "network": "OFFLINE",
+        "display_mode": "驾驶员确认",
         "vehicle_state": {
             "road_type": "HIGHWAY",
             "speed_limit_kmh": 120,
@@ -102,7 +105,8 @@ DEMO_STEPS = [
         "id": "urban_speed_block",
         "title": "城市超限危险拦截",
         "content": "加速到100km/h",
-        "network": "ONLINE",
+        "network": "OFFLINE",
+        "display_mode": "安全前置拦截",
         "vehicle_state": {
             "road_type": "URBAN",
             "speed_limit_kmh": 60,
@@ -121,7 +125,8 @@ DEMO_STEPS = [
         "id": "low_battery_energy_policy",
         "title": "低电量状态与能源策略",
         "content": "导航去蔚来中心",
-        "network": "ONLINE",
+        "network": "OFFLINE",
+        "display_mode": "状态触发 · 能源策略",
         "vehicle_state": {
             "road_type": "HIGHWAY",
             "speed_limit_kmh": 120,
@@ -247,6 +252,7 @@ def _command_payload(result, network_status: NetworkStatus):
             result.message.safety,
             result.status,
             result.output,
+            result.trace or [],
         ),
     }
 
@@ -354,6 +360,7 @@ def _agent_trace(
     safety: SafetyLevel,
     status: ExecutionStatus,
     output: str = "",
+    runtime_trace: list = None,
 ):
     trace = ["LocalIntentAgent", "GlobalSafetyDispatchAgent"]
 
@@ -391,16 +398,16 @@ def _agent_trace(
         trace.append("DataUploadAgent")
         return trace
 
-    trace.extend(
-        [
-            "GlobalDispatchAgent",
-            "UserProfileAgent",
-            "VectorKnowledgeAgent",
-        ]
-    )
+    trace.extend(["GlobalDispatchAgent", "UserProfileAgent"])
+    if _uses_rule_knowledge(command_type, runtime_trace or [], output):
+        trace.append("RuleKnowledgeAgent")
+    if _uses_document_rag(runtime_trace or [], output):
+        trace.append("DocumentRAGAgent")
     if command_type in {CommandType.NAVIGATION, CommandType.CHARGE_PLAN}:
         trace.append("ExternalEcologyAgent")
+        trace.append("RouteProviderAgent")
         trace.append("GlobalTripPlanningAgent")
+    trace.append("CloudDecisionAgent")
     trace.append("DataUploadAgent")
     return trace
 
@@ -408,6 +415,34 @@ def _agent_trace(
 def _looks_like_energy_policy_output(output: str) -> bool:
     text = output or ""
     return "电量" in text or "低电量" in text or "补能" in text
+
+
+def _uses_rule_knowledge(
+    command_type: CommandType,
+    runtime_trace: list,
+    output: str,
+) -> bool:
+    if "规则知识库召回" in (output or ""):
+        return True
+    if command_type in {
+        CommandType.NAVIGATION,
+        CommandType.CHARGE_PLAN,
+        CommandType.CAR_CONTROL,
+    }:
+        return any(item.get("tool_name") == "knowledge.retrieve" for item in runtime_trace)
+    return False
+
+
+def _uses_document_rag(runtime_trace: list, output: str) -> bool:
+    if "文档RAG召回" in (output or ""):
+        return True
+    for item in runtime_trace:
+        if item.get("tool_name") != "knowledge.retrieve":
+            continue
+        tool_output = item.get("output", "")
+        if isinstance(tool_output, str) and "文档RAG召回" in tool_output:
+            return True
+    return False
 
 
 def _rag_context(
@@ -442,7 +477,12 @@ def _rag_stage(result):
     doc_id = result.document.doc_id
     if doc_id.startswith("profile_"):
         return "用户画像召回"
-    return "向量知识库召回"
+    knowledge_type = result.document.metadata.get("knowledge_type")
+    if knowledge_type == "structured_rule":
+        return "规则知识库"
+    if knowledge_type == "document_rag":
+        return "文档RAG召回"
+    return "知识库召回"
 
 
 def _context_payload(stage: str, result):

@@ -7,37 +7,36 @@
   getOfflineEvaluation,
   runProviderSmokeTestRequest,
   getAcceptance,
-} from "./js/api.js?v=agent-trace-aligned-20260510";
-import { nodes } from "./js/dom.js?v=agent-trace-aligned-20260510";
-import { state } from "./js/state.js?v=agent-trace-aligned-20260510";
+} from "./js/api.js?v=knowledge-layer-v1-20260511";
+import { nodes } from "./js/dom.js?v=knowledge-layer-v1-20260511";
+import { state } from "./js/state.js?v=knowledge-layer-v1-20260511";
 import {
   applyVehicleState,
   bindEvents,
   runCommand,
   setNetwork,
   startVehicleEventPolling,
-} from "./js/events.js?v=agent-trace-aligned-20260510";
+} from "./js/events.js?v=knowledge-layer-v1-20260511";
 import {
   renderVehicle,
   renderAutoEvents,
   renderOfflineEvaluation,
-} from "./js/renderers/vehicle.js?v=agent-trace-aligned-20260510";
+} from "./js/renderers/vehicle.js?v=knowledge-layer-v1-20260511";
 import {
   renderUsers,
-  renderScenarioButtons,
   renderDemoSteps,
-} from "./js/renderers/demo.js?v=agent-trace-aligned-20260510";
+} from "./js/renderers/demo.js?v=knowledge-layer-v1-20260511";
 import {
   clearCommandError,
   renderCommandError,
   renderResult,
-} from "./js/renderers/result.js?v=agent-trace-aligned-20260510";
-import { renderAcceptance } from "./js/renderers/acceptance.js?v=agent-trace-aligned-20260510";
-import { renderProviders, renderSmokeResults } from "./js/renderers/providers.js?v=agent-trace-aligned-20260510";
-import { renderRouteSummary } from "./js/renderers/route.js?v=agent-trace-aligned-20260510";
-import { renderRagContext } from "./js/renderers/rag.js?v=agent-trace-aligned-20260510";
-import { renderFeedback } from "./js/renderers/feedback.js?v=agent-trace-aligned-20260510";
-import { renderLocalContext } from "./js/renderers/local-context.js?v=agent-trace-aligned-20260510";
+} from "./js/renderers/result.js?v=knowledge-layer-v1-20260511";
+import { renderAcceptance } from "./js/renderers/acceptance.js?v=knowledge-layer-v1-20260511";
+import { renderProviders, renderSmokeResults } from "./js/renderers/providers.js?v=knowledge-layer-v1-20260511";
+import { renderRouteSummary } from "./js/renderers/route.js?v=knowledge-layer-v1-20260511";
+import { renderRagContext } from "./js/renderers/rag.js?v=knowledge-layer-v1-20260511";
+import { renderFeedback } from "./js/renderers/feedback.js?v=knowledge-layer-v1-20260511";
+import { renderLocalContext } from "./js/renderers/local-context.js?v=knowledge-layer-v1-20260511";
 
 const api = {
   getInitialState,
@@ -55,7 +54,6 @@ const renderers = {
   renderAutoEvents,
   renderOfflineEvaluation,
   renderUsers,
-  renderScenarioButtons,
   renderDemoSteps,
   clearCommandError,
   renderCommandError,
@@ -92,7 +90,6 @@ async function init() {
     renderAcceptance(nodes, payload.acceptance);
     renderProviders(nodes, payload.providers);
     renderUsers(nodes, state);
-    renderScenarioButtons(nodes, state, setNetworkForRenderers);
     renderDemoSteps(
       nodes,
       state,

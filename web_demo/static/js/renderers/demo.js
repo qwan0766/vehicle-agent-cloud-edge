@@ -1,4 +1,4 @@
-﻿import { escapeHtml } from "../markdown.js?v=agent-trace-aligned-20260510";
+import { escapeHtml } from "../markdown.js?v=knowledge-layer-v1-20260511";
 
 export function renderUsers(nodes, state) {
   nodes.userSelect.innerHTML = "";
@@ -11,8 +11,10 @@ export function renderUsers(nodes, state) {
   nodes.userSelect.value = state.userId;
   nodes.userIdValue.textContent = state.userId;
 }
-
 export function renderScenarioButtons(nodes, state, setNetwork) {
+  if (!nodes.scenarioButtons) {
+    return;
+  }
   nodes.scenarioButtons.innerHTML = "";
   state.scenarios.forEach((scenario) => {
     const button = document.createElement("button");
@@ -33,7 +35,7 @@ export function renderDemoSteps(nodes, state, setNetwork, applyVehicleState, run
   nodes.demoSteps.innerHTML = "";
   nodes.demoStepCount.textContent = `${state.demoSteps.length} steps`;
   if (!state.demoSteps.length) {
-    nodes.demoSteps.textContent = "暂无演示步骤";
+    nodes.demoSteps.textContent = "暂无演示按钮";
     return;
   }
 
@@ -46,10 +48,11 @@ export function renderDemoSteps(nodes, state, setNetwork, applyVehicleState, run
     const title = document.createElement("strong");
     title.textContent = step.title;
     const meta = document.createElement("span");
-    meta.textContent = `${step.network} · ${step.content}`;
+    const displayMode = step.display_mode || step.network;
+    meta.textContent = `${displayMode} · ${step.content}`;
     button.append(title, meta);
     button.addEventListener("click", async () =>
-      activateDemoStep(nodes, state, step, true, setNetwork, applyVehicleState, runCommand)
+      activateDemoStep(nodes, state, step, false, setNetwork, applyVehicleState, runCommand)
     );
     nodes.demoSteps.appendChild(button);
   });
@@ -70,13 +73,14 @@ export async function activateDemoStep(
   nodes.commandInput.value = step.content;
   setNetwork(step.network);
   renderDemoNotes(nodes, step);
+  nodes.commandInput.focus();
   document.querySelectorAll(".demo-step").forEach((button) => {
     button.classList.toggle("active", button.dataset.demoId === step.id);
   });
+  if (step.vehicle_state) {
+    await applyVehicleState(step.vehicle_state);
+  }
   if (shouldRun) {
-    if (step.vehicle_state) {
-      await applyVehicleState(step.vehicle_state);
-    }
     runCommand();
   }
 }

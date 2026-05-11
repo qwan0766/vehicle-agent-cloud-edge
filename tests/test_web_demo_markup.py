@@ -3,19 +3,26 @@ from pathlib import Path
 
 
 class TestWebDemoMarkup(unittest.TestCase):
-    def test_demo_mode_panel_has_required_targets(self):
+    def test_command_panel_embeds_demo_buttons(self):
         html = Path("web_demo/static/index.html").read_text(encoding="utf-8")
 
-        self.assertIn('aria-label="面试演示模式"', html)
+        self.assertIn('aria-label="指令执行"', html)
+        self.assertIn("演示按钮", html)
         self.assertIn('id="demoSteps"', html)
         self.assertIn('id="demoTalkTrack"', html)
         self.assertIn('id="demoFocus"', html)
+        self.assertNotIn('class="panel demo-panel"', html)
+        self.assertNotIn('aria-label="面试演示模式"', html)
+        self.assertNotIn('id="scenarioButtons"', html)
 
     def test_local_context_panel_has_required_targets(self):
         html = Path("web_demo/static/index.html").read_text(encoding="utf-8")
+        css = Path("web_demo/static/styles.css").read_text(encoding="utf-8")
 
         self.assertIn('aria-label="本地意图Agent上下文管理"', html)
         self.assertIn('id="localContextWindow"', html)
+        self.assertIn('data-layout="full-width"', html)
+        self.assertIn('style="grid-column: 1 / -1"', html)
         self.assertIn('id="localContextProvider"', html)
         self.assertIn('id="localContextModel"', html)
         self.assertIn('id="localContextSummary"', html)
@@ -24,6 +31,10 @@ class TestWebDemoMarkup(unittest.TestCase):
         self.assertNotIn('<div id="localContextSummary"', html)
         self.assertIn('id="localContextRecent"', html)
         self.assertIn('id="localContextPrompt"', html)
+        self.assertIn("section.local-context-panel.panel", css)
+        self.assertIn("grid-column: 1 / -1", css)
+        self.assertIn("!important", css)
+        self.assertIn(".local-context-panel .local-context-grid", css)
 
     def test_trace_panel_has_graph_targets(self):
         html = Path("web_demo/static/index.html").read_text(encoding="utf-8")
@@ -39,8 +50,8 @@ class TestWebDemoMarkup(unittest.TestCase):
     def test_static_assets_are_versioned_for_browser_cache_busting(self):
         html = Path("web_demo/static/index.html").read_text(encoding="utf-8")
 
-        self.assertIn("/styles.css?v=agent-trace-aligned-20260510", html)
-        self.assertIn("/app.js?v=agent-trace-aligned-20260510", html)
+        self.assertIn("/styles.css?v=knowledge-layer-v1-20260511", html)
+        self.assertIn("/app.js?v=knowledge-layer-v1-20260511", html)
 
     def test_styles_include_clarification_card_targets(self):
         css = Path("web_demo/static/styles.css").read_text(encoding="utf-8")
@@ -63,11 +74,9 @@ class TestWebDemoMarkup(unittest.TestCase):
         html = Path("web_demo/static/index.html").read_text(encoding="utf-8")
 
         result_index = html.index('class="panel result-panel"')
-        demo_index = html.index('class="panel demo-panel"')
         trace_index = html.index('class="panel trace-panel"')
         rag_index = html.index('class="panel rag-panel"')
 
-        self.assertLess(result_index, demo_index)
         self.assertLess(result_index, trace_index)
         self.assertLess(result_index, rag_index)
 
@@ -81,17 +90,19 @@ class TestWebDemoMarkup(unittest.TestCase):
         html = Path("web_demo/static/index.html").read_text(encoding="utf-8")
 
         self.assertIn('data-smoke-name="DeepSeek LLM"', html)
-        self.assertIn('class="provider-smoke-name">DeepSeek LLM</small>', html)
+        self.assertIn('class="provider-smoke-name">对应检测：DeepSeek LLM</small>', html)
         self.assertIn('接口：DeepSeek /chat/completions', html)
         self.assertIn('data-smoke-name="Open-Meteo Weather"', html)
-        self.assertIn('class="provider-smoke-name">Open-Meteo Weather</small>', html)
+        self.assertIn('class="provider-smoke-name">对应检测：Open-Meteo Weather</small>', html)
         self.assertIn('接口：Open-Meteo /v1/forecast', html)
         self.assertIn('data-smoke-name="AMap Route"', html)
-        self.assertIn('class="provider-smoke-name">AMap Route</small>', html)
+        self.assertIn('class="provider-smoke-name">对应检测：AMap Route</small>', html)
         self.assertIn('接口：高德 /v3/direction/driving', html)
         self.assertIn('data-smoke-name="AMap POI"', html)
-        self.assertIn('class="provider-smoke-name">AMap POI</small>', html)
+        self.assertIn('class="provider-smoke-name">对应检测：AMap POI</small>', html)
         self.assertIn('接口：高德 /v3/place/around', html)
+        self.assertIn('data-provider-health', html)
+        self.assertIn('class="smoke-summary"', html)
 
         self.assertNotIn("OpenChargeMap", html)
         self.assertNotIn("Baidu Map", html)
