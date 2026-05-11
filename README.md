@@ -53,6 +53,32 @@ powershell -ExecutionPolicy Bypass -File scripts/check_all.ps1 -BaseUrl http://1
 - `reports/browser_qa/desktop.png`
 - `reports/browser_qa/mobile.png`
 
+## GitHub Actions 离线 CI
+
+仓库提供最小离线 CI：`.github/workflows/ci.yml`。CI 不需要真实 API key，会显式清空 `DEEPSEEK_API_KEY`、`AMAP_API_KEY`、`BAIDU_MAP_AK`、`OPENCHARGEMAP_API_KEY`，并固定为 Mock Local LLM + Offline Provider：
+
+```bash
+python scripts/run_delivery_check.py --unit-timeout 300
+```
+
+CI 覆盖内容：
+
+- `pytest tests`
+- 前端 JavaScript 语法检查
+- 稳定演示场景回归
+
+生成报告位于 `reports/delivery_check_report.md`，属于本地/CI 产物，不应提交到 git。
+
+## 真实 Provider smoke test
+
+真实 Provider 连通性测试是手动 opt-in，不放进默认 CI，避免 CI 依赖外部网络质量或真实 key。需要验证线上接口时，先在本机配置 `.env`，再执行：
+
+```bash
+python scripts/smoke_real_providers.py
+```
+
+当前 smoke 范围只覆盖演示链路实际用到的接口：DeepSeek LLM、Open-Meteo 天气、高德路线、高德 POI。未配置 key 的项目会显示 `SKIP`；真实调用失败会显示 `FAIL`，不会回退成离线假成功。
+
 ## 固定演示路线
 
 建议面试时按这 5 个场景讲：

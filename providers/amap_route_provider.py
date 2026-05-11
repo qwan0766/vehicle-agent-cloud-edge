@@ -1,6 +1,7 @@
-import json
-from urllib import parse, request
+from urllib import parse
 
+from providers.errors import ProviderBadResponseError
+from providers.http import get_json
 from providers.offline_map_provider import RouteSummary
 
 
@@ -33,8 +34,21 @@ class AmapRouteProvider:
             self.timeout,
         )
         if payload.get("status") != "1":
-            raise RuntimeError(f"AMap route error: {payload.get('info', 'UNKNOWN')}")
-        path = payload.get("route", {}).get("paths", [{}])[0]
+            raise ProviderBadResponseError(
+                f"AMap route error: {payload.get('info', 'UNKNOWN')}",
+                provider=self.provider_name,
+                operation="driving_route",
+                code=payload.get("infocode") or payload.get("info") or "AMAP_ROUTE_ERROR",
+            )
+        paths = payload.get("route", {}).get("paths") or []
+        if not paths:
+            raise ProviderBadResponseError(
+                "AMap route returned no path",
+                provider=self.provider_name,
+                operation="driving_route",
+                code="AMAP_ROUTE_EMPTY_PATH",
+            )
+        path = paths[0]
         distance_km = round(float(path.get("distance") or 0) / 1000, 1)
         duration_minutes = round(float(path.get("duration") or 0) / 60)
         return RouteSummary(
@@ -59,13 +73,12 @@ def _normalize_gps(gps: str) -> str:
 
 
 def _get_json(url: str, timeout: int):
-    req = request.Request(
+    return get_json(
         url,
+        timeout,
+        provider=AmapRouteProvider.provider_name,
+        operation="driving_route",
         headers={
-            "Accept": "application/json",
             "User-Agent": "weilai-agent-offline-demo/1.0",
         },
-        method="GET",
     )
-    with request.urlopen(req, timeout=timeout) as response:
-        return json.loads(response.read().decode("utf-8"))

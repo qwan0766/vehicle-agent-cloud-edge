@@ -8,6 +8,7 @@ __pycache__/
 .pytest-basetemp/
 pytest-tmp-*/
 pytest-cache-files-*/
+.tmp/
 .tmp-tests/
 .coverage
 htmlcov/
@@ -29,6 +30,11 @@ Thumbs.db
 # Local web demo logs
 web_demo/*.log
 .tmp-web-*.log
+
+# Generated reports and screenshots
+reports/
+*.coverage.xml
+coverage.xml
 
 # Runtime data
 runtime/*

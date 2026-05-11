@@ -1,6 +1,6 @@
 # 车载 Multi-Agent 交付验收报告
 
-- 生成时间：2026-05-08T17:56:18+08:00
+- 生成时间：2026-05-11T22:40:16+08:00
 - 总体状态：PASS
 - 稳定环境：Mock Local LLM + Offline Provider，真实 Provider smoke 为可选项
 
@@ -8,9 +8,9 @@
 
 | 步骤 | 状态 | 耗时 |
 | --- | --- | ---: |
-| unit tests | PASS | 6.05s |
-| frontend js syntax | PASS | 1.17s |
-| demo scenarios | PASS | 1.45s |
+| unit tests | PASS | 8.97s |
+| frontend js syntax | PASS | 1.01s |
+| demo scenarios | PASS | 1.54s |
 | provider smoke | SKIP | 0.00s |
 
 ## 面试演示场景
@@ -28,13 +28,14 @@
 ### unit tests
 
 - 状态：PASS
-- 耗时：6.05s
+- 耗时：8.97s
 
 ```text
 $ C:\Users\scyqw3\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe -m pytest tests --basetemp=E:\claudeCode\weilaiAgent\.tmp\delivery-pytest -q
-........................................................................ [ 31%]
-............................................................................................ [ 70%]
-......................................................... [ 95%]
+........................................................................ [ 24%]
+........................................................................ [ 48%]
+........................................................................ [ 72%]
+........................................................................ [ 96%]
 ..........                                                               [100%]
 ============================== warnings summary ===============================
 tests/test_cloud_agents.py::TestCloudAgents::test_cloud_schedule_combines_profile_ecology_and_route
@@ -42,13 +43,13 @@ tests/test_cloud_agents.py::TestCloudAgents::test_cloud_schedule_combines_profil
     from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
 
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-231 passed, 1 warning, 139 subtests passed in 4.27s
+298 passed, 1 warning in 7.14s
 ```
 
 ### frontend js syntax
 
 - 状态：PASS
-- 耗时：1.17s
+- 耗时：1.01s
 
 ```text
 16 JavaScript files checked
@@ -57,7 +58,7 @@ tests/test_cloud_agents.py::TestCloudAgents::test_cloud_schedule_combines_profil
 ### demo scenarios
 
 - 状态：PASS
-- 耗时：1.45s
+- 耗时：1.54s
 
 ```text
 正常导航端云协同: NAVIGATION/EXECUTED expected NAVIGATION/EXECUTED
