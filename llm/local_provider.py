@@ -1,6 +1,7 @@
 import json
-import os
 from urllib import request
+
+from config.settings import get_settings
 
 
 class MockLocalLLMProvider:
@@ -166,42 +167,41 @@ class OpenAICompatibleLocalLLMProvider:
         return response["choices"][0]["message"]["content"].strip()
 
 
-def create_local_llm_provider():
-    provider = os.getenv("LOCAL_LLM_PROVIDER", "mock_local").strip().lower()
-    model = os.getenv("LOCAL_LLM_MODEL", "").strip()
-    timeout = int(os.getenv("LOCAL_LLM_TIMEOUT", "8"))
+def create_local_llm_provider(settings=None):
+    settings = settings or get_settings()
+    local_settings = settings.local_llm
+    llm_settings = settings.llm
+    provider = local_settings.provider
+    model = local_settings.model
+    timeout = local_settings.timeout
 
     if provider in {"mock", "mock_local", "none", ""}:
         return MockLocalLLMProvider(model=model or "mock-local-intent")
 
     if provider == "ollama":
         return OllamaLocalLLMProvider(
-            base_url=os.getenv("LOCAL_LLM_BASE_URL", "http://127.0.0.1:11434"),
+            base_url=local_settings.base_url or "http://127.0.0.1:11434",
             model=model or "qwen2.5:1.5b",
             timeout=timeout,
         )
 
     if provider in {"edge_deepseek_sim", "deepseek_edge", "edge_deepseek"}:
         return EdgeDeepSeekSimProvider(
-            api_key=os.getenv("LOCAL_LLM_API_KEY") or os.getenv("DEEPSEEK_API_KEY"),
-            base_url=os.getenv("LOCAL_LLM_DEEPSEEK_BASE_URL")
-            or os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com"),
+            api_key=local_settings.api_key,
+            base_url=local_settings.deepseek_base_url or llm_settings.deepseek_base_url,
             model=model
-            or os.getenv("DEEPSEEK_EDGE_MODEL", "").strip()
-            or os.getenv("DEEPSEEK_MODEL", "deepseek-v4-flash"),
+            or local_settings.edge_model
+            or llm_settings.deepseek_model,
             timeout=timeout,
-            max_output_tokens=_env_int("LOCAL_LLM_MAX_OUTPUT_TOKENS", 64),
-            context_limit_tokens=_env_int("LOCAL_LLM_MAX_CONTEXT_TOKENS", 7500),
-            generation_buffer_tokens=_env_int(
-                "LOCAL_LLM_GENERATION_BUFFER_TOKENS",
-                500,
-            ),
+            max_output_tokens=local_settings.max_output_tokens,
+            context_limit_tokens=local_settings.context_limit_tokens,
+            generation_buffer_tokens=local_settings.generation_buffer_tokens,
         )
 
     if provider == "lmstudio":
         return OpenAICompatibleLocalLLMProvider(
             provider_name="lmstudio",
-            base_url=os.getenv("LOCAL_LLM_BASE_URL", "http://127.0.0.1:1234/v1"),
+            base_url=local_settings.base_url or "http://127.0.0.1:1234/v1",
             model=model or "local-model",
             timeout=timeout,
         )
@@ -209,7 +209,7 @@ def create_local_llm_provider():
     if provider in {"llama_cpp", "llama.cpp", "llamacpp"}:
         return OpenAICompatibleLocalLLMProvider(
             provider_name="llama_cpp",
-            base_url=os.getenv("LOCAL_LLM_BASE_URL", "http://127.0.0.1:8080/v1"),
+            base_url=local_settings.base_url or "http://127.0.0.1:8080/v1",
             model=model or "local-model",
             timeout=timeout,
         )
@@ -299,16 +299,6 @@ def _tail(value, limit: int) -> str:
 
 def _estimate_tokens(text: str) -> int:
     return max(1, len(text or "") // 2)
-
-
-def _env_int(name: str, default: int) -> int:
-    raw = os.getenv(name, "").strip()
-    if not raw:
-        return int(default)
-    try:
-        return int(raw)
-    except ValueError:
-        return int(default)
 
 
 def _post_json(url: str, headers: dict, body: bytes, timeout: int):

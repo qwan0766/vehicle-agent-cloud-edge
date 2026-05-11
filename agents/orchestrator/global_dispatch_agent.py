@@ -1,4 +1,3 @@
-import os
 from concurrent.futures import ThreadPoolExecutor
 from time import perf_counter
 
@@ -6,6 +5,7 @@ from agents.cloud.external_ecology_agent import ExternalEcologyAgent
 from agents.cloud.global_trip_planning_agent import GlobalTripPlanningAgent
 from agents.cloud.user_profile_agent import UserProfileAgent
 from agents.cloud.vector_knowledge_agent import VectorKnowledgeAgent
+from config.settings import get_settings
 from core.constants import CommandType
 from core.message import Message
 from data.vehicle_state import DEFAULT_VEHICLE_STATE
@@ -39,7 +39,7 @@ class GlobalDispatchAgent:
         self.tool_registry = tool_registry or self._build_tool_registry()
         self.runtime = runtime or AgentRuntime()
         self.enable_langgraph = (
-            os.getenv("ENABLE_LANGGRAPH", "1") != "0"
+            get_settings().runtime.enable_langgraph
             if enable_langgraph is None
             else bool(enable_langgraph)
         )

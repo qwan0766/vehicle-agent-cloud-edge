@@ -1,7 +1,15 @@
 import json
 import unittest
 
+from config.settings import (
+    AppSettings,
+    LLMSettings,
+    LocalLLMSettings,
+    ProviderSettings,
+    RuntimeSettings,
+)
 from llm.deepseek_client import DeepSeekLLMClient
+from llm.factory import create_llm_client
 from llm.mock_llm_client import MockLLMClient
 
 
@@ -48,6 +56,24 @@ class TestLLMClients(unittest.TestCase):
         self.assertEqual(captured["headers"]["Authorization"], "Bearer test-key")
         self.assertEqual(captured["body"]["model"], "deepseek-v4-flash")
         self.assertEqual(captured["body"]["thinking"], {"type": "disabled"})
+
+    def test_llm_factory_uses_structured_settings(self):
+        settings = AppSettings(
+            llm=LLMSettings(
+                deepseek_api_key="test-key",
+                deepseek_model="deepseek-test",
+                deepseek_base_url="https://example.deepseek.local",
+            ),
+            local_llm=LocalLLMSettings(),
+            providers=ProviderSettings(),
+            runtime=RuntimeSettings(),
+        )
+
+        client = create_llm_client(settings=settings)
+
+        self.assertIsInstance(client, DeepSeekLLMClient)
+        self.assertEqual(client.model, "deepseek-test")
+        self.assertEqual(client.base_url, "https://example.deepseek.local")
 
 
 if __name__ == "__main__":

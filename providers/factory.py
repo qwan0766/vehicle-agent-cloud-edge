@@ -14,10 +14,10 @@ from providers.open_meteo_weather_provider import OpenMeteoWeatherProvider
 
 def create_map_provider(settings: Optional[AppSettings] = None):
     settings = settings or get_settings()
-    amap_key = settings.amap_api_key
+    amap_key = settings.providers.amap_api_key
     if amap_key:
         return AmapRouteProvider(api_key=amap_key)
-    api_key = settings.baidu_map_ak
+    api_key = settings.providers.baidu_map_ak
     if api_key:
         return BaiduMapProvider(api_key=api_key)
     return OfflineMapProvider()
@@ -25,36 +25,36 @@ def create_map_provider(settings: Optional[AppSettings] = None):
 
 def create_geocode_provider(settings: Optional[AppSettings] = None):
     settings = settings or get_settings()
-    amap_key = settings.amap_api_key
+    amap_key = settings.providers.amap_api_key
     if amap_key:
         return AmapGeocodeProvider(
             api_key=amap_key,
-            city=settings.amap_geocode_city,
+            city=settings.providers.amap_geocode_city,
         )
     return None
 
 
 def create_weather_provider(settings: Optional[AppSettings] = None):
     settings = settings or get_settings()
-    if settings.use_open_meteo == "1":
+    if settings.providers.use_open_meteo:
         return OpenMeteoWeatherProvider()
     return OfflineWeatherProvider()
 
 
 def create_charge_provider(settings: Optional[AppSettings] = None):
     settings = settings or get_settings()
-    amap_key = settings.amap_api_key
+    amap_key = settings.providers.amap_api_key
     if amap_key:
         return AmapPOIProvider(api_key=amap_key)
-    api_key = settings.open_charge_map_api_key
-    if api_key or settings.use_open_charge_map == "1":
+    api_key = settings.providers.open_charge_map_api_key
+    if api_key or settings.providers.use_open_charge_map:
         return OpenChargeMapProvider(api_key=api_key)
     return OfflineChargeProvider()
 
 
 def create_destination_candidate_provider(settings: Optional[AppSettings] = None):
     settings = settings or get_settings()
-    amap_key = settings.amap_api_key
+    amap_key = settings.providers.amap_api_key
     if amap_key:
         return AmapPOIProvider(api_key=amap_key)
     return None
