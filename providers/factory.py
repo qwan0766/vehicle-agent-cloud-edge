@@ -14,22 +14,25 @@ from providers.open_meteo_weather_provider import OpenMeteoWeatherProvider
 
 def create_map_provider(settings: Optional[AppSettings] = None):
     settings = settings or get_settings()
+    timeout = settings.provider_runtime.timeout_seconds
     amap_key = settings.providers.amap_api_key
     if amap_key:
-        return AmapRouteProvider(api_key=amap_key)
+        return AmapRouteProvider(api_key=amap_key, timeout=timeout)
     api_key = settings.providers.baidu_map_ak
     if api_key:
-        return BaiduMapProvider(api_key=api_key)
+        return BaiduMapProvider(api_key=api_key, timeout=timeout)
     return OfflineMapProvider()
 
 
 def create_geocode_provider(settings: Optional[AppSettings] = None):
     settings = settings or get_settings()
+    timeout = settings.provider_runtime.timeout_seconds
     amap_key = settings.providers.amap_api_key
     if amap_key:
         return AmapGeocodeProvider(
             api_key=amap_key,
             city=settings.providers.amap_geocode_city,
+            timeout=timeout,
         )
     return None
 
@@ -37,18 +40,19 @@ def create_geocode_provider(settings: Optional[AppSettings] = None):
 def create_weather_provider(settings: Optional[AppSettings] = None):
     settings = settings or get_settings()
     if settings.providers.use_open_meteo:
-        return OpenMeteoWeatherProvider()
+        return OpenMeteoWeatherProvider(timeout=settings.provider_runtime.timeout_seconds)
     return OfflineWeatherProvider()
 
 
 def create_charge_provider(settings: Optional[AppSettings] = None):
     settings = settings or get_settings()
+    timeout = settings.provider_runtime.timeout_seconds
     amap_key = settings.providers.amap_api_key
     if amap_key:
-        return AmapPOIProvider(api_key=amap_key)
+        return AmapPOIProvider(api_key=amap_key, timeout=timeout)
     api_key = settings.providers.open_charge_map_api_key
     if api_key or settings.providers.use_open_charge_map:
-        return OpenChargeMapProvider(api_key=api_key)
+        return OpenChargeMapProvider(api_key=api_key, timeout=timeout)
     return OfflineChargeProvider()
 
 
@@ -56,5 +60,8 @@ def create_destination_candidate_provider(settings: Optional[AppSettings] = None
     settings = settings or get_settings()
     amap_key = settings.providers.amap_api_key
     if amap_key:
-        return AmapPOIProvider(api_key=amap_key)
+        return AmapPOIProvider(
+            api_key=amap_key,
+            timeout=settings.provider_runtime.timeout_seconds,
+        )
     return None

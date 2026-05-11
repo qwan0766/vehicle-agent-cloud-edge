@@ -72,6 +72,24 @@ class ProviderUnavailableError(ProviderError):
         )
 
 
+class ProviderCircuitOpenError(ProviderUnavailableError):
+    def __init__(
+        self,
+        message: str,
+        *,
+        provider: str,
+        operation: str,
+        details: Optional[dict] = None,
+    ):
+        super().__init__(
+            message,
+            provider=provider,
+            operation=operation,
+            code="PROVIDER_CIRCUIT_OPEN",
+            details=details,
+        )
+
+
 class ProviderBadResponseError(ProviderError):
     def __init__(
         self,

@@ -1,6 +1,7 @@
-import json
-from urllib import parse, request
+from urllib import parse
 
+from providers.errors import ProviderBadResponseError
+from providers.http import get_json
 from providers.offline_charge_provider import ChargeStation
 from providers.destination_models import DestinationCandidate
 
@@ -48,7 +49,12 @@ class AmapPOIProvider:
     def find_nearby(self, gps: str, limit: int = 3):
         payload = self.transport(self.build_around_search_url(gps, limit=limit), self.timeout)
         if payload.get("status") != "1":
-            raise RuntimeError(f"AMap POI error: {payload.get('info', 'UNKNOWN')}")
+            raise ProviderBadResponseError(
+                f"AMap POI error: {payload.get('info', 'UNKNOWN')}",
+                provider=self.provider_name,
+                operation="place_around",
+                code=payload.get("infocode") or payload.get("info") or "AMAP_POI_ERROR",
+            )
         stations = []
         for item in payload.get("pois", [])[:limit]:
             distance_m = float(item.get("distance") or 0)
@@ -68,7 +74,12 @@ class AmapPOIProvider:
             self.timeout,
         )
         if payload.get("status") != "1":
-            raise RuntimeError(f"AMap POI text error: {payload.get('info', 'UNKNOWN')}")
+            raise ProviderBadResponseError(
+                f"AMap POI text error: {payload.get('info', 'UNKNOWN')}",
+                provider=self.provider_name,
+                operation="place_text",
+                code=payload.get("infocode") or payload.get("info") or "AMAP_POI_TEXT_ERROR",
+            )
         candidates = []
         for item in payload.get("pois", [])[:limit]:
             location = item.get("location", "")
@@ -124,13 +135,12 @@ def _poi_confidence(keyword: str, item: dict) -> float:
 
 
 def _get_json(url: str, timeout: int):
-    req = request.Request(
+    return get_json(
         url,
+        timeout,
+        provider=AmapPOIProvider.provider_name,
+        operation="place",
         headers={
-            "Accept": "application/json",
             "User-Agent": "weilai-agent-offline-demo/1.0",
         },
-        method="GET",
     )
-    with request.urlopen(req, timeout=timeout) as response:
-        return json.loads(response.read().decode("utf-8"))

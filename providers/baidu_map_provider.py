@@ -1,6 +1,7 @@
-import json
-from urllib import parse, request
+from urllib import parse
 
+from providers.errors import ProviderBadResponseError
+from providers.http import get_json
 from providers.offline_map_provider import RouteSummary
 
 
@@ -26,7 +27,22 @@ class BaiduMapProvider:
 
     def plan_route(self, origin: str, destination: str, preference: str = "") -> RouteSummary:
         payload = self.transport(self.build_driving_route_url(origin, destination), self.timeout)
-        route = payload.get("result", {}).get("routes", [{}])[0]
+        if payload.get("status") not in {0, "0", None} and not payload.get("result"):
+            raise ProviderBadResponseError(
+                f"Baidu route error: {payload.get('message', 'UNKNOWN')}",
+                provider=self.provider_name,
+                operation="driving_route",
+                code=str(payload.get("status") or "BAIDU_ROUTE_ERROR"),
+            )
+        routes = payload.get("result", {}).get("routes") or []
+        if not routes:
+            raise ProviderBadResponseError(
+                "Baidu route returned no route",
+                provider=self.provider_name,
+                operation="driving_route",
+                code="BAIDU_ROUTE_EMPTY_PATH",
+            )
+        route = routes[0]
         distance_km = round(float(route.get("distance", 0)) / 1000, 1)
         duration_minutes = round(float(route.get("duration", 0)) / 60)
         return RouteSummary(
@@ -40,5 +56,9 @@ class BaiduMapProvider:
 
 
 def _get_json(url: str, timeout: int):
-    with request.urlopen(url, timeout=timeout) as response:
-        return json.loads(response.read().decode("utf-8"))
+    return get_json(
+        url,
+        timeout,
+        provider=BaiduMapProvider.provider_name,
+        operation="driving_route",
+    )

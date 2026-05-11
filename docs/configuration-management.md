@@ -67,6 +67,24 @@
 - 高德 POI 候选地点和补能站
 - Open-Meteo 天气
 
+### `ProviderRuntimeSettings`
+
+用于统一控制外部 Provider 的容错行为：
+
+- `PROVIDER_TIMEOUT_SECONDS`
+- `PROVIDER_RETRIES`
+- `PROVIDER_BACKOFF_SECONDS`
+- `PROVIDER_CIRCUIT_FAILURE_THRESHOLD`
+- `PROVIDER_CIRCUIT_RESET_SECONDS`
+- `PROVIDER_HEALTH_TTL_SECONDS`
+
+典型用途：
+
+- 外部 API 超时控制
+- HTTP 5xx / 429 重试
+- 连续失败后的熔断保护
+- Provider health cache 状态记录
+
 ### `RuntimeSettings`
 
 用于控制工程链路开关：

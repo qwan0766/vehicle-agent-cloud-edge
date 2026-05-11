@@ -51,6 +51,16 @@ class ProviderSettings:
 
 
 @dataclass(frozen=True)
+class ProviderRuntimeSettings:
+    timeout_seconds: int = 10
+    retries: int = 1
+    backoff_seconds: float = 0.1
+    circuit_failure_threshold: int = 3
+    circuit_reset_seconds: float = 30.0
+    health_ttl_seconds: float = 30.0
+
+
+@dataclass(frozen=True)
 class RuntimeSettings:
     enable_langgraph: bool = True
     enable_llm_intent_fallback: bool = False
@@ -66,6 +76,7 @@ class AppSettings:
     local_llm: LocalLLMSettings
     providers: ProviderSettings
     runtime: RuntimeSettings
+    provider_runtime: ProviderRuntimeSettings = field(default_factory=ProviderRuntimeSettings)
 
     @property
     def amap_api_key(self) -> Optional[str]:
@@ -130,6 +141,14 @@ def get_settings() -> AppSettings:
             enable_local_llm_cloud_review=_env_bool("ENABLE_LOCAL_LLM_CLOUD_REVIEW", False),
             enable_local_llm_control_explain=_env_bool("ENABLE_LOCAL_LLM_CONTROL_EXPLAIN", False),
         ),
+        provider_runtime=ProviderRuntimeSettings(
+            timeout_seconds=_env_int("PROVIDER_TIMEOUT_SECONDS", 10),
+            retries=_env_int("PROVIDER_RETRIES", 1),
+            backoff_seconds=_env_float("PROVIDER_BACKOFF_SECONDS", 0.1),
+            circuit_failure_threshold=_env_int("PROVIDER_CIRCUIT_FAILURE_THRESHOLD", 3),
+            circuit_reset_seconds=_env_float("PROVIDER_CIRCUIT_RESET_SECONDS", 30.0),
+            health_ttl_seconds=_env_float("PROVIDER_HEALTH_TTL_SECONDS", 30.0),
+        ),
     )
 
 
@@ -153,3 +172,13 @@ def _env_int(name: str, default: int) -> int:
         return int(value)
     except ValueError:
         return int(default)
+
+
+def _env_float(name: str, default: float) -> float:
+    value = os.getenv(name, "").strip()
+    if not value:
+        return float(default)
+    try:
+        return float(value)
+    except ValueError:
+        return float(default)

@@ -1,6 +1,8 @@
 from dataclasses import dataclass
-import json
-from urllib import parse, request
+from urllib import parse
+
+from providers.errors import ProviderBadResponseError
+from providers.http import get_json
 
 
 _CITY_HINTS = (
@@ -110,15 +112,30 @@ class AmapGeocodeProvider:
     def geocode(self, address: str) -> GeocodeResult:
         payload = self.transport(self.build_geocode_url(address), self.timeout)
         if payload.get("status") != "1":
-            raise RuntimeError(f"AMap geocode error: {payload.get('info', 'UNKNOWN')}")
+            raise ProviderBadResponseError(
+                f"AMap geocode error: {payload.get('info', 'UNKNOWN')}",
+                provider=self.provider_name,
+                operation="geocode",
+                code=payload.get("infocode") or payload.get("info") or "AMAP_GEOCODE_ERROR",
+            )
         geocodes = payload.get("geocodes") or []
         if not geocodes:
-            raise RuntimeError(f"AMap geocode returned no result: {address}")
+            raise ProviderBadResponseError(
+                f"AMap geocode returned no result: {address}",
+                provider=self.provider_name,
+                operation="geocode",
+                code="AMAP_GEOCODE_EMPTY_RESULT",
+            )
 
         first = geocodes[0]
         gps = first.get("location", "")
         if not gps:
-            raise RuntimeError(f"AMap geocode returned empty location: {address}")
+            raise ProviderBadResponseError(
+                f"AMap geocode returned empty location: {address}",
+                provider=self.provider_name,
+                operation="geocode",
+                code="AMAP_GEOCODE_EMPTY_LOCATION",
+            )
         formatted_address = first.get("formatted_address", address)
         level = first.get("level", "")
         quality = assess_geocode_quality(address, formatted_address, level=level)
@@ -249,13 +266,12 @@ _TERM_ALIASES = {
 
 
 def _get_json(url: str, timeout: int):
-    req = request.Request(
+    return get_json(
         url,
+        timeout,
+        provider=AmapGeocodeProvider.provider_name,
+        operation="geocode",
         headers={
-            "Accept": "application/json",
             "User-Agent": "weilai-agent-online-demo/1.0",
         },
-        method="GET",
     )
-    with request.urlopen(req, timeout=timeout) as response:
-        return json.loads(response.read().decode("utf-8"))

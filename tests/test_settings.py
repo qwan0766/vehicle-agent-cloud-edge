@@ -8,6 +8,7 @@ from config.settings import (
     LLMSettings,
     LocalLLMSettings,
     ProviderSettings,
+    ProviderRuntimeSettings,
     RuntimeSettings,
     get_settings,
 )
@@ -30,6 +31,10 @@ class TestAppSettings(unittest.TestCase):
                 "LOCAL_LLM_MAX_CONTEXT_TOKENS": "2048",
                 "LOCAL_LLM_MAX_OUTPUT_TOKENS": "32",
                 "ENABLE_LANGGRAPH": "0",
+                "PROVIDER_TIMEOUT_SECONDS": "12",
+                "PROVIDER_RETRIES": "2",
+                "PROVIDER_BACKOFF_SECONDS": "0.2",
+                "PROVIDER_CIRCUIT_FAILURE_THRESHOLD": "4",
             },
             clear=True,
         ):
@@ -47,12 +52,17 @@ class TestAppSettings(unittest.TestCase):
         self.assertIsInstance(settings.local_llm, LocalLLMSettings)
         self.assertIsInstance(settings.providers, ProviderSettings)
         self.assertIsInstance(settings.runtime, RuntimeSettings)
+        self.assertIsInstance(settings.provider_runtime, ProviderRuntimeSettings)
         self.assertEqual(settings.llm.deepseek_model, "deepseek-chat")
         self.assertTrue(settings.llm.deepseek_configured)
         self.assertEqual(settings.local_llm.provider, "edge_deepseek_sim")
         self.assertEqual(settings.local_llm.context_limit_tokens, 2048)
         self.assertEqual(settings.local_llm.max_output_tokens, 32)
         self.assertFalse(settings.runtime.enable_langgraph)
+        self.assertEqual(settings.provider_runtime.timeout_seconds, 12)
+        self.assertEqual(settings.provider_runtime.retries, 2)
+        self.assertEqual(settings.provider_runtime.backoff_seconds, 0.2)
+        self.assertEqual(settings.provider_runtime.circuit_failure_threshold, 4)
 
     def test_defaults_match_existing_factory_getenv_behavior(self):
         with patch.dict(os.environ, {}, clear=True):
@@ -67,6 +77,8 @@ class TestAppSettings(unittest.TestCase):
         self.assertEqual(settings.local_llm.provider, "mock_local")
         self.assertEqual(settings.local_llm.timeout, 8)
         self.assertTrue(settings.runtime.enable_langgraph)
+        self.assertEqual(settings.provider_runtime.timeout_seconds, 10)
+        self.assertEqual(settings.provider_runtime.retries, 1)
 
     def test_get_settings_reads_current_environment_each_call(self):
         with patch.dict(os.environ, {"AMAP_API_KEY": "first"}, clear=True):
@@ -107,6 +119,7 @@ class TestAppSettings(unittest.TestCase):
                 "USE_OPEN_METEO": "true",
                 "LOCAL_LLM_TIMEOUT": "bad-int",
                 "LOCAL_LLM_MAX_CONTEXT_TOKENS": "bad-int",
+                "PROVIDER_BACKOFF_SECONDS": "bad-float",
             },
             clear=True,
         ):
@@ -116,6 +129,7 @@ class TestAppSettings(unittest.TestCase):
         self.assertTrue(settings.providers.use_open_meteo)
         self.assertEqual(settings.local_llm.timeout, 8)
         self.assertEqual(settings.local_llm.context_limit_tokens, 7500)
+        self.assertEqual(settings.provider_runtime.backoff_seconds, 0.1)
 
 
 if __name__ == "__main__":

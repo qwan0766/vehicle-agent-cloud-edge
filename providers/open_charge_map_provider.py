@@ -1,6 +1,7 @@
-import json
-from urllib import parse, request
+from urllib import parse
 
+from providers.errors import ProviderBadResponseError
+from providers.http import get_json
 from providers.offline_charge_provider import ChargeStation
 
 
@@ -28,6 +29,13 @@ class OpenChargeMapProvider:
 
     def find_nearby(self, gps: str, limit: int = 3):
         payload = self.transport(self.build_poi_url(gps, limit=limit), self.timeout)
+        if not isinstance(payload, list):
+            raise ProviderBadResponseError(
+                "OpenChargeMap returned invalid payload",
+                provider=self.provider_name,
+                operation="poi",
+                code="OPENCHARGEMAP_INVALID_PAYLOAD",
+            )
         stations = []
         for item in payload[:limit]:
             address = item.get("AddressInfo", {})
@@ -49,13 +57,12 @@ def _parse_gps(gps: str):
 
 
 def _get_json(url: str, timeout: int):
-    req = request.Request(
+    return get_json(
         url,
+        timeout,
+        provider=OpenChargeMapProvider.provider_name,
+        operation="poi",
         headers={
-            "Accept": "application/json",
             "User-Agent": "weilai-agent-offline-demo/1.0",
         },
-        method="GET",
     )
-    with request.urlopen(req, timeout=timeout) as response:
-        return json.loads(response.read().decode("utf-8"))

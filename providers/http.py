@@ -9,6 +9,7 @@ from providers.errors import (
     ProviderTimeoutError,
     ProviderUnavailableError,
 )
+from providers.runtime import get_default_provider_runtime
 
 
 def get_json(
@@ -18,7 +19,9 @@ def get_json(
     provider: str,
     operation: str,
     headers: Optional[Dict[str, str]] = None,
-    retries: int = 1,
+    retries: Optional[int] = None,
+    backoff_seconds: Optional[float] = None,
+    runtime=None,
 ):
     request_headers = {
         "Accept": "application/json",
@@ -26,13 +29,27 @@ def get_json(
     }
     request_headers.update(headers or {})
 
+    runtime = runtime or get_default_provider_runtime()
+    retries = runtime.config.retries if retries is None else retries
+    backoff_seconds = (
+        runtime.config.backoff_seconds if backoff_seconds is None else backoff_seconds
+    )
+    runtime.before_call(provider, operation)
+
+    started_at = time.perf_counter()
     last_error = None
     for attempt in range(retries + 1):
         try:
             req = request.Request(url, headers=request_headers, method="GET")
             with request.urlopen(req, timeout=timeout) as response:
                 raw = response.read().decode("utf-8")
-            return json.loads(raw)
+            payload = json.loads(raw)
+            runtime.record_success(
+                provider,
+                operation,
+                latency_ms=_elapsed_ms(started_at),
+            )
+            return payload
         except TimeoutError as exc:
             last_error = ProviderTimeoutError(
                 "Provider request timed out",
@@ -58,13 +75,20 @@ def get_json(
                     details={"url": _safe_url(url), "attempt": attempt + 1},
                 )
             else:
-                raise ProviderBadResponseError(
+                provider_error = ProviderBadResponseError(
                     f"Provider HTTP error: {exc.code}",
                     provider=provider,
                     operation=operation,
                     code=f"HTTP_{exc.code}",
                     details={"url": _safe_url(url), "attempt": attempt + 1},
-                ) from exc
+                )
+                runtime.record_failure(
+                    provider,
+                    operation,
+                    provider_error,
+                    latency_ms=_elapsed_ms(started_at),
+                )
+                raise provider_error from exc
         except error.URLError as exc:
             last_error = ProviderUnavailableError(
                 "Provider network error",
@@ -77,18 +101,35 @@ def get_json(
                 },
             )
         except json.JSONDecodeError as exc:
-            raise ProviderBadResponseError(
+            provider_error = ProviderBadResponseError(
                 "Provider returned invalid JSON",
                 provider=provider,
                 operation=operation,
                 code="INVALID_JSON",
                 details={"url": _safe_url(url), "attempt": attempt + 1},
-            ) from exc
+            )
+            runtime.record_failure(
+                provider,
+                operation,
+                provider_error,
+                latency_ms=_elapsed_ms(started_at),
+            )
+            raise provider_error from exc
 
         if attempt < retries:
-            time.sleep(0.1 * (attempt + 1))
+            time.sleep(backoff_seconds * (attempt + 1))
 
+    runtime.record_failure(
+        provider,
+        operation,
+        last_error,
+        latency_ms=_elapsed_ms(started_at),
+    )
     raise last_error
+
+
+def _elapsed_ms(started_at: float) -> float:
+    return round((time.perf_counter() - started_at) * 1000, 3)
 
 
 def _safe_url(url: str) -> str:
