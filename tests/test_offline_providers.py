@@ -31,6 +31,9 @@ class TestOfflineProviders(unittest.TestCase):
         self.assertIn("天气晴", result)
         self.assertIn("蔚来换电站 上海中心", result)
         self.assertEqual(snapshot["weather"]["city"], "上海")
+        self.assertEqual(snapshot["weather"]["source"], "offline_weather")
+        self.assertEqual(snapshot["weather"]["precipitation_mm"], 0.0)
+        self.assertEqual(snapshot["charge_source"], "offline_charge")
         self.assertEqual(snapshot["charge_stations"][0]["status"], "空闲")
 
 

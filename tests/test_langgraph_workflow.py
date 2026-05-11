@@ -79,13 +79,26 @@ class TestLangGraphWorkflow(unittest.TestCase):
         self.assertEqual(
             graph["path"],
             [
-                "profile",
-                "knowledge",
-                "route_preference",
-                "ecology",
+                "context_parallel",
+                "provider_parallel",
                 "trip_plan",
                 "decision",
                 "assemble",
+            ],
+        )
+        self.assertEqual(
+            graph["parallel_groups"],
+            [
+                {
+                    "id": "cloud_context",
+                    "label": "云端并行上下文收集",
+                    "nodes": ["profile", "knowledge", "route_preference"],
+                },
+                {
+                    "id": "route_provider_parallel",
+                    "label": "云端并行生态与路线工具",
+                    "nodes": ["ecology", "route_provider"],
+                }
             ],
         )
         self.assertNotIn("用户偏好", result)
@@ -121,6 +134,16 @@ class TestLangGraphWorkflow(unittest.TestCase):
         self.assertTrue(graph["fallback"])
         self.assertIn("langgraph not installed", graph["reason"])
         self.assertNotIn("trip_plan", graph["path"])
+        self.assertEqual(
+            graph["parallel_groups"],
+            [
+                {
+                    "id": "cloud_context",
+                    "label": "云端并行上下文收集",
+                    "nodes": ["profile", "knowledge"],
+                }
+            ],
+        )
 
     def test_default_dispatch_uses_state_graph_when_available(self):
         with patch.dict("os.environ", {}, clear=True):
@@ -136,6 +159,8 @@ class TestLangGraphWorkflow(unittest.TestCase):
         self.assertEqual(graph["mode"], "langgraph")
         self.assertFalse(graph["fallback"])
         self.assertEqual(graph["backend"], "StateGraph")
+        self.assertIn("context_parallel", graph["path"])
+        self.assertIn("provider_parallel", graph["path"])
         self.assertIn("trip_plan", graph["path"])
 
 

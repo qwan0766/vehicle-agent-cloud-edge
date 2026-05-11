@@ -1,4 +1,6 @@
 import os
+from concurrent.futures import ThreadPoolExecutor
+from time import perf_counter
 
 from agents.cloud.external_ecology_agent import ExternalEcologyAgent
 from agents.cloud.global_trip_planning_agent import GlobalTripPlanningAgent
@@ -6,6 +8,7 @@ from agents.cloud.user_profile_agent import UserProfileAgent
 from agents.cloud.vector_knowledge_agent import VectorKnowledgeAgent
 from core.constants import CommandType
 from core.message import Message
+from data.vehicle_state import DEFAULT_VEHICLE_STATE
 from llm.factory import create_llm_client
 from runtime.agent_runtime import AgentRuntime
 from runtime.tool_registry import ToolRegistry
@@ -58,6 +61,7 @@ class GlobalDispatchAgent:
                 path=state.get("path", []),
                 fallback=False,
                 backend="StateGraph",
+                parallel_groups=state.get("parallel_groups", []),
             )
             return state["result"]
         return self._dispatch_lightweight(msg)
@@ -70,13 +74,9 @@ class GlobalDispatchAgent:
 
     def _dispatch_lightweight(self, msg: Message, fallback_reason: str = "") -> str:
         state = self._initial_graph_state(msg)
-        state = self._graph_profile(state)
-        state = self._graph_knowledge(state)
+        state = self._graph_context_parallel(state)
         if self._requires_trip_planning(msg.command_type):
-            state = self._graph_route_preference(state)
-        if self._requires_external_ecology(msg.command_type):
-            state = self._graph_ecology(state)
-        if self._requires_trip_planning(msg.command_type):
+            state = self._graph_provider_parallel(state)
             state = self._graph_trip_plan(state)
         state = self._graph_decision(state)
         state = self._graph_assemble(state)
@@ -86,6 +86,7 @@ class GlobalDispatchAgent:
             fallback=bool(fallback_reason),
             reason=fallback_reason,
             backend="python",
+            parallel_groups=state.get("parallel_groups", []),
         )
         return state["result"]
 
@@ -93,19 +94,146 @@ class GlobalDispatchAgent:
         return {
             "message": msg,
             "path": [],
+            "parallel_groups": [],
             "route_preference": "",
             "task_context": "",
         }
 
     def _graph_node_handlers(self):
         return {
+            "context_parallel": self._graph_context_parallel,
             "profile": self._graph_profile,
             "knowledge": self._graph_knowledge,
             "route_preference": self._graph_route_preference,
             "ecology": self._graph_ecology,
+            "provider_parallel": self._graph_provider_parallel,
             "trip_plan": self._graph_trip_plan,
             "decision": self._graph_decision,
             "assemble": self._graph_assemble,
+        }
+
+    def _graph_context_parallel(self, state: dict) -> dict:
+        msg = state["message"]
+        updated = self._copy_state(state)
+        tasks = [
+            {
+                "node": "profile",
+                "tool_name": "user_profile.lookup",
+                "payload": {"user_id": msg.user_id},
+                "state_key": "user_profile",
+            },
+            {
+                "node": "knowledge",
+                "tool_name": "knowledge.retrieve",
+                "payload": {
+                    "content": msg.content,
+                    "user_id": msg.user_id,
+                    "command_type": msg.command_type.value,
+                },
+                "state_key": "knowledge_context",
+            },
+        ]
+        if self._requires_trip_planning(msg.command_type):
+            tasks.extend(
+                [
+                    {
+                        "node": "route_preference",
+                        "tool_name": "user_profile.route_preference",
+                        "payload": {"user_id": msg.user_id, "content": msg.content},
+                        "state_key": "route_preference",
+                    },
+                ]
+            )
+
+        outputs = self._run_parallel_tools(tasks)
+        for task in tasks:
+            tool_result = outputs[task["node"]]
+            self.runtime.append_trace(
+                tool_name=task["tool_name"],
+                input=task["payload"],
+                output=tool_result["output"],
+                duration_ms=tool_result["duration_ms"],
+            )
+            updated[task["state_key"]] = tool_result["output"]
+
+        updated["parallel_groups"] = [
+            {
+                "id": "cloud_context",
+                "label": "云端并行上下文收集",
+                "nodes": [task["node"] for task in tasks],
+            }
+        ]
+        return self._mark_path(updated, "context_parallel")
+
+    def _graph_provider_parallel(self, state: dict) -> dict:
+        msg = state["message"]
+        updated = self._copy_state(state)
+        tasks = [
+            {
+                "node": "ecology",
+                "tool_name": "ecology.snapshot",
+                "payload": {"gps": DEFAULT_VEHICLE_STATE.gps},
+                "state_key": "ecology_snapshot",
+            },
+            {
+                "node": "route_provider",
+                "tool_name": "route.context",
+                "payload": {
+                    "content": msg.content,
+                    "route_preference": updated.get("route_preference", ""),
+                },
+                "state_key": "route_context",
+            },
+        ]
+        outputs = self._run_parallel_tools(tasks)
+
+        ecology_result = outputs["ecology"]
+        self.runtime.append_trace(
+            tool_name="ecology.snapshot",
+            input=tasks[0]["payload"],
+            output=ecology_result["output"],
+            duration_ms=ecology_result["duration_ms"],
+        )
+        updated["ecology_snapshot"] = ecology_result["output"]
+        updated["ecology"] = self.ecology_agent.format_snapshot(ecology_result["output"])
+
+        route_result = outputs["route_provider"]["output"]
+        for provider_trace in route_result.get("provider_trace", []):
+            self.runtime.append_trace(**provider_trace)
+        updated["route_context"] = {
+            key: value
+            for key, value in route_result.items()
+            if key != "provider_trace"
+        }
+        updated["parallel_groups"].append(
+            {
+                "id": "route_provider_parallel",
+                "label": "云端并行生态与路线工具",
+                "nodes": ["ecology", "route_provider"],
+            }
+        )
+        return self._mark_path(updated, "provider_parallel")
+
+    def _run_parallel_tools(self, tasks: list) -> dict:
+        if not tasks:
+            return {}
+        with ThreadPoolExecutor(max_workers=len(tasks)) as executor:
+            futures = {
+                task["node"]: executor.submit(
+                    self._call_tool_without_trace,
+                    task["tool_name"],
+                    task["payload"],
+                )
+                for task in tasks
+            }
+            return {task["node"]: futures[task["node"]].result() for task in tasks}
+
+    def _call_tool_without_trace(self, tool_name: str, payload: dict) -> dict:
+        started = perf_counter()
+        output = self.tool_registry.call(tool_name, payload)
+        return {
+            "output": output,
+            "duration_ms": round((perf_counter() - started) * 1000, 3),
         }
 
     def _graph_profile(self, state: dict) -> dict:
@@ -144,11 +272,13 @@ class GlobalDispatchAgent:
 
     def _graph_ecology(self, state: dict) -> dict:
         updated = self._copy_state(state)
-        updated["ecology"] = self.runtime.call_tool(
+        snapshot = self.runtime.call_tool(
             self.tool_registry,
             "ecology.snapshot",
-            {},
+            {"gps": DEFAULT_VEHICLE_STATE.gps},
         )
+        updated["ecology_snapshot"] = snapshot
+        updated["ecology"] = self.ecology_agent.format_snapshot(snapshot)
         return self._mark_path(updated, "ecology")
 
     def _graph_trip_plan(self, state: dict) -> dict:
@@ -160,10 +290,12 @@ class GlobalDispatchAgent:
             {
                 "content": msg.content,
                 "route_preference": updated.get("route_preference", ""),
+                "route_context": updated.get("route_context", {}),
             },
         )
-        for provider_trace in self.route_agent.get_last_provider_trace():
-            self.runtime.append_trace(**provider_trace)
+        if not updated.get("route_context"):
+            for provider_trace in self.route_agent.get_last_provider_trace():
+                self.runtime.append_trace(**provider_trace)
         return self._mark_path(updated, "trip_plan")
 
     def _graph_decision(self, state: dict) -> dict:
@@ -201,6 +333,7 @@ class GlobalDispatchAgent:
     def _copy_state(self, state: dict) -> dict:
         updated = dict(state)
         updated["path"] = list(state.get("path", []))
+        updated["parallel_groups"] = [dict(group) for group in state.get("parallel_groups", [])]
         return updated
 
     def _assemble_result(self, state: dict) -> str:
@@ -232,6 +365,7 @@ class GlobalDispatchAgent:
         fallback: bool,
         backend: str,
         reason: str = "",
+        parallel_groups: list = None,
     ) -> dict:
         return {
             "enabled": self.enable_langgraph,
@@ -240,6 +374,7 @@ class GlobalDispatchAgent:
             "fallback": fallback,
             "reason": reason,
             "path": list(path),
+            "parallel_groups": list(parallel_groups or []),
         }
 
     def _empty_graph_state(self) -> dict:
@@ -250,6 +385,7 @@ class GlobalDispatchAgent:
             "fallback": False,
             "reason": "",
             "path": [],
+            "parallel_groups": [],
         }
 
     def _requires_trip_planning(self, command_type: CommandType) -> bool:
@@ -301,10 +437,30 @@ class GlobalDispatchAgent:
                 ]
             ),
         )
-        registry.register("ecology.snapshot", lambda payload: self.ecology_agent.get_data())
+        registry.register(
+            "ecology.snapshot",
+            lambda payload: self.ecology_agent.get_snapshot(
+                payload.get("gps") or DEFAULT_VEHICLE_STATE.gps
+            ),
+        )
         registry.register(
             "trip.plan",
             lambda payload: self.route_agent.plan(
+                payload["content"],
+                route_preference=payload.get("route_preference", ""),
+                route_context=payload.get("route_context") or None,
+            ),
+            spec=ToolSpec(
+                input_fields=[
+                    FieldSpec("content", str),
+                    FieldSpec("route_preference", str, required=False),
+                    FieldSpec("route_context", dict, required=False),
+                ]
+            ),
+        )
+        registry.register(
+            "route.context",
+            lambda payload: self.route_agent.build_route_context(
                 payload["content"],
                 route_preference=payload.get("route_preference", ""),
             ),

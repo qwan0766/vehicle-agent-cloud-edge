@@ -8,11 +8,17 @@ class CloudEcologyAgent:
         self.charge_provider = charge_provider or create_charge_provider()
 
     def get_data(self, gps: str = DEFAULT_VEHICLE_STATE.gps) -> str:
-        snapshot = self.get_snapshot(gps)
+        return self.format_snapshot(self.get_snapshot(gps))
+
+    def format_snapshot(self, snapshot: dict) -> str:
+        weather = snapshot["weather"]
         station = snapshot["charge_stations"][0]
         return (
-            f"外部生态数据：{snapshot['weather']['summary']}，"
-            f"{station['name']}{station['status']}，距离{station['distance_km']}km"
+            "外部生态数据："
+            f"天气 {weather['summary']}，{weather['temperature_c']}℃，"
+            f"降水 {weather['precipitation_mm']}mm，风 {weather['wind_level']}；"
+            f"补能 {station['name']}{station['status']}，距离{station['distance_km']}km；"
+            f"来源 {weather['source']} / {snapshot['charge_source']}"
         )
 
     def get_snapshot(self, gps: str = DEFAULT_VEHICLE_STATE.gps) -> dict:
@@ -25,7 +31,11 @@ class CloudEcologyAgent:
                 "summary": weather.summary,
                 "temperature_c": weather.temperature_c,
                 "wind_level": weather.wind_level,
+                "precipitation_mm": weather.precipitation_mm,
+                "weather_code": weather.weather_code,
+                "source": weather.source,
             },
+            "charge_source": getattr(self.charge_provider, "provider_name", "unknown_charge"),
             "charge_stations": [
                 {
                     "name": station.name,

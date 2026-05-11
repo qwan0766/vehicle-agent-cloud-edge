@@ -26,18 +26,27 @@ class TestCloudRuntimeTrace(unittest.TestCase):
                 "knowledge.retrieve",
                 "user_profile.route_preference",
                 "ecology.snapshot",
-                "trip.plan",
                 "provider.geocode",
                 "provider.map.route",
+                "trip.plan",
                 "decision.summarize",
             ],
         )
         self.assertEqual(trace[0]["input"]["user_id"], "user_001")
         self.assertIn("用户偏好", trace[0]["output"])
-        self.assertIn("向量知识库召回", trace[1]["output"])
-        self.assertIn("RAG路线结果", trace[4]["output"])
-        self.assertEqual(trace[5]["output"]["destination_name"], "蔚来中心")
-        self.assertEqual(trace[6]["output"]["provider"], "offline_map")
+        self.assertNotIn("向量知识库召回", trace[1]["output"])
+        self.assertIn("知识库", trace[1]["output"])
+        ecology_output = trace[3]["output"]
+        self.assertIsInstance(ecology_output, dict)
+        self.assertIn("weather", ecology_output)
+        self.assertIn("charge_stations", ecology_output)
+        self.assertIn("temperature_c", ecology_output["weather"])
+        self.assertIn("precipitation_mm", ecology_output["weather"])
+        self.assertIn("source", ecology_output["weather"])
+        self.assertIn("charge_source", ecology_output)
+        self.assertEqual(trace[4]["output"]["destination_name"], "蔚来中心")
+        self.assertEqual(trace[5]["output"]["provider"], "offline_map")
+        self.assertIn("RAG路线结果", trace[6]["output"])
         self.assertIn("LLM决策", trace[-1]["output"])
 
     def test_cloud_schedule_skips_route_tools_for_car_control(self):

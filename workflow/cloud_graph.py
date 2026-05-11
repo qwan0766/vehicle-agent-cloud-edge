@@ -25,37 +25,26 @@ def run_langgraph_cloud_workflow(
     graph.add_node("knowledge", node_handlers["knowledge"])
     graph.add_node("route_preference", node_handlers["route_preference"])
     graph.add_node("ecology", node_handlers["ecology"])
+    graph.add_node("context_parallel", node_handlers["context_parallel"])
+    graph.add_node("provider_parallel", node_handlers["provider_parallel"])
     graph.add_node("trip_plan", node_handlers["trip_plan"])
     graph.add_node("decision", node_handlers["decision"])
     graph.add_node("assemble", node_handlers["assemble"])
 
-    graph.add_edge(START, "profile")
-    graph.add_edge("profile", "knowledge")
+    graph.add_edge(START, "context_parallel")
     graph.add_conditional_edges(
-        "knowledge",
+        "context_parallel",
         lambda state: (
-            "route_preference"
+            "provider_parallel"
             if requires_trip_planning(state["message"].command_type)
             else "decision"
         ),
         {
-            "route_preference": "route_preference",
+            "provider_parallel": "provider_parallel",
             "decision": "decision",
         },
     )
-    graph.add_edge("route_preference", "ecology")
-    graph.add_conditional_edges(
-        "ecology",
-        lambda state: (
-            "trip_plan"
-            if requires_trip_planning(state["message"].command_type)
-            else "decision"
-        ),
-        {
-            "trip_plan": "trip_plan",
-            "decision": "decision",
-        },
-    )
+    graph.add_edge("provider_parallel", "trip_plan")
     graph.add_edge("trip_plan", "decision")
     graph.add_edge("decision", "assemble")
     graph.add_edge("assemble", END)
