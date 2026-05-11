@@ -57,31 +57,53 @@ ROUTE_DOCUMENTS = [
         doc_id="route_low_battery_swap",
         text="电量低于20%建议前往换电站",
         keywords=["电量低", "20%", "换电站", "补能", "充电"],
-        metadata={"topic": "charge_plan"},
+        metadata={"topic": "charge_plan", "knowledge_type": "structured_rule"},
     ),
     RetrievalDocument(
         doc_id="route_highway_preference",
         text="长途优先高速路线",
         keywords=["长途", "高速", "导航", "路线", "蔚来中心"],
-        metadata={"topic": "navigation"},
+        metadata={"topic": "navigation", "knowledge_type": "structured_rule"},
     ),
     RetrievalDocument(
         doc_id="route_comfort_temperature",
         text="车内舒适温度22~25℃",
         keywords=["温度", "舒适", "22", "25", "空调"],
-        metadata={"topic": "comfort"},
+        metadata={"topic": "comfort", "knowledge_type": "structured_rule"},
     ),
     RetrievalDocument(
         doc_id="route_swap_duration",
         text="换电站约3分钟完成换电",
         keywords=["换电站", "3分钟", "换电", "补能"],
-        metadata={"topic": "charge_plan"},
+        metadata={"topic": "charge_plan", "knowledge_type": "structured_rule"},
     ),
     RetrievalDocument(
         doc_id="route_offline_navigation",
         text="断网时自动切换离线导航",
         keywords=["断网", "离线", "导航", "本地"],
-        metadata={"topic": "fallback"},
+        metadata={"topic": "fallback", "knowledge_type": "structured_rule"},
+    ),
+]
+
+
+DOCUMENT_RAG_DOCUMENTS = [
+    RetrievalDocument(
+        doc_id="doc_aeb_explanation",
+        text="AEB 是自动紧急制动系统，用于在可能发生碰撞时辅助驾驶员减速或制动，但驾驶员仍需保持接管责任。",
+        keywords=["AEB", "自动紧急制动", "制动系统", "碰撞", "辅助驾驶"],
+        metadata={"topic": "vehicle_manual", "knowledge_type": "document_rag"},
+    ),
+    RetrievalDocument(
+        doc_id="doc_seat_heat_usage",
+        text="座椅加热属于舒适性功能，适合低温环境下使用；严重低电量时系统可能建议减少舒适性耗电。",
+        keywords=["座椅加热", "舒适", "低温", "耗电", "低电量"],
+        metadata={"topic": "vehicle_manual", "knowledge_type": "document_rag"},
+    ),
+    RetrievalDocument(
+        doc_id="doc_swap_service_policy",
+        text="换电服务通常需要结合车辆电量、附近站点可用性和路线规划结果决定，长途出行前建议提前确认补能点。",
+        keywords=["换电", "补能", "长途", "站点", "路线规划"],
+        metadata={"topic": "service_policy", "knowledge_type": "document_rag"},
     ),
 ]
 

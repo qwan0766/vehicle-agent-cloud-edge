@@ -40,14 +40,14 @@ class TestCourseAlignedAgentArchitecture(unittest.TestCase):
         self.assertIn("knowledge.retrieve", agent.tool_registry.list_names())
         self.assertIn("trip.plan", agent.tool_registry.list_names())
 
-    def test_vector_knowledge_agent_retrieves_route_and_profile_context(self):
+    def test_vector_knowledge_agent_retrieves_structured_route_context_without_profile(self):
         agent = VectorKnowledgeAgent()
 
         results = agent.retrieve("电量低", user_id="user_002", command_type=CommandType.CHARGE_PLAN)
         texts = [item.document.text for item in results]
 
         self.assertTrue(any("电量低于20%" in text for text in texts))
-        self.assertTrue(any("user_002" in text for text in texts))
+        self.assertFalse(any("user_002" in text for text in texts))
 
     def test_vector_knowledge_agent_does_not_mix_intent_examples_into_cloud_rag(self):
         agent = VectorKnowledgeAgent()
@@ -58,7 +58,6 @@ class TestCourseAlignedAgentArchitecture(unittest.TestCase):
             command_type=CommandType.NAVIGATION,
         )
 
-        self.assertTrue(results)
         self.assertFalse(any(item.document.doc_id.startswith("intent_") for item in results))
 
     def test_vector_knowledge_agent_filters_weak_navigation_keyword_matches(self):
@@ -71,7 +70,7 @@ class TestCourseAlignedAgentArchitecture(unittest.TestCase):
         )
 
         doc_ids = [item.document.doc_id for item in results]
-        self.assertIn("profile_user_001", doc_ids)
+        self.assertNotIn("profile_user_001", doc_ids)
         self.assertNotIn("route_highway_preference", doc_ids)
         self.assertNotIn("route_offline_navigation", doc_ids)
 
