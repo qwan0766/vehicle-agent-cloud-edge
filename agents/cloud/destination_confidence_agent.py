@@ -104,6 +104,12 @@ class DestinationConfidenceAgent:
                 "input": {"query": query},
                 "output": {"count": len(payload), "candidates": payload},
                 "duration_ms": 0,
+                "agent_id": "DestinationConfidenceAgent",
+                "phase": "provider",
+                "status": "OK",
+                "provider": getattr(candidate_provider, "provider_name", "")
+                if candidate_provider
+                else getattr(geocoder, "provider_name", ""),
             }
         )
         return payload
@@ -129,6 +135,10 @@ class DestinationConfidenceAgent:
                 "input": {"query": query, "candidate_count": len(candidates)},
                 "output": response,
                 "duration_ms": 0,
+                "agent_id": "DestinationConfidenceAgent",
+                "phase": "llm",
+                "status": "OK",
+                "provider": getattr(self.llm_client, "provider_name", ""),
             }
         )
         payload = _parse_json_object(response)

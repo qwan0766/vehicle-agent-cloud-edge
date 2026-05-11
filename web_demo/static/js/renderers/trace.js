@@ -49,7 +49,7 @@ export function renderAlignedTrace(nodes, agents, items, context = {}) {
     const pair = document.createElement("li");
     const isParallel = parallelAgents.has(agent);
     pair.className = `trace-pair ${agentClass(agent)} ${isParallel ? "parallel-group" : ""}`.trim();
-    const matchedTools = toolItems.filter((tool) => toolBelongsToAgent(tool.tool_name || "", agent));
+    const matchedTools = toolItems.filter((tool) => toolMatchesAgent(tool, agent));
     pair.append(
       renderAgentCard(agent, { isParallel }),
       renderOutputCard(matchedTools.length ? matchedTools : defaultAgentOutputs(agent, context))
@@ -282,6 +282,33 @@ function defaultAgentOutputs(agent, context) {
     ];
   }
   return [{ empty: true, output: "本 Agent 本次未产生独立工具输出。" }];
+}
+
+function toolMatchesAgent(tool, agent) {
+  const agentId = tool.agent_id || "";
+  if (agentId && traceAgentMatches(agentId, agent)) {
+    return true;
+  }
+  return toolBelongsToAgent(tool.tool_name || "", agent);
+}
+
+function traceAgentMatches(agentId, agent) {
+  if (agent.includes(agentId) || agentId.includes(agent)) {
+    return true;
+  }
+  if (
+    agentId === "VectorKnowledgeAgent" &&
+    (agent.includes("RuleKnowledgeAgent") || agent.includes("DocumentRAGAgent"))
+  ) {
+    return true;
+  }
+  if (
+    agentId === "GlobalDispatchAgent" &&
+    (agent.includes("CloudDecisionAgent") || agent.includes("GlobalDispatchAgent"))
+  ) {
+    return true;
+  }
+  return false;
 }
 
 function toolBelongsToAgent(toolName, agent) {

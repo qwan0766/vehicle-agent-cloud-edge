@@ -271,6 +271,8 @@ class TestInputMatrix(unittest.TestCase):
 
         self.assertIn("已规划到外滩", output)
         self.assertEqual([item["tool_name"] for item in trace], ["provider.geocode", "provider.map.route"])
+        self.assertEqual([item["agent_id"] for item in trace], ["RouteProviderAgent", "RouteProviderAgent"])
+        self.assertEqual([item["status"] for item in trace], ["OK", "OK"])
         self.assertEqual(trace[0]["output"]["destination_name"], "外滩")
         self.assertEqual(trace[1]["output"]["provider"], "fake_map")
 

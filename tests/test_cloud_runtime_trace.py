@@ -19,6 +19,14 @@ class TestCloudRuntimeTrace(unittest.TestCase):
         agent.dispatch(msg)
 
         trace = agent.get_last_trace()
+        self.assertTrue(all(item["request_id"] == msg.request_id for item in trace))
+        self.assertTrue(all(item["status"] == "OK" for item in trace))
+        self.assertEqual(trace[0]["agent_id"], "UserProfileAgent")
+        self.assertEqual(trace[1]["agent_id"], "VectorKnowledgeAgent")
+        self.assertEqual(trace[3]["agent_id"], "ExternalEcologyAgent")
+        self.assertEqual(trace[4]["agent_id"], "RouteProviderAgent")
+        self.assertEqual(trace[6]["agent_id"], "GlobalTripPlanningAgent")
+        self.assertEqual(trace[-1]["agent_id"], "GlobalDispatchAgent")
         self.assertEqual(
             [item["tool_name"] for item in trace],
             [

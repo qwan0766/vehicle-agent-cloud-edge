@@ -50,8 +50,8 @@ class TestWebDemoMarkup(unittest.TestCase):
     def test_static_assets_are_versioned_for_browser_cache_busting(self):
         html = Path("web_demo/static/index.html").read_text(encoding="utf-8")
 
-        self.assertIn("/styles.css?v=knowledge-layer-v1-20260511", html)
-        self.assertIn("/app.js?v=knowledge-layer-v1-20260511", html)
+        self.assertIn("/styles.css?v=trace-schema-v1-20260511", html)
+        self.assertIn("/app.js?v=trace-schema-v1-20260511", html)
 
     def test_styles_include_clarification_card_targets(self):
         css = Path("web_demo/static/styles.css").read_text(encoding="utf-8")

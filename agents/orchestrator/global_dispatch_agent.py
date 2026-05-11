@@ -46,7 +46,7 @@ class GlobalDispatchAgent:
         self._last_graph = self._empty_graph_state()
 
     def dispatch(self, msg: Message) -> str:
-        self.runtime.reset()
+        self.runtime.reset(request_id=msg.request_id)
         if self.enable_langgraph:
             try:
                 state = run_langgraph_cloud_workflow(

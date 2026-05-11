@@ -128,5 +128,19 @@ class CloudRoutePlanAgent:
                 "input": dict(input_payload),
                 "output": output,
                 "duration_ms": round((perf_counter() - started) * 1000, 3),
+                "agent_id": "RouteProviderAgent",
+                "phase": "provider",
+                "status": "OK",
+                "provider": _provider_name(tool_name, output),
             }
         )
+
+
+def _provider_name(tool_name: str, output) -> str:
+    if isinstance(output, dict) and output.get("provider"):
+        return str(output["provider"])
+    if tool_name == "provider.map.route":
+        return "map_route"
+    if tool_name == "provider.geocode":
+        return "geocode"
+    return ""

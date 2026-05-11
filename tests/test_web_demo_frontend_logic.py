@@ -206,6 +206,9 @@ class TestWebDemoFrontendLogic(unittest.TestCase):
         self.assertIn("云端调度", script)
         self.assertIn("数据闭环", script)
         self.assertIn("renderAlignedTrace", script)
+        self.assertIn("toolMatchesAgent", script)
+        self.assertIn("traceAgentMatches", script)
+        self.assertIn("tool.agent_id", script)
         self.assertIn("toolBelongsToAgent", script)
         self.assertIn("LocalIntentAgent", script)
         self.assertIn("解析用户指令意图", script)
@@ -230,11 +233,11 @@ class TestWebDemoFrontendLogic(unittest.TestCase):
         script = Path("web_demo/static/app.js").read_text(encoding="utf-8")
 
         self.assertIn('type="module"', markup)
-        self.assertIn('src="/app.js?v=knowledge-layer-v1-20260511"', markup)
+        self.assertIn('src="/app.js?v=trace-schema-v1-20260511"', markup)
         self.assertIn("import", script)
-        self.assertIn("./js/api.js?v=knowledge-layer-v1-20260511", script)
-        self.assertIn("./js/events.js?v=knowledge-layer-v1-20260511", script)
-        self.assertIn("./js/renderers/result.js?v=knowledge-layer-v1-20260511", script)
+        self.assertIn("./js/api.js?v=trace-schema-v1-20260511", script)
+        self.assertIn("./js/events.js?v=trace-schema-v1-20260511", script)
+        self.assertIn("./js/renderers/result.js?v=trace-schema-v1-20260511", script)
 
     def test_frontend_modules_exist_with_expected_responsibilities(self):
         module_paths = [
