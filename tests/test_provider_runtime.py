@@ -78,6 +78,37 @@ class TestProviderRuntime(unittest.TestCase):
         self.assertEqual(snapshot.failure_count, 0)
         self.assertEqual(snapshot.last_latency_ms, 12.3)
 
+    def test_health_cache_expires_non_open_snapshots(self):
+        clock = FakeClock()
+        runtime = ProviderRuntime(
+            ProviderRuntimeConfig(health_ttl_seconds=5),
+            clock=clock,
+        )
+        runtime.record_success("amap_poi", "place", latency_ms=10)
+        clock.advance(6)
+
+        snapshot = runtime.health("amap_poi", "place")
+
+        self.assertEqual(snapshot.status, "UNKNOWN")
+        self.assertEqual(runtime.all_health(), [])
+
+    def test_runtime_config_clamps_invalid_numeric_values(self):
+        config = ProviderRuntimeConfig(
+            timeout_seconds=-1,
+            retries=-3,
+            backoff_seconds=-0.5,
+            circuit_failure_threshold=0,
+            circuit_reset_seconds=-1,
+            health_ttl_seconds=-1,
+        )
+
+        self.assertEqual(config.timeout_seconds, 1)
+        self.assertEqual(config.retries, 0)
+        self.assertEqual(config.backoff_seconds, 0.0)
+        self.assertEqual(config.circuit_failure_threshold, 1)
+        self.assertEqual(config.circuit_reset_seconds, 0.0)
+        self.assertEqual(config.health_ttl_seconds, 0.0)
+
     def test_get_json_records_success_health(self):
         runtime = ProviderRuntime()
 

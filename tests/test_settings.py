@@ -131,6 +131,28 @@ class TestAppSettings(unittest.TestCase):
         self.assertEqual(settings.local_llm.context_limit_tokens, 7500)
         self.assertEqual(settings.provider_runtime.backoff_seconds, 0.1)
 
+    def test_provider_runtime_numeric_values_are_clamped(self):
+        with patch.dict(
+            os.environ,
+            {
+                "PROVIDER_TIMEOUT_SECONDS": "-10",
+                "PROVIDER_RETRIES": "-1",
+                "PROVIDER_BACKOFF_SECONDS": "-0.1",
+                "PROVIDER_CIRCUIT_FAILURE_THRESHOLD": "0",
+                "PROVIDER_CIRCUIT_RESET_SECONDS": "-1",
+                "PROVIDER_HEALTH_TTL_SECONDS": "-1",
+            },
+            clear=True,
+        ):
+            settings = get_settings()
+
+        self.assertEqual(settings.provider_runtime.timeout_seconds, 1)
+        self.assertEqual(settings.provider_runtime.retries, 0)
+        self.assertEqual(settings.provider_runtime.backoff_seconds, 0.0)
+        self.assertEqual(settings.provider_runtime.circuit_failure_threshold, 1)
+        self.assertEqual(settings.provider_runtime.circuit_reset_seconds, 0.0)
+        self.assertEqual(settings.provider_runtime.health_ttl_seconds, 0.0)
+
 
 if __name__ == "__main__":
     unittest.main()

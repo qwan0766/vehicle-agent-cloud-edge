@@ -21,6 +21,26 @@ class ProviderRuntimeConfig:
     circuit_reset_seconds: float = 30.0
     health_ttl_seconds: float = 30.0
 
+    def __post_init__(self):
+        object.__setattr__(self, "timeout_seconds", max(1, int(self.timeout_seconds)))
+        object.__setattr__(self, "retries", max(0, int(self.retries)))
+        object.__setattr__(self, "backoff_seconds", max(0.0, float(self.backoff_seconds)))
+        object.__setattr__(
+            self,
+            "circuit_failure_threshold",
+            max(1, int(self.circuit_failure_threshold)),
+        )
+        object.__setattr__(
+            self,
+            "circuit_reset_seconds",
+            max(0.0, float(self.circuit_reset_seconds)),
+        )
+        object.__setattr__(
+            self,
+            "health_ttl_seconds",
+            max(0.0, float(self.health_ttl_seconds)),
+        )
+
 
 @dataclass
 class ProviderHealthSnapshot:
@@ -105,9 +125,11 @@ class ProviderRuntime:
 
     def health(self, provider: str, operation: str = "") -> ProviderHealthSnapshot:
         if operation:
-            return self._snapshot(provider, operation)
+            return self._health_snapshot(provider, operation)
         snapshots = [
-            item for (name, _operation), item in self._health.items() if name == provider
+            item
+            for (name, _operation), item in self._health.items()
+            if name == provider and not self._is_expired(item)
         ]
         if not snapshots:
             return ProviderHealthSnapshot(provider=provider, operation="")
@@ -130,7 +152,11 @@ class ProviderRuntime:
         )
 
     def all_health(self):
-        return [snapshot.to_dict() for snapshot in self._health.values()]
+        return [
+            snapshot.to_dict()
+            for snapshot in self._health.values()
+            if not self._is_expired(snapshot)
+        ]
 
     def reset(self):
         self._health.clear()
@@ -143,6 +169,22 @@ class ProviderRuntime:
                 operation=operation,
             )
         return self._health[key]
+
+    def _health_snapshot(self, provider: str, operation: str) -> ProviderHealthSnapshot:
+        key = (provider, operation)
+        snapshot = self._health.get(key)
+        if snapshot is None:
+            return ProviderHealthSnapshot(provider=provider, operation=operation)
+        if self._is_expired(snapshot):
+            self._health.pop(key, None)
+            return ProviderHealthSnapshot(provider=provider, operation=operation)
+        return snapshot
+
+    def _is_expired(self, snapshot: ProviderHealthSnapshot) -> bool:
+        ttl = self.config.health_ttl_seconds
+        if ttl <= 0 or snapshot.status == HEALTH_OPEN:
+            return False
+        return self.clock() - snapshot.updated_at > ttl
 
 
 _DEFAULT_RUNTIME = None

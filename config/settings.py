@@ -59,6 +59,26 @@ class ProviderRuntimeSettings:
     circuit_reset_seconds: float = 30.0
     health_ttl_seconds: float = 30.0
 
+    def __post_init__(self):
+        object.__setattr__(self, "timeout_seconds", max(1, int(self.timeout_seconds)))
+        object.__setattr__(self, "retries", max(0, int(self.retries)))
+        object.__setattr__(self, "backoff_seconds", max(0.0, float(self.backoff_seconds)))
+        object.__setattr__(
+            self,
+            "circuit_failure_threshold",
+            max(1, int(self.circuit_failure_threshold)),
+        )
+        object.__setattr__(
+            self,
+            "circuit_reset_seconds",
+            max(0.0, float(self.circuit_reset_seconds)),
+        )
+        object.__setattr__(
+            self,
+            "health_ttl_seconds",
+            max(0.0, float(self.health_ttl_seconds)),
+        )
+
 
 @dataclass(frozen=True)
 class RuntimeSettings:
