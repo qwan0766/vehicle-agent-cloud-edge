@@ -1,6 +1,7 @@
 from time import perf_counter
 
 from core.trace import TraceEvent, normalize_trace_event
+from providers.errors import coerce_provider_error
 
 
 class AgentRuntime:
@@ -15,15 +16,33 @@ class AgentRuntime:
 
     def call_tool(self, registry, tool_name: str, payload: dict):
         started = perf_counter()
-        output = registry.call(tool_name, payload)
-        duration_ms = round((perf_counter() - started) * 1000, 3)
-        self.append_trace(
-            tool_name=tool_name,
-            input=payload,
-            output=output,
-            duration_ms=duration_ms,
-        )
-        return output
+        try:
+            output = registry.call(tool_name, payload)
+            duration_ms = round((perf_counter() - started) * 1000, 3)
+            self.append_trace(
+                tool_name=tool_name,
+                input=payload,
+                output=output,
+                duration_ms=duration_ms,
+            )
+            return output
+        except Exception as exc:
+            duration_ms = round((perf_counter() - started) * 1000, 3)
+            provider_error = coerce_provider_error(
+                exc,
+                provider=_infer_provider(tool_name, None) or _infer_agent_id(tool_name) or "unknown_provider",
+                operation=tool_name,
+            )
+            self.append_trace(
+                tool_name=tool_name,
+                input=payload,
+                output=provider_error.to_payload(),
+                duration_ms=duration_ms,
+                status="ERROR",
+                provider=provider_error.provider,
+                error_code=provider_error.code,
+            )
+            raise
 
     def append_trace(
         self,

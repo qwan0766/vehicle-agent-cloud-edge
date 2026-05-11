@@ -22,6 +22,7 @@ from web_demo.app_model import (
     update_vehicle_state,
 )
 from providers.destination_resolver import extract_destination_query
+from providers.errors import ProviderError
 
 
 class WebDemoHandler(SimpleHTTPRequestHandler):
@@ -141,6 +142,17 @@ def parse_server_args(argv=None):
 
 
 def build_error_response(exc: Exception, content: str = "", network: str = "ONLINE"):
+    if isinstance(exc, ProviderError):
+        payload = exc.to_payload()
+        payload.update(
+            {
+                "type": exc.__class__.__name__,
+                "user_title": "外部能力暂时不可用" if exc.retryable else "外部能力返回异常",
+                "suggestions": _provider_error_suggestions(exc),
+            }
+        )
+        return payload
+
     technical_message = str(exc)
     destination = extract_destination_query(content) or content or "当前指令"
     response = {
@@ -255,6 +267,18 @@ def build_error_response(exc: Exception, content: str = "", network: str = "ONLI
         )
 
     return response
+
+
+def _provider_error_suggestions(exc: ProviderError):
+    if exc.retryable:
+        return [
+            "稍后重试，或点击 Smoke Test 查看对应 Provider 是否可用。",
+            "如果连续失败，请检查 API Key、网络连通性或服务额度。",
+        ]
+    return [
+        "请检查用户输入是否足够具体，或查看 Agent Trace 中的 Provider 响应。",
+        "如果输入无误，请检查外部接口返回结构是否发生变化。",
+    ]
 
 
 if __name__ == "__main__":
