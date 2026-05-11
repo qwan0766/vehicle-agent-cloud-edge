@@ -1,6 +1,6 @@
 # 车载 Multi-Agent 交付验收报告
 
-- 生成时间：2026-05-11T22:40:16+08:00
+- 生成时间：2026-05-12T00:57:48+08:00
 - 总体状态：PASS
 - 稳定环境：Mock Local LLM + Offline Provider，真实 Provider smoke 为可选项
 
@@ -8,9 +8,9 @@
 
 | 步骤 | 状态 | 耗时 |
 | --- | --- | ---: |
-| unit tests | PASS | 8.97s |
-| frontend js syntax | PASS | 1.01s |
-| demo scenarios | PASS | 1.54s |
+| unit tests | PASS | 18.04s |
+| frontend js syntax | PASS | 3.03s |
+| demo scenarios | PASS | 5.32s |
 | provider smoke | SKIP | 0.00s |
 
 ## 面试演示场景
@@ -28,28 +28,28 @@
 ### unit tests
 
 - 状态：PASS
-- 耗时：8.97s
+- 耗时：18.04s
 
 ```text
 $ C:\Users\scyqw3\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe -m pytest tests --basetemp=E:\claudeCode\weilaiAgent\.tmp\delivery-pytest -q
-........................................................................ [ 24%]
-........................................................................ [ 48%]
-........................................................................ [ 72%]
-........................................................................ [ 96%]
-..........                                                               [100%]
+........................................................................ [ 23%]
+........................................................................ [ 46%]
+........................................................................ [ 70%]
+........................................................................ [ 93%]
+....................                                                     [100%]
 ============================== warnings summary ===============================
 tests/test_cloud_agents.py::TestCloudAgents::test_cloud_schedule_combines_profile_ecology_and_route
   C:\Users\scyqw3\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\site-packages\langgraph\cache\base\__init__.py:8: LangChainPendingDeprecationWarning: The default value of `allowed_objects` will change in a future version. Pass an explicit value (e.g., allowed_objects='messages' or allowed_objects='core') to suppress this warning.
     from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
 
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-298 passed, 1 warning in 7.14s
+308 passed, 1 warning in 13.54s
 ```
 
 ### frontend js syntax
 
 - 状态：PASS
-- 耗时：1.01s
+- 耗时：3.03s
 
 ```text
 16 JavaScript files checked
@@ -58,7 +58,7 @@ tests/test_cloud_agents.py::TestCloudAgents::test_cloud_schedule_combines_profil
 ### demo scenarios
 
 - 状态：PASS
-- 耗时：1.54s
+- 耗时：5.32s
 
 ```text
 正常导航端云协同: NAVIGATION/EXECUTED expected NAVIGATION/EXECUTED

@@ -303,6 +303,7 @@ def build_stable_env() -> dict[str, str]:
     env["OPENCHARGEMAP_API_KEY"] = ""
     env["USE_OPEN_METEO"] = "0"
     env["USE_OPENCHARGEMAP"] = "0"
+    env["ENABLE_LANGGRAPH"] = "1"
     return env
 
 

@@ -51,6 +51,7 @@ class TestDeliveryCheck(unittest.TestCase):
         self.assertEqual(env["USE_OPENCHARGEMAP"], "0")
         self.assertEqual(env["DEEPSEEK_API_KEY"], "")
         self.assertEqual(env["AMAP_API_KEY"], "")
+        self.assertEqual(env["ENABLE_LANGGRAPH"], "1")
 
     def test_project_root_points_to_workspace(self):
         self.assertTrue((PROJECT_ROOT / "web_demo" / "app_model.py").exists())
