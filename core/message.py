@@ -30,3 +30,32 @@ class Message:
             content=content,
             network=network,
         )
+
+    def to_dict(self) -> dict:
+        return {
+            "request_id": self.request_id,
+            "user_id": self.user_id,
+            "command_type": self.command_type.value,
+            "safety": self.safety.value,
+            "content": self.content,
+            "network": self.network.value,
+        }
+
+    def to_intent_frame(
+        self,
+        raw_input: str = None,
+        normalized_input: str = None,
+        confidence: float = 1.0,
+        source: str = "message",
+        slots: dict = None,
+    ):
+        from core.agent_schema import IntentFrame
+
+        return IntentFrame.from_message(
+            self,
+            raw_input=raw_input,
+            normalized_input=normalized_input,
+            confidence=confidence,
+            source=source,
+            slots=slots,
+        )

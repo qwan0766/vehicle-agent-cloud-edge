@@ -40,6 +40,14 @@ class ExecutionResult:
     pending_action: dict = None
     input_rewrite: dict = None
 
+    def to_frame(self):
+        from core.agent_schema import ExecutionResultFrame
+
+        return ExecutionResultFrame.from_result(self)
+
+    def to_dict(self) -> dict:
+        return self.to_frame().to_dict()
+
 
 class VehicleCoreService:
     def __init__(
