@@ -15,11 +15,12 @@ def make_result(
     network=NetworkStatus.ONLINE,
     output="ok",
     user_id="user_001",
+    safety=SafetyLevel.SAFE,
 ):
     message = Message.create(
         user_id=user_id,
         command_type=command_type,
-        safety=SafetyLevel.SAFE,
+        safety=safety,
         content=user_input,
         network=network,
     )
@@ -70,6 +71,56 @@ class TestLocalContextManager(unittest.TestCase):
         self.assertTrue(
             any(item["user_input"] == "导航去蔚来中心" for item in result.local_context["recent_turns"])
         )
+
+    def test_recent_window_excludes_blocked_and_unknown_turns(self):
+        path = Path(".test_runtime") / f"local_context_{uuid.uuid4().hex}.json"
+        manager = LocalContextManager(path=path, max_recent_turns=4)
+
+        manager.record_result(
+            make_result(
+                "立即刹车",
+                command_type=CommandType.CAR_CONTROL,
+                status=ExecutionStatus.BLOCKED,
+                safety=SafetyLevel.DANGEROUS,
+            )
+        )
+        manager.record_result(
+            make_result(
+                "查询股票行情",
+                command_type=CommandType.UNKNOWN,
+                status=ExecutionStatus.BLOCKED,
+            )
+        )
+        manager.record_result(make_result("导航去蔚来中心"))
+
+        snapshot = manager.snapshot("user_001")
+
+        self.assertEqual(snapshot["total_turns"], 3)
+        self.assertEqual(
+            [item["user_input"] for item in snapshot["recent_turns"]],
+            ["导航去蔚来中心"],
+        )
+
+    def test_snapshot_sanitizes_existing_blocked_summary_fragments(self):
+        path = Path(".test_runtime") / f"local_context_{uuid.uuid4().hex}.json"
+        manager = LocalContextManager(path=path, max_recent_turns=1)
+
+        manager.record_result(make_result("导航去蔚来中心", output="route"))
+        manager.record_result(
+            make_result(
+                "立即刹车",
+                command_type=CommandType.CAR_CONTROL,
+                status=ExecutionStatus.BLOCKED,
+                safety=SafetyLevel.DANGEROUS,
+            )
+        )
+        manager.record_result(make_result("我要回家", output="home"))
+
+        snapshot = manager.snapshot("user_001")
+
+        self.assertNotIn("立即刹车", snapshot["summary"])
+        self.assertNotIn("BLOCKED", snapshot["summary"])
+        self.assertIn("导航去蔚来中心", snapshot["summary"])
 
 
 if __name__ == "__main__":

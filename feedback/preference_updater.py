@@ -12,6 +12,14 @@ class PreferenceUpdate:
     delta: int
     description: str
     timestamp: str
+    memory_key: str = ""
+    memory_value: str = ""
+    source: str = "rule"
+    confidence_delta: float = 0.0
+    evidence_type: str = "behavior"
+    polarity: str = "positive"
+    scenario: str = ""
+    confidence_weight: float = 0.0
 
     def to_dict(self):
         return asdict(self)
@@ -62,6 +70,13 @@ class PreferenceUpdater:
                 delta=1,
                 description="路线偏好高速 +1",
                 timestamp=event.timestamp,
+                memory_key="route_preference",
+                memory_value="高速优先",
+                source="repeated_behavior",
+                confidence_delta=0.12,
+                evidence_type="behavior",
+                scenario="navigation",
+                confidence_weight=0.12,
             )
 
         if event.command_type == "CAR_CONTROL" and "座椅加热" in event.user_input:
@@ -71,6 +86,13 @@ class PreferenceUpdater:
                 delta=1,
                 description="座椅加热偏好 +1",
                 timestamp=event.timestamp,
+                memory_key="seat_heat_preference",
+                memory_value="倾向开启座椅加热",
+                source="repeated_behavior",
+                confidence_delta=0.1,
+                evidence_type="behavior",
+                scenario="comfort",
+                confidence_weight=0.1,
             )
 
         if event.command_type == "CHARGE_PLAN":
@@ -80,6 +102,13 @@ class PreferenceUpdater:
                 delta=1,
                 description="补能提醒关注 +1",
                 timestamp=event.timestamp,
+                memory_key="charge_awareness",
+                memory_value="关注低电量补能提醒",
+                source="repeated_behavior",
+                confidence_delta=0.1,
+                evidence_type="behavior",
+                scenario="energy",
+                confidence_weight=0.1,
             )
 
         return PreferenceUpdate(

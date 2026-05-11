@@ -51,8 +51,9 @@ class LocalAgentContextManager:
             session_id or self.default_session_id,
         )
         turn = self._turn_from_result(result)
-        scoped_state["recent_turns"].append(turn.to_dict())
         scoped_state["total_turns"] = int(scoped_state.get("total_turns", 0)) + 1
+        if self._is_semantic_memory_turn(turn.to_dict()):
+            scoped_state["recent_turns"].append(turn.to_dict())
         self._compress_if_needed(scoped_state)
         self._save(state)
         return self.snapshot(
@@ -71,13 +72,14 @@ class LocalAgentContextManager:
             user_id,
             resolved_session_id,
         )
+        recent_turns = self._semantic_recent_turns(scoped_state["recent_turns"])
         return {
             "memory_scope": "agent_local",
             "agent_id": resolved_agent_id,
             "session_id": resolved_session_id,
             "user_id": user_id,
-            "summary": scoped_state["summary"],
-            "recent_turns": list(scoped_state["recent_turns"]),
+            "summary": self._sanitize_summary(scoped_state["summary"]),
+            "recent_turns": recent_turns,
             "total_turns": int(scoped_state["total_turns"]),
             "compressed_turns": int(scoped_state["compressed_turns"]),
             "max_recent_turns": self.max_recent_turns,
@@ -143,17 +145,45 @@ class LocalAgentContextManager:
             overflow
         )
 
-        fragments = [self._summarize_turn(turn) for turn in overflow]
+        fragments = [
+            self._summarize_turn(turn)
+            for turn in overflow
+            if self._is_semantic_memory_turn(turn)
+        ]
         merged = " | ".join(
             item for item in [scoped_state.get("summary", ""), *fragments] if item
         )
-        scoped_state["summary"] = self._trim_summary(merged)
+        scoped_state["summary"] = self._trim_summary(self._sanitize_summary(merged))
 
     def _summarize_turn(self, turn: Dict) -> str:
         return (
             f"{turn.get('command_type')}:{turn.get('execution_status')} "
             f"user={turn.get('user_input')} -> {self._truncate(turn.get('output', ''), 80)}"
         )
+
+    def _semantic_recent_turns(self, turns: List[Dict]) -> List[Dict]:
+        return [turn for turn in turns if self._is_semantic_memory_turn(turn)][
+            -self.max_recent_turns :
+        ]
+
+    def _is_semantic_memory_turn(self, turn: Dict) -> bool:
+        return (
+            turn.get("safety") == "SAFE"
+            and turn.get("command_type") != "UNKNOWN"
+            and turn.get("execution_status") != "BLOCKED"
+        )
+
+    def _sanitize_summary(self, summary: str) -> str:
+        parts = [part.strip() for part in str(summary or "").split(" | ") if part.strip()]
+        filtered = []
+        for part in parts:
+            match = part.split(" ", 1)[0].split(":", 1)
+            if len(match) == 2:
+                command_type, status = match
+                if command_type == "UNKNOWN" or status == "BLOCKED":
+                    continue
+            filtered.append(part)
+        return " | ".join(filtered)
 
     def _trim_summary(self, summary: str) -> str:
         if len(summary) <= self.max_summary_chars:

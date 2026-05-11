@@ -54,6 +54,10 @@ class TestFeedbackLoop(unittest.TestCase):
         self.assertEqual(update.preference_key, "route_preference_highway")
         self.assertEqual(update.delta, 1)
         self.assertIn("路线偏好高速", update.description)
+        self.assertEqual(update.memory_key, "route_preference")
+        self.assertEqual(update.memory_value, "高速优先")
+        self.assertEqual(update.source, "repeated_behavior")
+        self.assertGreater(update.confidence_delta, 0)
 
     def test_preference_updater_does_not_learn_from_clarification_prompt(self):
         updater = PreferenceUpdater()
@@ -95,6 +99,8 @@ class TestFeedbackLoop(unittest.TestCase):
 
         self.assertEqual(summary["event_status"], "RECORDED")
         self.assertIn("座椅加热偏好", summary["preference_update"])
+        self.assertIn("long_term_memory", summary["preference_state"])
+        self.assertIn("seat_heat_preference", summary["preference_state"]["long_term_memory"])
         self.assertTrue((runtime_dir / "usage_events.jsonl").exists())
 
     def test_feedback_service_extracts_frequent_navigation_destinations(self):
